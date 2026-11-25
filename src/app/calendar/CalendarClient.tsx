@@ -9,6 +9,7 @@ import {
   Calendar as CalendarIcon,
   Clock,
   X,
+  AlertCircle,
 } from "lucide-react";
 import { setPendingToast } from "@/components/Toast";
 import {
@@ -368,21 +369,72 @@ export function CalendarClient({
 
             <form onSubmit={handleCreateActivity} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Campaign *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Campaign *
+                  </label>
+                  {campaigns.length > 0 && (
+                    <Link
+                      href="/campaigns"
+                      className="text-[11px] font-medium text-indigo-600 hover:text-indigo-800 transition"
+                    >
+                      + Manage Campaigns
+                    </Link>
+                  )}
+                </div>
+
                 <select
                   value={formCampaignId}
                   onChange={(e) => setFormCampaignId(e.target.value)}
-                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={`w-full text-xs border rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    campaigns.length === 0
+                      ? "border-amber-300 bg-amber-50/50 text-amber-900"
+                      : "border-slate-200"
+                  }`}
                   required
+                  disabled={campaigns.length === 0}
                 >
-                  {campaigns.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
+                  {campaigns.length === 0 ? (
+                    <option value="" disabled selected>
+                      No campaigns available
                     </option>
-                  ))}
+                  ) : (
+                    <>
+                      <option value="" disabled>
+                        Select a campaign...
+                      </option>
+                      {campaigns.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
                 </select>
+
+                {campaigns.length === 0 && (
+                  <div className="mt-2.5 p-3.5 bg-amber-50/90 border border-amber-200/90 rounded-xl space-y-2">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-amber-900">
+                          No campaigns found
+                        </p>
+                        <p className="text-[11px] text-amber-700 leading-relaxed">
+                          Every activity must belong to a campaign. Please create a campaign first before scheduling activities.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-1 border-t border-amber-200/60">
+                      <Link
+                        href="/campaigns"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-xs transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Go to Campaigns & Create One
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -545,10 +597,14 @@ export function CalendarClient({
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || campaigns.length === 0}
                   className="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition shadow-sm disabled:opacity-50"
                 >
-                  {submitting ? "Saving..." : "Create & Schedule"}
+                  {submitting
+                    ? "Saving..."
+                    : campaigns.length === 0
+                    ? "Create Campaign First"
+                    : "Create & Schedule"}
                 </button>
               </div>
             </form>
