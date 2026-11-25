@@ -522,7 +522,7 @@ export function ActivitiesClient({
                 <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
                   <HelpCircle className="w-4 h-4" />
                 </span>
-                <span className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-100">
+                <span className="text-xs font-normal text-slate-600">
                   How it works
                 </span>
               </div>
