@@ -119,9 +119,9 @@ const STATUS_COLUMNS = [
   },
   {
     id: "canceled",
-    step: "7",
+    step: "↶",
     label: "Canceled",
-    bg: "bg-zinc-100/60",
+    bg: "bg-zinc-100/70",
     border: "border-zinc-300",
     badgeBg: "bg-zinc-200 text-zinc-700",
     headerText: "text-zinc-800",
@@ -451,75 +451,249 @@ export function ActivitiesClient({
       {/* View: Status Board (Linked Pipeline Flow & Kanban Columns) */}
       {viewMode === "board" ? (
         <div className="space-y-4">
-          {/* Linked Pipeline Stepper Flow Bar */}
-          <div className="hidden lg:block bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
-            <div className="flex items-center justify-between gap-1 overflow-x-auto text-xs">
-              {STATUS_COLUMNS.map((col, idx) => {
-                const count = filteredActivities.filter(
-                  (a) => a.status === col.id
-                ).length;
-                return (
-                  <React.Fragment key={col.id}>
-                    <div
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-semibold border ${
-                        col.id === "draft"
-                          ? "bg-slate-50 text-slate-800 border-slate-200"
-                          : col.id === "scheduled"
-                          ? "bg-blue-50 text-blue-900 border-blue-200"
-                          : col.id === "in_progress"
-                          ? "bg-amber-50 text-amber-900 border-amber-200"
-                          : col.id === "awaiting_review"
-                          ? "bg-purple-50 text-purple-900 border-purple-200"
-                          : col.id === "passed"
-                          ? "bg-emerald-50 text-emerald-900 border-emerald-200"
-                          : col.id === "failed"
-                          ? "bg-rose-50 text-rose-900 border-rose-200"
-                          : "bg-zinc-100 text-zinc-800 border-zinc-300"
-                      }`}
-                    >
-                      <span
-                        className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${col.badgeBg}`}
-                      >
-                        {col.step}
-                      </span>
-                      <span>{col.label}</span>
-                      <span className="text-[10px] bg-white px-1.5 py-0.2 rounded-full border border-slate-200 font-bold">
-                        {count}
-                      </span>
-                    </div>
-
-                    {idx < STATUS_COLUMNS.length - 1 && (
-                      <div className="flex items-center px-1 text-slate-400">
-                        {idx === 1 ? (
-                          <span title="Bidirectional: Scheduled ⇄ In Progress">
-                            <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
-                          </span>
-                        ) : idx >= 4 ? (
-                          <span className="text-xs font-semibold text-slate-300">
-                            /
-                          </span>
-                        ) : (
-                          <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
-                        )}
-                      </div>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-
-              <div
-                className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 pl-2 border-l border-slate-200 shrink-0"
-                title="Canceled items can loop back to Draft"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Cancel ➔ Draft</span>
+          {/* Interactive Mind Map & Linked Lifecycle Stepper */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded-lg bg-indigo-50 text-indigo-600">
+                  <Link2 className="w-3.5 h-3.5" />
+                </span>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Activity Lifecycle Mind Map
+                </span>
+                <span className="text-[11px] text-slate-400 font-normal">
+                  — Scheduled and Canceled are two separate branches from Draft (not linked horizontally)
+                </span>
               </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                <span>Filter stage:</span>
+                {filterStatus ? (
+                  <button
+                    onClick={() => setFilterStatus("")}
+                    className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-semibold text-[10px]"
+                  >
+                    Showing {filterStatus.replace("_", " ")} <X className="w-2.5 h-2.5" />
+                  </button>
+                ) : (
+                  <span className="font-semibold text-slate-700">All (click any box)</span>
+                )}
+              </div>
+            </div>
+
+            {/* Mind Map Canvas */}
+            <div className="overflow-x-auto py-1">
+              <div className="min-w-[860px] flex items-center justify-between gap-3 text-xs">
+                {/* 1. DRAFT */}
+                <div className="flex flex-col items-center shrink-0">
+                  <button
+                    onClick={() => setFilterStatus(filterStatus === "draft" ? "" : "draft")}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition shadow-xs ${
+                      filterStatus === "draft"
+                        ? "bg-slate-900 text-white border-slate-900 ring-2 ring-slate-400"
+                        : "bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center text-[10px] font-bold">1</span>
+                    <span>Draft</span>
+                    <span className="bg-white text-slate-700 px-1.5 py-0.2 rounded-full text-[10px] border border-slate-200 font-bold">
+                      {filteredActivities.filter((a) => a.status === "draft").length}
+                    </span>
+                  </button>
+                  <span className="text-[10px] text-slate-400 mt-1 font-medium">Initial state</span>
+                </div>
+
+                {/* DRAFT BRANCH CONNECTOR: Split from Draft into Scheduled (top), In Progress (middle direct), Canceled (bottom) */}
+                <div className="flex flex-col justify-between items-center h-28 relative w-12 text-slate-300 shrink-0">
+                  {/* Top branch line up to Scheduled */}
+                  <div className="absolute top-4 left-0 w-6 h-10 border-t-2 border-l-2 border-slate-200 rounded-tl-xl" />
+                  <ArrowRight className="absolute top-2 right-0 w-3.5 h-3.5 text-blue-400" />
+
+                  {/* Middle direct dash line to In Progress */}
+                  <div className="w-full border-t border-dashed border-slate-300 relative my-auto">
+                    <ArrowRight className="absolute -top-1.5 right-0 w-3.5 h-3.5 text-amber-400" />
+                  </div>
+
+                  {/* Bottom branch line down to Canceled */}
+                  <div className="absolute bottom-4 left-0 w-6 h-10 border-b-2 border-l-2 border-slate-200 rounded-bl-xl" />
+                  <ArrowRight className="absolute bottom-2 right-0 w-3.5 h-3.5 text-zinc-400" />
+                </div>
+
+                {/* TWO SEPARATE BOXES (NOT LINKED HORIZONTALLY): Scheduled (top) & Canceled (bottom) */}
+                <div className="flex flex-col justify-between h-28 py-0.5 shrink-0">
+                  {/* SCHEDULED BOX */}
+                  <button
+                    onClick={() => setFilterStatus(filterStatus === "scheduled" ? "" : "scheduled")}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition shadow-xs ${
+                      filterStatus === "scheduled"
+                        ? "bg-blue-600 text-white border-blue-600 ring-2 ring-blue-300"
+                        : "bg-blue-50 text-blue-900 border-blue-200 hover:bg-blue-100"
+                    }`}
+                  >
+                    <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-[10px] font-bold">2</span>
+                    <span>Scheduled</span>
+                    <span className="bg-white text-blue-800 px-1.5 py-0.2 rounded-full text-[10px] border border-blue-100 font-bold">
+                      {filteredActivities.filter((a) => a.status === "scheduled").length}
+                    </span>
+                  </button>
+
+                  {/* CANCELED BOX (SEPARATE BOX, NOT LINKED HORIZONTALLY TO SCHEDULED) */}
+                  <button
+                    onClick={() => setFilterStatus(filterStatus === "canceled" ? "" : "canceled")}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition shadow-xs ${
+                      filterStatus === "canceled"
+                        ? "bg-zinc-800 text-white border-zinc-800 ring-2 ring-zinc-400"
+                        : "bg-zinc-100 text-zinc-800 border-zinc-300 hover:bg-zinc-200"
+                    }`}
+                  >
+                    <Ban className="w-3.5 h-3.5 text-zinc-500" />
+                    <span>Canceled</span>
+                    <span className="bg-white text-zinc-700 px-1.5 py-0.2 rounded-full text-[10px] border border-zinc-200 font-bold">
+                      {filteredActivities.filter((a) => a.status === "canceled").length}
+                    </span>
+                  </button>
+                </div>
+
+                {/* CONNECTOR from Scheduled to In Progress (and Canceled loopback) */}
+                <div className="flex flex-col justify-between h-28 py-1 items-center relative w-12 text-slate-300 shrink-0">
+                  {/* Line from Scheduled down to In Progress */}
+                  <div className="absolute top-4 left-0 w-6 h-10 border-t-2 border-r-2 border-slate-200 rounded-tr-xl" />
+                  <span title="Bidirectional Scheduled ⇄ In Progress" className="absolute top-2 right-0">
+                    <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
+                  </span>
+
+                  {/* Canceled loop back to Draft indicator */}
+                  <div
+                    onClick={() => setFilterStatus(filterStatus === "canceled" ? "" : "canceled")}
+                    className="absolute bottom-2 flex items-center gap-1 text-[10px] text-indigo-600 font-semibold whitespace-nowrap bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md border border-indigo-100 cursor-pointer transition"
+                    title="Canceled events can be returned back to Draft"
+                  >
+                    <RotateCcw className="w-2.5 h-2.5" />
+                    <span>↶ to Draft</span>
+                  </div>
+                </div>
+
+                {/* 3. IN PROGRESS */}
+                <div className="flex flex-col items-center shrink-0">
+                  <button
+                    onClick={() => setFilterStatus(filterStatus === "in_progress" ? "" : "in_progress")}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition shadow-xs ${
+                      filterStatus === "in_progress"
+                        ? "bg-amber-600 text-white border-amber-600 ring-2 ring-amber-300"
+                        : "bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100"
+                    }`}
+                  >
+                    <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-[10px] font-bold">3</span>
+                    <span>In Progress</span>
+                    <span className="bg-white text-amber-800 px-1.5 py-0.2 rounded-full text-[10px] border border-amber-100 font-bold">
+                      {filteredActivities.filter((a) => a.status === "in_progress").length}
+                    </span>
+                  </button>
+                  <span className="text-[10px] text-amber-600 mt-1 font-medium">Active work</span>
+                </div>
+
+                {/* CONNECTOR to Awaiting Review */}
+                <div className="flex items-center text-slate-300 px-1 shrink-0">
+                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                </div>
+
+                {/* 4. AWAITING REVIEW */}
+                <div className="flex flex-col items-center shrink-0">
+                  <button
+                    onClick={() => setFilterStatus(filterStatus === "awaiting_review" ? "" : "awaiting_review")}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition shadow-xs ${
+                      filterStatus === "awaiting_review"
+                        ? "bg-purple-600 text-white border-purple-600 ring-2 ring-purple-300"
+                        : "bg-purple-50 text-purple-900 border-purple-200 hover:bg-purple-100"
+                    }`}
+                  >
+                    <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center text-[10px] font-bold">4</span>
+                    <span>Awaiting Review</span>
+                    <span className="bg-white text-purple-800 px-1.5 py-0.2 rounded-full text-[10px] border border-purple-100 font-bold">
+                      {filteredActivities.filter((a) => a.status === "awaiting_review").length}
+                    </span>
+                  </button>
+                  <span className="text-[10px] text-purple-600 mt-1 font-medium">Proof inspection</span>
+                </div>
+
+                {/* CONNECTOR to Outcomes */}
+                <div className="flex items-center text-slate-300 px-1 shrink-0">
+                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                </div>
+
+                {/* 5 & 6. OUTCOMES: Completed & Failed */}
+                <div className="flex flex-col justify-between h-28 py-0.5 shrink-0">
+                  {/* COMPLETED */}
+                  <button
+                    onClick={() => setFilterStatus(filterStatus === "passed" ? "" : "passed")}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition shadow-xs ${
+                      filterStatus === "passed"
+                        ? "bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-300"
+                        : "bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100"
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Completed</span>
+                    <span className="bg-white text-emerald-800 px-1.5 py-0.2 rounded-full text-[10px] border border-emerald-100 font-bold">
+                      {filteredActivities.filter((a) => a.status === "passed").length}
+                    </span>
+                  </button>
+
+                  {/* FAILED */}
+                  <button
+                    onClick={() => setFilterStatus(filterStatus === "failed" ? "" : "failed")}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition shadow-xs ${
+                      filterStatus === "failed"
+                        ? "bg-rose-600 text-white border-rose-600 ring-2 ring-rose-300"
+                        : "bg-rose-50 text-rose-900 border-rose-200 hover:bg-rose-100"
+                    }`}
+                  >
+                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Failed</span>
+                    <span className="bg-white text-rose-800 px-1.5 py-0.2 rounded-full text-[10px] border border-rose-100 font-bold">
+                      {filteredActivities.filter((a) => a.status === "failed").length}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Column Jump Pills */}
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs px-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400 font-semibold text-[11px] mr-1">Columns:</span>
+              <button
+                onClick={() => setFilterStatus("")}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs ${
+                  !filterStatus
+                    ? "bg-slate-800 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                All 7 Columns
+              </button>
+              {STATUS_COLUMNS.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setFilterStatus(filterStatus === c.id ? "" : c.id)}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1 ${
+                    filterStatus === c.id
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <span>{c.label}</span>
+                  <span className="text-[10px] opacity-75">
+                    ({filteredActivities.filter((a) => a.status === c.id).length})
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Linked Kanban Columns Track */}
           <div className="flex gap-4 items-start overflow-x-auto pb-6 pt-1 px-1">
-            {STATUS_COLUMNS.map((col, idx) => {
+            {STATUS_COLUMNS.filter((col) => !filterStatus || filterStatus === col.id).map((col, idx) => {
               const colActivities = filteredActivities.filter(
                 (a) => a.status === col.id
               );
@@ -744,14 +918,14 @@ export function ActivitiesClient({
                     </div>
                   </div>
 
-                  {/* Visual Link Connector between adjacent stages */}
-                  {idx < STATUS_COLUMNS.length - 1 && (
+                  {/* Visual Link Connector between adjacent stages (only when viewing all columns and before Failed/Canceled) */}
+                  {!filterStatus && idx < 5 && (
                     <div
                       className="hidden xl:flex absolute -right-3 top-5 z-20 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-xs items-center justify-center text-slate-400 pointer-events-none"
                     >
                       {idx === 1 ? (
                         <ArrowLeftRight className="w-3 h-3 text-slate-400" />
-                      ) : idx >= 4 ? (
+                      ) : idx === 4 ? (
                         <span className="text-[9px] font-bold text-slate-400">
                           /
                         </span>

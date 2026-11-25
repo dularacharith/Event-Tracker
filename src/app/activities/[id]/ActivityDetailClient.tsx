@@ -506,88 +506,127 @@ export function ActivityDetailClient({
           </div>
         </div>
 
-        {/* Visual Stepper / Chain Map */}
+        {/* Visual Stepper / Mind Map */}
         <div className="overflow-x-auto py-2">
-          <div className="inline-flex items-center min-w-full justify-between gap-1 px-2 text-xs">
-            {/* Step 1: Draft */}
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
-              activity.status === "draft"
-                ? "bg-slate-800 text-white border-slate-800 shadow-sm"
-                : "bg-slate-50 text-slate-600 border-slate-200"
-            }`}>
-              <span className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold">1</span>
-              Draft
+          <div className="min-w-[820px] flex items-center justify-between gap-3 text-xs">
+            {/* 1. Draft */}
+            <div className={`flex flex-col items-center ${activity.status === "draft" ? "scale-105 transition" : ""}`}>
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold ${
+                activity.status === "draft"
+                  ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-400"
+                  : "bg-slate-50 text-slate-700 border-slate-200"
+              }`}>
+                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center text-[10px] font-bold">1</span>
+                Draft
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1 font-medium">Initial state</span>
             </div>
 
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            {/* Split Branch Connector from Draft to Scheduled (top), In Progress (direct), Canceled (bottom) */}
+            <div className="flex flex-col justify-between items-center h-28 relative w-12 text-slate-300 shrink-0">
+              <div className="absolute top-4 left-0 w-6 h-10 border-t-2 border-l-2 border-slate-200 rounded-tl-xl" />
+              <ArrowRight className="absolute top-2 right-0 w-3.5 h-3.5 text-blue-400" />
 
-            {/* Step 2: Scheduled */}
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
-              activity.status === "scheduled"
-                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                : "bg-blue-50 text-blue-700 border-blue-200"
-            }`}>
-              <span className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold">2</span>
-              Scheduled
+              <div className="w-full border-t border-dashed border-slate-300 relative my-auto">
+                <ArrowRight className="absolute -top-1.5 right-0 w-3.5 h-3.5 text-amber-400" />
+              </div>
+
+              <div className="absolute bottom-4 left-0 w-6 h-10 border-b-2 border-l-2 border-slate-200 rounded-bl-xl" />
+              <ArrowRight className="absolute bottom-2 right-0 w-3.5 h-3.5 text-zinc-400" />
             </div>
 
-            <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            {/* TWO SEPARATE BOXES (NOT LINKED HORIZONTALLY): Scheduled & Canceled */}
+            <div className="flex flex-col justify-between h-28 py-0.5 shrink-0">
+              {/* Scheduled Box */}
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold ${
+                activity.status === "scheduled"
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-300"
+                  : "bg-blue-50 text-blue-800 border-blue-200"
+              }`}>
+                <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-[10px] font-bold">2</span>
+                Scheduled
+              </div>
 
-            {/* Step 3: In Progress */}
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
-              activity.status === "in_progress"
-                ? "bg-amber-500 text-white border-amber-500 shadow-sm"
-                : "bg-amber-50 text-amber-700 border-amber-200"
-            }`}>
-              <span className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold">3</span>
-              In Progress
+              {/* Canceled Box (Separate box, not linked horizontally to Scheduled) */}
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold ${
+                activity.status === "canceled"
+                  ? "bg-zinc-800 text-white border-zinc-800 shadow-md ring-2 ring-zinc-400"
+                  : "bg-zinc-100 text-zinc-700 border-zinc-300"
+              }`}>
+                <Ban className="w-3.5 h-3.5 text-zinc-500" />
+                Canceled
+              </div>
             </div>
 
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            {/* Connector to In Progress (and Canceled loopback) */}
+            <div className="flex flex-col justify-between h-28 py-1 items-center relative w-12 text-slate-300 shrink-0">
+              <div className="absolute top-4 left-0 w-6 h-10 border-t-2 border-r-2 border-slate-200 rounded-tr-xl" />
+              <span title="Bidirectional Scheduled ⇄ In Progress" className="absolute top-2 right-0">
+                <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
+              </span>
 
-            {/* Step 4: Awaiting Review */}
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
-              activity.status === "awaiting_review"
-                ? "bg-purple-600 text-white border-purple-600 shadow-sm"
-                : "bg-purple-50 text-purple-700 border-purple-200"
-            }`}>
-              <span className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold">4</span>
-              Awaiting Review
+              <div
+                className="absolute bottom-2 flex items-center gap-1 text-[10px] text-indigo-600 font-semibold whitespace-nowrap bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100"
+                title="Canceled activities can loop back to Draft"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                <span>↶ to Draft</span>
+              </div>
             </div>
 
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-
-            {/* Step 5: Completed */}
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
-              activity.status === "passed"
-                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                : "bg-emerald-50 text-emerald-700 border-emerald-200"
-            }`}>
-              <span className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold">5</span>
-              Completed
+            {/* 3. In Progress */}
+            <div className={`flex flex-col items-center ${activity.status === "in_progress" ? "scale-105 transition" : ""}`}>
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold ${
+                activity.status === "in_progress"
+                  ? "bg-amber-500 text-white border-amber-500 shadow-md ring-2 ring-amber-300"
+                  : "bg-amber-50 text-amber-800 border-amber-200"
+              }`}>
+                <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-[10px] font-bold">3</span>
+                In Progress
+              </div>
+              <span className="text-[10px] text-amber-600 mt-1 font-medium">Active work</span>
             </div>
 
-            <span className="text-slate-300">/</span>
-
-            {/* Failed */}
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
-              activity.status === "failed"
-                ? "bg-rose-600 text-white border-rose-600 shadow-sm"
-                : "bg-rose-50 text-rose-700 border-rose-200"
-            }`}>
-              Failed
+            <div className="flex items-center text-slate-300 px-1 shrink-0">
+              <ArrowRight className="w-4 h-4 text-slate-400" />
             </div>
 
-            <span className="text-slate-300">/</span>
+            {/* 4. Awaiting Review */}
+            <div className={`flex flex-col items-center ${activity.status === "awaiting_review" ? "scale-105 transition" : ""}`}>
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold ${
+                activity.status === "awaiting_review"
+                  ? "bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-300"
+                  : "bg-purple-50 text-purple-800 border-purple-200"
+              }`}>
+                <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center text-[10px] font-bold">4</span>
+                Awaiting Review
+              </div>
+              <span className="text-[10px] text-purple-600 mt-1 font-medium">Proof inspection</span>
+            </div>
 
-            {/* Canceled */}
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
-              activity.status === "canceled"
-                ? "bg-zinc-800 text-white border-zinc-800 shadow-sm"
-                : "bg-zinc-100 text-zinc-700 border-zinc-300"
-            }`}>
-              <Ban className="w-3.5 h-3.5" />
-              Canceled
+            <div className="flex items-center text-slate-300 px-1 shrink-0">
+              <ArrowRight className="w-4 h-4 text-slate-400" />
+            </div>
+
+            {/* 5 & 6. Outcomes */}
+            <div className="flex flex-col justify-between h-28 py-0.5 shrink-0">
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold ${
+                activity.status === "passed"
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300"
+                  : "bg-emerald-50 text-emerald-800 border-emerald-200"
+              }`}>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Completed
+              </div>
+
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold ${
+                activity.status === "failed"
+                  ? "bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300"
+                  : "bg-rose-50 text-rose-800 border-rose-200"
+              }`}>
+                <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                Failed
+              </div>
             </div>
           </div>
         </div>
