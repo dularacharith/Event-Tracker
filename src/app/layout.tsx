@@ -4,6 +4,8 @@ import { getCurrentAuth } from "@/lib/session";
 import { Navbar } from "@/components/Navbar";
 import { DevAccountSwitcher } from "@/components/DevAccountSwitcher";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "CampaignFlow — Private Social Campaign Tracker",
   description: "Campaign activity scheduling and review tracker for social media teams",

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { NotificationCenter } from "./NotificationCenter";
-import { signOut } from "@/lib/auth-client";
+import { signOut, useSession } from "@/lib/auth-client";
 
 interface NavbarProps {
   currentUser?: {
@@ -36,6 +36,9 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+
+  const { data: clientSession } = useSession();
+  const effectiveUser = currentUser || (clientSession?.user as any) || null;
 
   const navLinks = [
     { href: "/my-work", label: "My Work", icon: CheckSquare },
@@ -72,7 +75,7 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
             </Link>
 
             {/* Desktop Navigation */}
-            {currentUser && (
+            {effectiveUser && (
               <div className="hidden md:flex items-center space-x-1">
                 {navLinks.map((item) => {
                   const Icon = item.icon;
@@ -100,7 +103,7 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
 
           {/* Right Action Area */}
           <div className="flex items-center gap-3">
-            {currentUser ? (
+            {effectiveUser ? (
               <>
                 <NotificationCenter />
 
@@ -111,15 +114,15 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                     className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 transition"
                   >
                     <UserAvatar
-                      name={currentUser.name}
-                      displayName={currentUser.displayName}
-                      avatarUrl={currentUser.avatarUrl}
-                      image={currentUser.image}
+                      name={effectiveUser.name}
+                      displayName={effectiveUser.displayName}
+                      avatarUrl={effectiveUser.avatarUrl}
+                      image={effectiveUser.image}
                       size="sm"
                     />
                     <div className="hidden sm:block text-left text-xs">
                       <div className="font-semibold text-slate-800 leading-tight">
-                        {currentUser.displayName || currentUser.name || "User"}
+                        {effectiveUser.displayName || effectiveUser.name || "User"}
                       </div>
                       <div className="text-[10px] text-slate-500 capitalize">
                         {userRole || "Teammate"}
@@ -131,14 +134,14 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50">
                       <div className="px-4 py-2 border-b border-slate-100">
                         <p className="text-xs font-semibold text-slate-900">
-                          {currentUser.displayName || currentUser.name}
+                          {effectiveUser.displayName || effectiveUser.name}
                         </p>
                         <p className="text-[11px] text-slate-500 truncate">
-                          {currentUser.email}
+                          {effectiveUser.email}
                         </p>
-                        {currentUser.jobTitle && (
+                        {effectiveUser.jobTitle && (
                           <p className="text-[10px] text-indigo-600 mt-0.5">
-                            {currentUser.jobTitle}
+                            {effectiveUser.jobTitle}
                           </p>
                         )}
                       </div>
@@ -194,7 +197,7 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
         </div>
 
         {/* Mobile menu dropdown */}
-        {mobileMenuOpen && currentUser && (
+        {mobileMenuOpen && effectiveUser && (
           <div className="md:hidden py-3 border-t border-slate-200 space-y-1">
             {navLinks.map((item) => {
               const Icon = item.icon;

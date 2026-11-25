@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { signIn } from "@/lib/auth-client";
+import React, { useState, useEffect } from "react";
+import { signIn, useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, ArrowRight, UserCheck } from "lucide-react";
 
@@ -10,6 +10,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [devEmail, setDevEmail] = useState("");
   const isDev = process.env.NODE_ENV !== "production";
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    if (session?.user) {
+      router.push("/my-work");
+    }
+  }, [session, router]);
 
   const handleGoogleSignIn = async () => {
     try {
