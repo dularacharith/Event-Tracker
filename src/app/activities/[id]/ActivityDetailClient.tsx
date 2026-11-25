@@ -20,6 +20,10 @@ import {
   Trash2,
   X,
   Upload,
+  ArrowRight,
+  ArrowLeftRight,
+  Link2,
+  Ban,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
@@ -36,6 +40,52 @@ interface ActivityDetailClientProps {
   activity: any;
   teammates: any[];
 }
+
+const CHAIN_TRANSITIONS: Record<
+  string,
+  { label: string; targetStatus: string; color: string }[]
+> = {
+  draft: [
+    { label: "Schedule Activity", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
+    { label: "Start Work Directly", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
+    { label: "Cancel Activity", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  scheduled: [
+    { label: "Start Work (In Progress)", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
+    { label: "Submit for Review", targetStatus: "awaiting_review", color: "text-purple-700 bg-purple-50 hover:bg-purple-100" },
+    { label: "Mark Completed", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
+    { label: "Mark Failed", targetStatus: "failed", color: "text-rose-700 bg-rose-50 hover:bg-rose-100" },
+    { label: "Cancel Activity", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  in_progress: [
+    { label: "Move back to Scheduled", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
+    { label: "Submit for Review", targetStatus: "awaiting_review", color: "text-purple-700 bg-purple-50 hover:bg-purple-100" },
+    { label: "Mark Completed", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
+    { label: "Mark Failed", targetStatus: "failed", color: "text-rose-700 bg-rose-50 hover:bg-rose-100" },
+    { label: "Cancel Activity", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  awaiting_review: [
+    { label: "Pass / Completed", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
+    { label: "Fail Activity", targetStatus: "failed", color: "text-rose-700 bg-rose-50 hover:bg-rose-100" },
+    { label: "Return to In Progress", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
+    { label: "Cancel Activity", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  failed: [
+    { label: "Reschedule Activity", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
+    { label: "Retry (In Progress)", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
+    { label: "Reset to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
+    { label: "Cancel Activity", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  passed: [
+    { label: "Reopen Work", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
+    { label: "Reset to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
+    { label: "Cancel Activity", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  canceled: [
+    { label: "Restore to Draft", targetStatus: "draft", color: "text-indigo-700 bg-indigo-50 hover:bg-indigo-100" },
+    { label: "Move to Scheduled", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
+  ],
+};
 
 export function ActivityDetailClient({
   currentUser,
@@ -83,8 +133,9 @@ export function ActivityDetailClient({
       scheduled: { label: "Scheduled", bg: "bg-blue-100", text: "text-blue-700" },
       in_progress: { label: "In Progress", bg: "bg-amber-100", text: "text-amber-700" },
       awaiting_review: { label: "Awaiting Review", bg: "bg-purple-100", text: "text-purple-700" },
-      passed: { label: "Passed", bg: "bg-emerald-100", text: "text-emerald-700" },
+      passed: { label: "Completed", bg: "bg-emerald-100", text: "text-emerald-700" },
       failed: { label: "Failed", bg: "bg-rose-100", text: "text-rose-700" },
+      canceled: { label: "Canceled", bg: "bg-zinc-100", text: "text-zinc-700" },
     };
     const s = map[status] || { label: status, bg: "bg-slate-100", text: "text-slate-700" };
     return (
@@ -92,6 +143,29 @@ export function ActivityDetailClient({
         {s.label}
       </span>
     );
+  };
+
+  const handleChainTransition = async (targetStatus: string, reason?: string) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/activities/${activity.id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetStatus, reason }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Failed to transition status");
+
+      setPendingToast({
+        type: "success",
+        title: "Status updated!",
+        message: `Activity transitioned along chain to ${targetStatus.replace("_", " ")}.`,
+      });
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message);
+      setLoading(false);
+    }
   };
 
   // Start progress
@@ -406,6 +480,132 @@ export function ActivityDetailClient({
               <UserCheck className="w-3.5 h-3.5" /> Reassign Reviewer
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Workflow Chain Actions & Stepper Card */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+                <Link2 className="w-4 h-4" />
+              </span>
+              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                Workflow Lifecycle Chain
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Move this activity along the connected chain. Draft can go to Scheduled or directly In Progress; Scheduled & In Progress can be completed, submitted, or canceled; and Canceled loops back to Draft.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400">Current Stage:</span>
+            {getStatusBadge(activity.status)}
+          </div>
+        </div>
+
+        {/* Visual Stepper / Chain Map */}
+        <div className="overflow-x-auto py-2">
+          <div className="inline-flex items-center min-w-full justify-between gap-1 px-2 text-xs">
+            {/* Step 1: Draft */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
+              activity.status === "draft"
+                ? "bg-slate-800 text-white border-slate-800 shadow-sm"
+                : "bg-slate-50 text-slate-600 border-slate-200"
+            }`}>
+              <span className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold">1</span>
+              Draft
+            </div>
+
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+
+            {/* Step 2: Scheduled */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
+              activity.status === "scheduled"
+                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                : "bg-blue-50 text-blue-700 border-blue-200"
+            }`}>
+              <span className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold">2</span>
+              Scheduled
+            </div>
+
+            <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+
+            {/* Step 3: In Progress */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
+              activity.status === "in_progress"
+                ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                : "bg-amber-50 text-amber-700 border-amber-200"
+            }`}>
+              <span className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold">3</span>
+              In Progress
+            </div>
+
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+
+            {/* Step 4: Awaiting Review */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
+              activity.status === "awaiting_review"
+                ? "bg-purple-600 text-white border-purple-600 shadow-sm"
+                : "bg-purple-50 text-purple-700 border-purple-200"
+            }`}>
+              <span className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold">4</span>
+              Awaiting Review
+            </div>
+
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+
+            {/* Step 5: Completed */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
+              activity.status === "passed"
+                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+            }`}>
+              <span className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold">5</span>
+              Completed
+            </div>
+
+            <span className="text-slate-300">/</span>
+
+            {/* Failed */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
+              activity.status === "failed"
+                ? "bg-rose-600 text-white border-rose-600 shadow-sm"
+                : "bg-rose-50 text-rose-700 border-rose-200"
+            }`}>
+              Failed
+            </div>
+
+            <span className="text-slate-300">/</span>
+
+            {/* Canceled */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-medium ${
+              activity.status === "canceled"
+                ? "bg-zinc-800 text-white border-zinc-800 shadow-sm"
+                : "bg-zinc-100 text-zinc-700 border-zinc-300"
+            }`}>
+              <Ban className="w-3.5 h-3.5" />
+              Canceled
+            </div>
+          </div>
+        </div>
+
+        {/* Transition Buttons */}
+        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-slate-500 mr-1">Move along chain:</span>
+          {CHAIN_TRANSITIONS[activity.status]?.map((t) => (
+            <button
+              key={t.targetStatus}
+              disabled={loading}
+              onClick={() => handleChainTransition(t.targetStatus)}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition border border-transparent shadow-xs disabled:opacity-50 ${t.color}`}
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 

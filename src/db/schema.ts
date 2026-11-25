@@ -212,6 +212,7 @@ export const activities = pgTable("activities", {
       "awaiting_review",
       "passed",
       "failed",
+      "canceled",
     ],
   })
     .default("draft")

@@ -77,7 +77,7 @@ export function MyWorkClient({
   // Activity is overdue if reviewDeadline has passed and status is not 'passed',
   // or scheduledAt has passed and status is still 'draft' or 'scheduled'.
   const overdueWork = activities.filter((a) => {
-    if (a.status === "passed") return false;
+    if (a.status === "passed" || a.status === "canceled") return false;
     if (a.reviewDeadline && new Date(a.reviewDeadline).getTime() < now.getTime()) {
       return true;
     }
@@ -101,8 +101,9 @@ export function MyWorkClient({
         bg: "bg-purple-100",
         text: "text-purple-700",
       },
-      passed: { label: "Passed", bg: "bg-emerald-100", text: "text-emerald-700" },
+      passed: { label: "Completed", bg: "bg-emerald-100", text: "text-emerald-700" },
       failed: { label: "Failed", bg: "bg-rose-100", text: "text-rose-700" },
+      canceled: { label: "Canceled", bg: "bg-zinc-100", text: "text-zinc-600" },
     };
 
     const style = map[status] || {

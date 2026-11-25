@@ -11,12 +11,15 @@ import {
   Calendar,
   Clock,
   ArrowRight,
+  ArrowLeftRight,
   ExternalLink,
   Play,
   RotateCcw,
   CheckCircle2,
   XCircle,
   X,
+  Link2,
+  Ban,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
@@ -99,7 +102,7 @@ const STATUS_COLUMNS = [
   {
     id: "passed",
     step: "5",
-    label: "Passed",
+    label: "Completed",
     bg: "bg-emerald-50/40",
     border: "border-emerald-200",
     badgeBg: "bg-emerald-100 text-emerald-700",
@@ -114,7 +117,62 @@ const STATUS_COLUMNS = [
     badgeBg: "bg-rose-100 text-rose-700",
     headerText: "text-rose-900",
   },
+  {
+    id: "canceled",
+    step: "7",
+    label: "Canceled",
+    bg: "bg-zinc-100/60",
+    border: "border-zinc-300",
+    badgeBg: "bg-zinc-200 text-zinc-700",
+    headerText: "text-zinc-800",
+  },
 ];
+
+const CHAIN_TRANSITIONS: Record<
+  string,
+  { label: string; targetStatus: string; color: string }[]
+> = {
+  draft: [
+    { label: "Schedule", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
+    { label: "Start Work", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
+    { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  scheduled: [
+    { label: "Start Work", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
+    { label: "Submit Review", targetStatus: "awaiting_review", color: "text-purple-700 bg-purple-50 hover:bg-purple-100" },
+    { label: "Complete", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
+    { label: "Fail", targetStatus: "failed", color: "text-rose-700 bg-rose-50 hover:bg-rose-100" },
+    { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  in_progress: [
+    { label: "Schedule", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
+    { label: "Submit Review", targetStatus: "awaiting_review", color: "text-purple-700 bg-purple-50 hover:bg-purple-100" },
+    { label: "Complete", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
+    { label: "Fail", targetStatus: "failed", color: "text-rose-700 bg-rose-50 hover:bg-rose-100" },
+    { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  awaiting_review: [
+    { label: "Pass / Complete", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
+    { label: "Fail", targetStatus: "failed", color: "text-rose-700 bg-rose-50 hover:bg-rose-100" },
+    { label: "In Progress", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
+    { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  failed: [
+    { label: "Reschedule", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
+    { label: "Retry Work", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
+    { label: "Back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
+    { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  passed: [
+    { label: "Reopen Work", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
+    { label: "Back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
+    { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
+  ],
+  canceled: [
+    { label: "Restore to Draft", targetStatus: "draft", color: "text-indigo-700 bg-indigo-50 hover:bg-indigo-100" },
+    { label: "Move to Scheduled", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
+  ],
+};
 
 export function ActivitiesClient({
   currentUser,
@@ -124,6 +182,7 @@ export function ActivitiesClient({
   teammates,
   initialOpenCreate = false,
 }: ActivitiesClientProps) {
+  const { toast } = useToast();
   const [viewMode, setViewMode] = useState<"list" | "board">("board");
   const [search, setSearch] = useState("");
   const [filterCampaign, setFilterCampaign] = useState("");
@@ -232,14 +291,39 @@ export function ActivitiesClient({
     }
   };
 
+  const handleChainTransition = async (
+    activityId: string,
+    targetStatus: string
+  ) => {
+    try {
+      const res = await fetch(`/api/activities/${activityId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update status");
+
+      setPendingToast({
+        type: "success",
+        title: "Activity moved!",
+        message: `Activity transitioned along the chain to ${targetStatus.replace("_", " ")}.`,
+      });
+      window.location.reload();
+    } catch (err: any) {
+      toast.error("Transition failed", err.message);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const map: Record<string, { label: string; bg: string; text: string }> = {
       draft: { label: "Draft", bg: "bg-slate-100", text: "text-slate-700" },
       scheduled: { label: "Scheduled", bg: "bg-blue-100", text: "text-blue-700" },
       in_progress: { label: "In Progress", bg: "bg-amber-100", text: "text-amber-700" },
       awaiting_review: { label: "Awaiting Review", bg: "bg-purple-100", text: "text-purple-700" },
-      passed: { label: "Passed", bg: "bg-emerald-100", text: "text-emerald-700" },
+      passed: { label: "Completed", bg: "bg-emerald-100", text: "text-emerald-700" },
       failed: { label: "Failed", bg: "bg-rose-100", text: "text-rose-700" },
+      canceled: { label: "Canceled", bg: "bg-zinc-100", text: "text-zinc-700" },
     };
     const s = map[status] || { label: status, bg: "bg-slate-100", text: "text-slate-700" };
     return (
@@ -343,8 +427,9 @@ export function ActivitiesClient({
               <option value="scheduled">Scheduled</option>
               <option value="in_progress">In Progress</option>
               <option value="awaiting_review">Awaiting Review</option>
-              <option value="passed">Passed</option>
+              <option value="passed">Completed</option>
               <option value="failed">Failed</option>
+              <option value="canceled">Canceled</option>
             </select>
 
             <select
@@ -367,34 +452,51 @@ export function ActivitiesClient({
       {viewMode === "board" ? (
         <div className="space-y-4">
           {/* Linked Pipeline Stepper Flow Bar */}
-          <div className="hidden lg:block bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-            <div className="flex items-center justify-between gap-2 overflow-x-auto">
+          <div className="hidden lg:block bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
+            <div className="flex items-center justify-between gap-1 overflow-x-auto text-xs">
               {STATUS_COLUMNS.map((col, idx) => {
                 const count = filteredActivities.filter(
                   (a) => a.status === col.id
                 ).length;
                 return (
                   <React.Fragment key={col.id}>
-                    <div className="flex items-center gap-2">
+                    <div
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-semibold border ${
+                        col.id === "draft"
+                          ? "bg-slate-50 text-slate-800 border-slate-200"
+                          : col.id === "scheduled"
+                          ? "bg-blue-50 text-blue-900 border-blue-200"
+                          : col.id === "in_progress"
+                          ? "bg-amber-50 text-amber-900 border-amber-200"
+                          : col.id === "awaiting_review"
+                          ? "bg-purple-50 text-purple-900 border-purple-200"
+                          : col.id === "passed"
+                          ? "bg-emerald-50 text-emerald-900 border-emerald-200"
+                          : col.id === "failed"
+                          ? "bg-rose-50 text-rose-900 border-rose-200"
+                          : "bg-zinc-100 text-zinc-800 border-zinc-300"
+                      }`}
+                    >
                       <span
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${col.badgeBg}`}
+                        className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${col.badgeBg}`}
                       >
                         {col.step}
                       </span>
-                      <span
-                        className={`text-xs font-semibold ${col.headerText}`}
-                      >
-                        {col.label}
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                      <span>{col.label}</span>
+                      <span className="text-[10px] bg-white px-1.5 py-0.2 rounded-full border border-slate-200 font-bold">
                         {count}
                       </span>
                     </div>
+
                     {idx < STATUS_COLUMNS.length - 1 && (
-                      <div className="flex items-center px-1 text-slate-300">
-                        {idx === 4 ? (
+                      <div className="flex items-center px-1 text-slate-400">
+                        {idx === 1 ? (
+                          <span title="Bidirectional: Scheduled ⇄ In Progress">
+                            <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
+                          </span>
+                        ) : idx >= 4 ? (
                           <span className="text-xs font-semibold text-slate-300">
-                            or
+                            /
                           </span>
                         ) : (
                           <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
@@ -404,6 +506,14 @@ export function ActivitiesClient({
                   </React.Fragment>
                 );
               })}
+
+              <div
+                className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 pl-2 border-l border-slate-200 shrink-0"
+                title="Canceled items can loop back to Draft"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Cancel ➔ Draft</span>
+              </div>
             </div>
           </div>
 
@@ -504,55 +614,129 @@ export function ActivitiesClient({
                               )}
                             </div>
 
-                            {/* Explicit Action Buttons */}
-                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
-                              {act.status === "scheduled" && (
-                                <button
-                                  onClick={() => handleStartProgress(act.id)}
-                                  className="w-full flex items-center justify-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
-                                >
-                                  <Play className="w-3 h-3" /> Start Work
-                                </button>
-                              )}
+                            {/* Explicit & Chain Action Controls */}
+                            <div className="pt-2 border-t border-slate-100 flex flex-col gap-1.5">
+                              <div className="flex items-center gap-1">
+                                {act.status === "draft" && (
+                                  <button
+                                    onClick={() =>
+                                      handleChainTransition(
+                                        act.id,
+                                        "in_progress"
+                                      )
+                                    }
+                                    className="flex-1 flex items-center justify-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                  >
+                                    <Play className="w-3 h-3" /> Start Work
+                                  </button>
+                                )}
 
-                              {act.status === "awaiting_review" &&
-                                act.reviewerId === currentUser.id && (
+                                {act.status === "scheduled" && (
+                                  <button
+                                    onClick={() => handleStartProgress(act.id)}
+                                    className="flex-1 flex items-center justify-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                  >
+                                    <Play className="w-3 h-3" /> Start Work
+                                  </button>
+                                )}
+
+                                {act.status === "in_progress" && (
+                                  <button
+                                    onClick={() =>
+                                      handleChainTransition(
+                                        act.id,
+                                        "awaiting_review"
+                                      )
+                                    }
+                                    className="flex-1 flex items-center justify-center gap-1 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                  >
+                                    <Clock className="w-3 h-3" /> Submit Review
+                                  </button>
+                                )}
+
+                                {act.status === "awaiting_review" && (
                                   <Link
                                     href={`/activities/${act.id}`}
-                                    className="w-full flex items-center justify-center gap-1 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                    className="flex-1 flex items-center justify-center gap-1 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold py-1 px-2 rounded-lg transition"
                                   >
                                     Review <ArrowRight className="w-3 h-3" />
                                   </Link>
                                 )}
 
-                              {act.status === "failed" &&
-                                (act.ownerId === currentUser.id ||
-                                  userRole === "admin") && (
+                                {act.status === "failed" && (
+                                  <button
+                                    onClick={() =>
+                                      handleChainTransition(
+                                        act.id,
+                                        "scheduled"
+                                      )
+                                    }
+                                    className="flex-1 flex items-center justify-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />{" "}
+                                    Reschedule
+                                  </button>
+                                )}
+
+                                {act.status === "canceled" && (
+                                  <button
+                                    onClick={() =>
+                                      handleChainTransition(act.id, "draft")
+                                    }
+                                    className="flex-1 flex items-center justify-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                  >
+                                    <RotateCcw className="w-3 h-3" /> Restore
+                                  </button>
+                                )}
+
+                                {act.status === "passed" && (
                                   <Link
                                     href={`/activities/${act.id}`}
-                                    className="w-full flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                    className="flex-1 text-center text-[11px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 py-1 px-2 rounded-lg transition"
                                   >
-                                    <RotateCcw className="w-3 h-3" /> Reschedule
+                                    Completed ✓
                                   </Link>
                                 )}
 
-                              {act.status !== "scheduled" &&
-                                !(
-                                  act.status === "awaiting_review" &&
-                                  act.reviewerId === currentUser.id
-                                ) &&
-                                !(
-                                  act.status === "failed" &&
-                                  (act.ownerId === currentUser.id ||
-                                    userRole === "admin")
-                                ) && (
-                                  <Link
-                                    href={`/activities/${act.id}`}
-                                    className="w-full text-center text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 py-1 px-2 rounded-lg transition"
+                                <Link
+                                  href={`/activities/${act.id}`}
+                                  className="text-center text-[11px] font-medium text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 py-1 px-2 rounded-lg transition shrink-0"
+                                >
+                                  Details
+                                </Link>
+                              </div>
+
+                              {/* Quick Chain Move Dropdown */}
+                              {CHAIN_TRANSITIONS[act.status]?.length > 0 && (
+                                <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                                  <span className="shrink-0 text-slate-400">
+                                    Move:
+                                  </span>
+                                  <select
+                                    value=""
+                                    onChange={(e) => {
+                                      if (e.target.value)
+                                        handleChainTransition(
+                                          act.id,
+                                          e.target.value
+                                        );
+                                    }}
+                                    className="w-full text-[10px] font-medium bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-700 focus:outline-none cursor-pointer"
                                   >
-                                    Details
-                                  </Link>
-                                )}
+                                    <option value="" disabled>
+                                      Move along chain...
+                                    </option>
+                                    {CHAIN_TRANSITIONS[act.status].map((t) => (
+                                      <option
+                                        key={t.targetStatus}
+                                        value={t.targetStatus}
+                                      >
+                                        → {t.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))
@@ -565,7 +749,9 @@ export function ActivitiesClient({
                     <div
                       className="hidden xl:flex absolute -right-3 top-5 z-20 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-xs items-center justify-center text-slate-400 pointer-events-none"
                     >
-                      {idx === 4 ? (
+                      {idx === 1 ? (
+                        <ArrowLeftRight className="w-3 h-3 text-slate-400" />
+                      ) : idx >= 4 ? (
                         <span className="text-[9px] font-bold text-slate-400">
                           /
                         </span>

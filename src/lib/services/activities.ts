@@ -1117,3 +1117,71 @@ export async function listActivities({
 
   return items;
 }
+
+export interface TransitionStatusInput {
+  workspaceId: string;
+  activityId: string;
+  targetStatus:
+    | "draft"
+    | "scheduled"
+    | "in_progress"
+    | "awaiting_review"
+    | "passed"
+    | "failed"
+    | "canceled";
+  userId: string;
+  reason?: string;
+}
+
+export async function transitionActivityStatus({
+  workspaceId,
+  activityId,
+  targetStatus,
+  userId,
+  reason,
+}: TransitionStatusInput) {
+  return await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(activities)
+      .where(
+        and(
+          eq(activities.id, activityId),
+          eq(activities.workspaceId, workspaceId)
+        )
+      )
+      .limit(1);
+
+    if (!existing) {
+      throw new Error("Activity not found in this workspace.");
+    }
+
+    if (existing.status === targetStatus) {
+      return { success: true, activity: existing };
+    }
+
+    // Update status
+    const [updated] = await tx
+      .update(activities)
+      .set({
+        status: targetStatus,
+        updatedAt: new Date(),
+      })
+      .where(eq(activities.id, activityId))
+      .returning();
+
+    // Insert append-only status history audit record
+    await tx.insert(activityStatusHistory).values({
+      id: crypto.randomUUID(),
+      activityId,
+      fromStatus: existing.status,
+      toStatus: targetStatus,
+      changedById: userId,
+      reason:
+        reason ||
+        `Status transitioned from ${existing.status.replace("_", " ")} to ${targetStatus.replace("_", " ")}`,
+    });
+
+    return { success: true, activity: updated };
+  });
+}
