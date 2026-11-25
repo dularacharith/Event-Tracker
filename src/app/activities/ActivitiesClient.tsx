@@ -915,7 +915,7 @@ export function ActivitiesClient({
               <span className="text-slate-400 font-semibold text-[11px] mr-1">Columns:</span>
               <button
                 onClick={() => setFilterStatus("")}
-                className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs ${
+                className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs whitespace-nowrap shrink-0 ${
                   !filterStatus
                     ? "bg-slate-800 text-white shadow-xs"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -927,7 +927,7 @@ export function ActivitiesClient({
                 <button
                   key={c.id}
                   onClick={() => setFilterStatus(filterStatus === c.id ? "" : c.id)}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1 whitespace-nowrap shrink-0 ${
                     filterStatus === c.id
                       ? "bg-indigo-600 text-white shadow-xs"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -957,17 +957,21 @@ export function ActivitiesClient({
                       className={`rounded-2xl border ${col.border} ${col.bg} p-3.5 flex flex-col gap-3 shadow-2xs hover:shadow-xs transition`}
                     >
                     {/* Column Header */}
-                    <div className="flex items-center justify-between pb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`} />
-                        <span className="font-bold text-xs uppercase tracking-wider text-slate-800">
-                          {col.label}
-                        </span>
+                    <div className="flex items-start justify-between pb-1 gap-2">
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${col.dotColor}`} />
+                          <span className="font-bold text-xs uppercase tracking-wider text-slate-800 whitespace-nowrap">
+                            {col.label}
+                          </span>
+                        </div>
+                        <div className="pl-[18px] pt-0.5">
+                          <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">
+                            {colActivities.length} {colActivities.length === 1 ? "task" : "tasks"}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <span className="text-[11px] font-medium text-slate-500">
-                          {colActivities.length} {colActivities.length === 1 ? "task" : "tasks"}
-                        </span>
+                      <div className="flex items-center gap-1 text-slate-400 shrink-0 pt-0.5">
                         <button
                           onClick={() => {
                             setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
