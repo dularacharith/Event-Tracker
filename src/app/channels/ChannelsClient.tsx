@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Radio,
@@ -89,14 +89,14 @@ const PLATFORM_META: Record<
 };
 
 const ALL_PLATFORMS = [
-  { id: "twitter", label: "Twitter / X" },
-  { id: "instagram", label: "Instagram" },
-  { id: "linkedin", label: "LinkedIn" },
-  { id: "tiktok", label: "TikTok" },
-  { id: "youtube", label: "YouTube" },
-  { id: "facebook", label: "Facebook" },
-  { id: "threads", label: "Threads" },
-  { id: "other", label: "Other / General" },
+  { id: "youtube", label: "YouTube", icon: "YT", badgeBg: "bg-red-50 text-red-700 border-red-200" },
+  { id: "twitter", label: "Twitter / X", icon: "𝕏", badgeBg: "bg-slate-100 text-slate-800 border-slate-200" },
+  { id: "instagram", label: "Instagram", icon: "IG", badgeBg: "bg-pink-50 text-pink-700 border-pink-200" },
+  { id: "tiktok", label: "TikTok", icon: "TT", badgeBg: "bg-cyan-50 text-cyan-700 border-cyan-200" },
+  { id: "linkedin", label: "LinkedIn", icon: "in", badgeBg: "bg-blue-50 text-blue-700 border-blue-200" },
+  { id: "facebook", label: "Facebook", icon: "fb", badgeBg: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  { id: "threads", label: "Threads", icon: "@", badgeBg: "bg-slate-100 text-slate-800 border-slate-200" },
+  { id: "other", label: "Other / General", icon: "#", badgeBg: "bg-purple-50 text-purple-700 border-purple-200" },
 ];
 
 export function ChannelsClient({
@@ -132,6 +132,18 @@ export function ChannelsClient({
     if (filterPlatform && ch.platform !== filterPlatform) return false;
     return true;
   });
+
+  const groupedChannels = useMemo(() => {
+    const map = new Map<string, ChannelItem[]>();
+    filteredChannels.forEach((ch) => {
+      const p = (ch.platform || "other").toLowerCase();
+      if (!map.has(p)) {
+        map.set(p, []);
+      }
+      map.get(p)!.push(ch);
+    });
+    return map;
+  }, [filteredChannels]);
 
   const handleCreateChannel = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,97 +314,149 @@ export function ChannelsClient({
         </div>
       </div>
 
-      {/* Channels Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredChannels.length === 0 ? (
-          <div className="col-span-full p-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
-            <Radio className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-slate-800">
-              {channelsList.length === 0 ? "No channels created yet" : "No matching channels"}
-            </h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              {channelsList.length === 0
-                ? "Create channels for your Twitter/X, Instagram, TikTok, LinkedIn, YouTube, and Facebook accounts to organize your social campaigns and deliverables."
-                : "Try adjusting your search terms or platform filter."}
-            </p>
-            {channelsList.length === 0 && (
-              <button
-                onClick={() => {
-                  setError(null);
-                  setName("");
-                  setDescription("");
-                  setModalOpen(true);
-                }}
-                className="mt-4 inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer"
-              >
-                <Plus className="w-4 h-4" /> Create First Channel
-              </button>
-            )}
-          </div>
-        ) : (
-          filteredChannels.map((ch) => {
-            const meta = getPlatformMeta(ch.platform);
-            const isDeleting = deletingId === ch.id;
+      {/* Channels Grouped by Platform */}
+      {filteredChannels.length === 0 ? (
+        <div className="p-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+          <Radio className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-semibold text-slate-800">
+            {channelsList.length === 0 ? "No channels created yet" : "No matching channels"}
+          </h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            {channelsList.length === 0
+              ? "Create channels for your Twitter/X, Instagram, TikTok, LinkedIn, YouTube, and Facebook accounts to organize your social campaigns and deliverables."
+              : "Try adjusting your search terms or platform filter."}
+          </p>
+          {channelsList.length === 0 && (
+            <button
+              onClick={() => {
+                setError(null);
+                setName("");
+                setDescription("");
+                setModalOpen(true);
+              }}
+              className="mt-4 inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Create First Channel
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {ALL_PLATFORMS.map((platformDef) => {
+            const groupChannels = groupedChannels.get(platformDef.id);
+            if (!groupChannels || groupChannels.length === 0) return null;
 
             return (
               <div
-                key={ch.id}
-                className={`bg-white rounded-2xl border ${meta.border} p-5 shadow-2xs hover:shadow-sm transition flex flex-col justify-between space-y-4`}
+                key={platformDef.id}
+                className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-2xs space-y-3.5"
               >
-                <div>
-                  {/* Card Header: Platform Tag + Delete button */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${meta.badge}`}
+                {/* Platform Group Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border ${platformDef.badgeBg}`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-                      {meta.label}
-                    </span>
-
-                    <button
-                      onClick={() => handleDeleteChannel(ch.id, ch.name)}
-                      disabled={isDeleting}
-                      className="text-slate-400 hover:text-rose-600 p-1 rounded-md transition hover:bg-rose-50 cursor-pointer disabled:opacity-50"
-                      title={`Delete #${ch.name}`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      {platformDef.icon}
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                        {platformDef.label}
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          {groupChannels.length} {groupChannels.length === 1 ? "channel" : "channels"}
+                        </span>
+                      </h2>
+                    </div>
                   </div>
 
-                  {/* Channel Name */}
-                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-1 mb-1">
-                    <span className="text-slate-400 font-normal">#</span>
-                    <span>{ch.name}</span>
-                  </h3>
-
-                  {/* Channel Description */}
-                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                    {ch.description || "No specific description provided."}
-                  </p>
+                  <button
+                    onClick={() => {
+                      setError(null);
+                      setName("");
+                      setDescription("");
+                      setPlatform(platformDef.id === "other" ? "twitter" : platformDef.id);
+                      setModalOpen(true);
+                    }}
+                    className="text-xs font-semibold text-purple-600 hover:text-purple-800 flex items-center gap-1 transition p-1 hover:bg-purple-50 rounded-lg cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Channel
+                  </button>
                 </div>
 
-                {/* Card Footer: Activity Count + Link */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-500 font-medium">
-                    <Layers className="w-3.5 h-3.5 text-slate-400" />
-                    <span>
-                      {ch.activityCount} {Number(ch.activityCount) === 1 ? "activity" : "activities"}
-                    </span>
-                  </div>
+                {/* Compact Channel Cards Grid (Reduced Card Size) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                  {groupChannels.map((ch) => {
+                    const isDeleting = deletingId === ch.id;
+                    const countNum = Number(ch.activityCount) || 0;
+                    const hasActivities = countNum > 0;
 
-                  <Link
-                    href={`/activities?channel=${ch.id}`}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
-                  >
-                    <span>View Activities</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
+                    return (
+                      <div
+                        key={ch.id}
+                        className="bg-slate-50/70 hover:bg-white rounded-xl border border-slate-200/90 hover:border-purple-300 p-3.5 shadow-2xs hover:shadow-sm transition flex flex-col justify-between space-y-3 group"
+                      >
+                        <div>
+                          {/* Card Header: Channel Name + Delete button */}
+                          <div className="flex items-start justify-between gap-2 mb-1.5">
+                            <h3 className="font-bold text-xs text-slate-900 flex items-center gap-1 truncate">
+                              <span className="text-slate-400 font-normal">#</span>
+                              <span className="truncate">{ch.name}</span>
+                            </h3>
+
+                            <button
+                              onClick={() => handleDeleteChannel(ch.id, ch.name)}
+                              disabled={isDeleting}
+                              className="text-slate-400 hover:text-rose-600 p-0.5 rounded transition hover:bg-rose-50 cursor-pointer disabled:opacity-50 shrink-0"
+                              title={`Delete #${ch.name}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          {/* Channel Description */}
+                          <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                            {ch.description || "No specific description provided."}
+                          </p>
+                        </div>
+
+                        {/* Card Footer: Activity Count + Show Activities Button (Disabled when 0 activities) */}
+                        <div className="pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
+                            <Layers className="w-3 h-3 text-slate-400" />
+                            <span>
+                              {countNum} {countNum === 1 ? "activity" : "activities"}
+                            </span>
+                          </div>
+
+                          {hasActivities ? (
+                            <Link
+                              href={`/activities?channel=${ch.id}`}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-600 hover:text-purple-800 transition"
+                            >
+                              <span>View Activities</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </Link>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              title="No activities belong to this channel yet"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-300 cursor-not-allowed select-none"
+                            >
+                              <span>View Activities</span>
+                              <ExternalLink className="w-2.5 h-2.5 text-slate-300" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
       {/* Create Channel Modal */}
       {modalOpen && (
