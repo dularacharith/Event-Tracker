@@ -14,6 +14,7 @@ import {
   X,
   CheckCircle,
 } from "lucide-react";
+import { useToast, setPendingToast } from "@/components/Toast";
 
 interface TeamClientProps {
   currentUser: {
@@ -31,6 +32,7 @@ export function TeamClient({
   initialMembers,
   initialInvites,
 }: TeamClientProps) {
+  const { toast } = useToast();
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"member" | "admin">("member");
@@ -57,8 +59,13 @@ export function TeamClient({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create invite");
       setGeneratedLink(data.invite.inviteLink);
+      toast.success(
+        "Invite created!",
+        `Single-use invitation link ready for ${inviteEmail}`
+      );
     } catch (err: any) {
       setError(err.message);
+      toast.error("Failed to create invite", err.message);
     } finally {
       setLoading(false);
     }
@@ -67,6 +74,7 @@ export function TeamClient({
   const copyToClipboard = async (link: string) => {
     await navigator.clipboard.writeText(link);
     setCopied(true);
+    toast.success("Copied to clipboard!", "Invite link copied.");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -76,13 +84,19 @@ export function TeamClient({
       const res = await fetch(`/api/team/invites/${inviteId}/revoke`, {
         method: "POST",
       });
-      if (res.ok) window.location.reload();
-      else {
+      if (res.ok) {
+        setPendingToast({
+          type: "success",
+          title: "Invite revoked",
+          message: "The invitation link has been revoked.",
+        });
+        window.location.reload();
+      } else {
         const d = await res.json();
-        alert(d.error || "Failed to revoke invite");
+        toast.error("Failed to revoke invite", d.error);
       }
     } catch (err: any) {
-      alert(err.message);
+      toast.error("Error", err.message);
     }
   };
 
@@ -92,13 +106,19 @@ export function TeamClient({
       const res = await fetch(`/api/team/members/${memberId}/remove`, {
         method: "POST",
       });
-      if (res.ok) window.location.reload();
-      else {
+      if (res.ok) {
+        setPendingToast({
+          type: "success",
+          title: "Teammate removed",
+          message: `${memberName} was removed from the workspace.`,
+        });
+        window.location.reload();
+      } else {
         const d = await res.json();
-        alert(d.error || "Failed to remove teammate");
+        toast.error("Failed to remove teammate", d.error);
       }
     } catch (err: any) {
-      alert(err.message);
+      toast.error("Error", err.message);
     }
   };
 

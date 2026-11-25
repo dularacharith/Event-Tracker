@@ -10,6 +10,7 @@ import {
   Clock,
   X,
 } from "lucide-react";
+import { setPendingToast } from "@/components/Toast";
 import {
   format,
   addMonths,
@@ -167,6 +168,11 @@ export function CalendarClient({
         throw new Error(data.error || "Failed to create activity");
       }
 
+      setPendingToast({
+        type: "success",
+        title: "Activity scheduled!",
+        message: `"${formTitle}" added to the calendar.`,
+      });
       window.location.reload();
     } catch (err: any) {
       setFormError(err.message);

@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
+import { useToast, setPendingToast } from "@/components/Toast";
 
 interface ActivityItem {
   id: string;
@@ -123,8 +124,14 @@ export function ActivitiesClient({
       const res = await fetch(`/api/activities/${activityId}/start`, {
         method: "POST",
       });
-      if (res.ok) window.location.reload();
-      else {
+      if (res.ok) {
+        setPendingToast({
+          type: "success",
+          title: "Progress started",
+          message: "Activity status set to In Progress.",
+        });
+        window.location.reload();
+      } else {
         const d = await res.json();
         alert(d.error || "Failed to start progress");
       }
@@ -165,6 +172,11 @@ export function ActivitiesClient({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create activity");
 
+      setPendingToast({
+        type: "success",
+        title: "Activity created!",
+        message: `"${newTitle}" was created successfully.`,
+      });
       window.location.reload();
     } catch (err: any) {
       setFormError(err.message);

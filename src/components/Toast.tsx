@@ -51,6 +51,17 @@ export function showToast(toast: Omit<ToastItem, "id">) {
   }
 }
 
+// Persist a toast across full page navigation/reload
+export function setPendingToast(toast: Omit<ToastItem, "id">) {
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.setItem("cf_pending_toast", JSON.stringify(toast));
+    } catch {
+      // ignore
+    }
+  }
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -89,6 +100,24 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     info: (title: string, message?: string, duration?: number) =>
       addToast({ type: "info", title, message, duration }),
   };
+
+  // Check for pending toasts across page reloads
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const pending = sessionStorage.getItem("cf_pending_toast");
+        if (pending) {
+          sessionStorage.removeItem("cf_pending_toast");
+          const item = JSON.parse(pending);
+          if (item?.title) {
+            addToast(item);
+          }
+        }
+      } catch {
+        sessionStorage.removeItem("cf_pending_toast");
+      }
+    }
+  }, [addToast]);
 
   // Listen to custom global events
   useEffect(() => {
@@ -208,7 +237,7 @@ function ToastContainer({
 
           <button
             onClick={() => onDismiss(item.id)}
-            className="text-slate-400 hover:text-slate-600 rounded-lg p-1 transition -mr-1 -mt-1 hover:bg-slate-100"
+            className="text-slate-400 hover:text-slate-600 rounded-lg p-1 transition -mr-1 -mt-1 hover:bg-slate-100 cursor-pointer"
             aria-label="Close notification"
           >
             <X className="w-4 h-4" />

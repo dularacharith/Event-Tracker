@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { FolderGit2, Plus, Calendar, Layers, X, ArrowRight } from "lucide-react";
+import { useToast, setPendingToast } from "@/components/Toast";
 
 interface CampaignItem {
   id: string;
@@ -25,6 +26,7 @@ export function CampaignsClient({
   userRole,
   initialCampaigns,
 }: CampaignsClientProps) {
+  const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -50,9 +52,15 @@ export function CampaignsClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create campaign");
+      setPendingToast({
+        type: "success",
+        title: "Campaign created!",
+        message: `Campaign "${name}" was created successfully.`,
+      });
       window.location.reload();
     } catch (err: any) {
       setError(err.message);
+      toast.error("Failed to create campaign", err.message);
       setLoading(false);
     }
   };

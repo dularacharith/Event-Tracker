@@ -22,6 +22,7 @@ import {
   Upload,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
+import { useToast, setPendingToast } from "@/components/Toast";
 
 interface ActivityDetailClientProps {
   currentUser: {
@@ -100,6 +101,11 @@ export function ActivityDetailClient({
       const res = await fetch(`/api/activities/${activity.id}/start`, { method: "POST" });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Failed to start progress");
+      setPendingToast({
+        type: "success",
+        title: "Progress started",
+        message: "Activity status set to In Progress.",
+      });
       window.location.reload();
     } catch (err: any) {
       alert(err.message);
@@ -114,6 +120,11 @@ export function ActivityDetailClient({
       const res = await fetch(`/api/activities/${activity.id}/submit`, { method: "POST" });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Failed to submit for review");
+      setPendingToast({
+        type: "success",
+        title: "Submitted for review!",
+        message: "Assigned reviewer notified to inspect evidence.",
+      });
       window.location.reload();
     } catch (err: any) {
       alert(err.message);
@@ -137,6 +148,11 @@ export function ActivityDetailClient({
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Failed to record verdict");
+      setPendingToast({
+        type: "success",
+        title: selectedVerdict === "passed" ? "Activity Passed!" : "Activity Marked as Failed",
+        message: "Verdict recorded with written reasoning.",
+      });
       window.location.reload();
     } catch (err: any) {
       setActionError(err.message);
@@ -180,6 +196,11 @@ export function ActivityDetailClient({
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Failed to add evidence");
+      setPendingToast({
+        type: "success",
+        title: "Evidence attached!",
+        message: "Proof was successfully attached to this activity.",
+      });
       window.location.reload();
     } catch (err: any) {
       setActionError(err.message);
@@ -194,8 +215,13 @@ export function ActivityDetailClient({
       const res = await fetch(`/api/activities/${activity.id}/evidence?evidenceId=${evidenceId}`, {
         method: "DELETE",
       });
-      if (res.ok) window.location.reload();
-      else {
+      if (res.ok) {
+        setPendingToast({
+          type: "success",
+          title: "Evidence removed",
+        });
+        window.location.reload();
+      } else {
         const d = await res.json();
         alert(d.error || "Failed to remove evidence");
       }
@@ -222,6 +248,11 @@ export function ActivityDetailClient({
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Failed to reschedule activity");
+      setPendingToast({
+        type: "success",
+        title: "Activity rescheduled!",
+        message: "New schedule saved; past review verdict is preserved.",
+      });
       window.location.reload();
     } catch (err: any) {
       setActionError(err.message);
@@ -242,6 +273,11 @@ export function ActivityDetailClient({
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Failed to reassign reviewer");
+      setPendingToast({
+        type: "success",
+        title: "Reviewer assigned!",
+        message: "Eligible reviewer was updated.",
+      });
       window.location.reload();
     } catch (err: any) {
       setActionError(err.message);
@@ -262,6 +298,10 @@ export function ActivityDetailClient({
       });
       if (res.ok) {
         setNewComment("");
+        setPendingToast({
+          type: "success",
+          title: "Comment posted",
+        });
         window.location.reload();
       } else {
         const d = await res.json();

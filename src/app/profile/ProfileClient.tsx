@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { Upload, CheckCircle, AlertCircle, Save } from "lucide-react";
+import { Save } from "lucide-react";
+import { useToast, setPendingToast } from "@/components/Toast";
 
 interface ProfileClientProps {
   currentUser: {
@@ -39,6 +40,7 @@ export function ProfileClient({
   currentUser,
   userRole,
 }: ProfileClientProps) {
+  const { toast } = useToast();
   const [displayName, setDisplayName] = useState(
     currentUser.displayName || currentUser.name || ""
   );
@@ -50,9 +52,6 @@ export function ProfileClient({
 
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(
-    null
-  );
 
   const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,7 +59,6 @@ export function ProfileClient({
 
     try {
       setUploadingAvatar(true);
-      setMessage(null);
 
       const formData = new FormData();
       formData.append("file", file);
@@ -75,9 +73,12 @@ export function ProfileClient({
       if (!res.ok) throw new Error(data.error || "Failed to upload avatar");
 
       setAvatarUrl(data.file.url);
-      setMessage({ type: "success", text: "Avatar uploaded! Click 'Save Changes' to update your profile." });
+      toast.success(
+        "Avatar uploaded",
+        "Click 'Save Changes' to update your profile."
+      );
     } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+      toast.error("Avatar upload failed", err.message);
     } finally {
       setUploadingAvatar(false);
     }
@@ -87,7 +88,6 @@ export function ProfileClient({
     e.preventDefault();
     try {
       setSaving(true);
-      setMessage(null);
 
       const res = await fetch("/api/profile", {
         method: "POST",
@@ -103,12 +103,14 @@ export function ProfileClient({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save profile");
 
-      setMessage({ type: "success", text: "Profile updated successfully!" });
-      setTimeout(() => {
-        window.location.reload();
-      }, 800);
+      setPendingToast({
+        type: "success",
+        title: "Profile updated successfully!",
+        message: "Your profile details have been saved.",
+      });
+      window.location.reload();
     } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+      toast.error("Failed to update profile", err.message);
       setSaving(false);
     }
   };
@@ -116,30 +118,15 @@ export function ProfileClient({
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Edit Profile</h1>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+          Edit Profile
+        </h1>
         <p className="text-sm text-slate-500 mt-0.5">
           Your profile is visible on activity assignments, comments, and review history
         </p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
-        {message && (
-          <div
-            className={`mb-6 p-4 rounded-xl text-xs flex items-center gap-2 border ${
-              message.type === "success"
-                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                : "bg-rose-50 text-rose-800 border-rose-200"
-            }`}
-          >
-            {message.type === "success" ? (
-              <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
-            ) : (
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-            )}
-            <span>{message.text}</span>
-          </div>
-        )}
-
         <form onSubmit={handleSave} className="space-y-6">
           {/* Avatar Section */}
           <div className="flex items-center gap-6 pb-6 border-b border-slate-100">
@@ -243,7 +230,7 @@ export function ProfileClient({
             <button
               type="submit"
               disabled={saving || uploadingAvatar}
-              className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-5 py-2.5 rounded-xl shadow-sm transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-5 py-2.5 rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
             >
               <Save className="w-3.5 h-3.5" />
               {saving ? "Saving..." : "Save Changes"}
