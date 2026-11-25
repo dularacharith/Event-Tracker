@@ -522,7 +522,7 @@ export function ActivitiesClient({
                 <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
                   <HelpCircle className="w-4 h-4" />
                 </span>
-                <span className="text-xs font-normal text-slate-600">
+                <span className="text-xs font-normal text-indigo-600">
                   How it works
                 </span>
               </div>
