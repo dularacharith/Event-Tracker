@@ -16,6 +16,7 @@ import {
   ColorTheme,
   getColumnStyles,
 } from "@/lib/flowColumns";
+import { CustomDropdown, DropdownOption } from "@/components/ui/CustomDropdown";
 
 interface ColumnEditModalProps {
   isOpen: boolean;
@@ -206,19 +207,54 @@ export function ColumnEditModal({
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 Workflow Base Mapping
               </label>
-              <select
+              <CustomDropdown
                 value={statusMapping}
-                onChange={(e) => setStatusMapping(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-              >
-                <option value="draft">Maps to Draft (Pre-scheduling stage)</option>
-                <option value="scheduled">Maps to Scheduled (Queue stage)</option>
-                <option value="in_progress">Maps to In Progress (Active work)</option>
-                <option value="awaiting_review">Maps to Awaiting Review (Quality inspection)</option>
-                <option value="passed">Maps to Completed (Finished/Published)</option>
-                <option value="failed">Maps to Failed (Needs rework)</option>
-                <option value="canceled">Maps to Canceled (Archived/Dropped)</option>
-              </select>
+                onChange={setStatusMapping}
+                options={[
+                  {
+                    value: "draft",
+                    label: "Draft",
+                    subtitle: "Pre-scheduling stage",
+                    icon: <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />,
+                  },
+                  {
+                    value: "scheduled",
+                    label: "Scheduled",
+                    subtitle: "Queue & calendar stage",
+                    icon: <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />,
+                  },
+                  {
+                    value: "in_progress",
+                    label: "In Progress",
+                    subtitle: "Active execution stage",
+                    icon: <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />,
+                  },
+                  {
+                    value: "awaiting_review",
+                    label: "Awaiting Review",
+                    subtitle: "Quality & proof gate",
+                    icon: <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />,
+                  },
+                  {
+                    value: "passed",
+                    label: "Completed",
+                    subtitle: "Finished & published",
+                    icon: <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />,
+                  },
+                  {
+                    value: "failed",
+                    label: "Failed",
+                    subtitle: "Requires revision/rework",
+                    icon: <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />,
+                  },
+                  {
+                    value: "canceled",
+                    label: "Canceled",
+                    subtitle: "Dropped or archived",
+                    icon: <span className="w-2.5 h-2.5 rounded-full bg-zinc-400" />,
+                  },
+                ]}
+              />
             </div>
           )}
 

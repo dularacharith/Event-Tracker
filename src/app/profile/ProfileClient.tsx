@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { Save } from "lucide-react";
+import { Save, Globe } from "lucide-react";
 import { useToast, setPendingToast } from "@/components/Toast";
+import { CustomDropdown } from "@/components/ui/CustomDropdown";
 
 interface ProfileClientProps {
   currentUser: {
@@ -202,17 +203,15 @@ export function ProfileClient({
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Timezone
               </label>
-              <select
+              <CustomDropdown
                 value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {COMMON_TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </select>
+                onChange={setTimezone}
+                options={COMMON_TIMEZONES.map((tz) => ({
+                  value: tz,
+                  label: tz,
+                  icon: <Globe className="w-3.5 h-3.5" />,
+                }))}
+              />
               <p className="text-[10px] text-slate-400 mt-1">
                 Used to render calendar due dates and review deadlines.
               </p>

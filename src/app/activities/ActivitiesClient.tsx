@@ -38,6 +38,14 @@ import {
   Share2,
   Palette,
   Settings2,
+  ChevronRight,
+  Users,
+  Video,
+  Film,
+  FileText,
+  Globe,
+  Layers,
+  Sparkles,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
@@ -52,6 +60,7 @@ import {
 } from "@/lib/flowColumns";
 import { ColumnEditModal } from "@/components/activities/ColumnEditModal";
 import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
+import { CustomDropdown } from "@/components/ui/CustomDropdown";
 
 interface ActivityItem {
   id: string;
@@ -698,78 +707,92 @@ export function ActivitiesClient({
           </div>
 
           <div className="grid grid-cols-2 sm:flex items-center gap-2 flex-wrap">
-            <select
-              value={filterCampaign}
-              onChange={(e) => setFilterCampaign(e.target.value)}
-              className="text-xs border border-slate-200 rounded-xl px-2.5 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">
-                {currentCampaigns.length === 0 ? "No Campaigns Available" : "All Campaigns"}
-              </option>
-              {currentCampaigns.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <div className="min-w-[135px]">
+              <CustomDropdown
+                value={filterCampaign}
+                onChange={setFilterCampaign}
+                placeholder={currentCampaigns.length === 0 ? "No Campaigns" : "All Campaigns"}
+                size="sm"
+                options={[
+                  { value: "", label: "All Campaigns", icon: <Layers className="w-3.5 h-3.5" /> },
+                  ...currentCampaigns.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                  })),
+                ]}
+              />
+            </div>
 
-            <select
-              value={filterChannel}
-              onChange={(e) => setFilterChannel(e.target.value)}
-              className="text-xs border border-slate-200 rounded-xl px-2.5 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">
-                {currentChannels.length === 0 ? "No Channels" : "All Channels"}
-              </option>
-              {currentChannels.map((ch) => (
-                <option key={ch.id} value={ch.id}>
-                  #{ch.name}
-                </option>
-              ))}
-            </select>
+            <div className="min-w-[135px]">
+              <CustomDropdown
+                value={filterChannel}
+                onChange={setFilterChannel}
+                placeholder={currentChannels.length === 0 ? "No Channels" : "All Channels"}
+                size="sm"
+                options={[
+                  { value: "", label: "All Channels", icon: <Hash className="w-3.5 h-3.5" /> },
+                  ...currentChannels.map((ch) => ({
+                    value: ch.id,
+                    label: `#${ch.name}`,
+                    subtitle: ch.platform ? ch.platform.toUpperCase() : undefined,
+                  })),
+                ]}
+              />
+            </div>
 
-            <select
-              value={filterPlatform}
-              onChange={(e) => setFilterPlatform(e.target.value)}
-              className="text-xs border border-slate-200 rounded-xl px-2.5 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">All Platforms</option>
-              <option value="twitter">Twitter / X</option>
-              <option value="instagram">Instagram</option>
-              <option value="linkedin">LinkedIn</option>
-              <option value="tiktok">TikTok</option>
-              <option value="youtube">YouTube</option>
-              <option value="facebook">Facebook</option>
-              <option value="threads">Threads</option>
-            </select>
+            <div className="min-w-[135px]">
+              <CustomDropdown
+                value={filterPlatform}
+                onChange={setFilterPlatform}
+                placeholder="All Platforms"
+                size="sm"
+                options={[
+                  { value: "", label: "All Platforms", icon: <Radio className="w-3.5 h-3.5" /> },
+                  { value: "twitter", label: "Twitter / X", icon: <span className="font-bold text-xs">𝕏</span> },
+                  { value: "instagram", label: "Instagram", icon: <span className="text-pink-600 font-bold text-xs">IG</span> },
+                  { value: "tiktok", label: "TikTok", icon: <span className="text-cyan-600 font-bold text-xs">TT</span> },
+                  { value: "linkedin", label: "LinkedIn", icon: <span className="text-blue-600 font-bold text-xs">in</span> },
+                  { value: "youtube", label: "YouTube", icon: <span className="text-red-600 font-bold text-xs">YT</span> },
+                  { value: "facebook", label: "Facebook", icon: <span className="text-blue-700 font-bold text-xs">fb</span> },
+                  { value: "threads", label: "Threads", icon: <span className="font-bold text-xs">@</span> },
+                ]}
+              />
+            </div>
 
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-xs border border-slate-200 rounded-xl px-2.5 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">All Statuses</option>
-              <option value="draft">Draft</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="in_progress">In Progress</option>
-              <option value="awaiting_review">Awaiting Review</option>
-              <option value="passed">Completed</option>
-              <option value="failed">Failed</option>
-              <option value="canceled">Canceled</option>
-            </select>
+            <div className="min-w-[135px]">
+              <CustomDropdown
+                value={filterStatus}
+                onChange={setFilterStatus}
+                placeholder="All Statuses"
+                size="sm"
+                options={[
+                  { value: "", label: "All Statuses", icon: <Layers className="w-3.5 h-3.5" /> },
+                  { value: "draft", label: "Draft", icon: <span className="w-2.5 h-2.5 rounded-full bg-slate-500" /> },
+                  { value: "scheduled", label: "Scheduled", icon: <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> },
+                  { value: "in_progress", label: "In Progress", icon: <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> },
+                  { value: "awaiting_review", label: "Awaiting Review", icon: <span className="w-2.5 h-2.5 rounded-full bg-purple-500" /> },
+                  { value: "passed", label: "Completed", icon: <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> },
+                  { value: "failed", label: "Failed", icon: <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> },
+                  { value: "canceled", label: "Canceled", icon: <span className="w-2.5 h-2.5 rounded-full bg-zinc-400" /> },
+                ]}
+              />
+            </div>
 
-            <select
-              value={filterOwner}
-              onChange={(e) => setFilterOwner(e.target.value)}
-              className="text-xs border border-slate-200 rounded-xl px-2.5 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">All Owners</option>
-              {teammates.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.displayName || m.name}
-                </option>
-              ))}
-            </select>
+            <div className="min-w-[135px]">
+              <CustomDropdown
+                value={filterOwner}
+                onChange={setFilterOwner}
+                placeholder="All Owners"
+                size="sm"
+                options={[
+                  { value: "", label: "All Owners", icon: <Users className="w-3.5 h-3.5" /> },
+                  ...teammates.map((m) => ({
+                    value: m.userId,
+                    label: m.displayName || m.name,
+                  })),
+                ]}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -1141,7 +1164,7 @@ export function ActivitiesClient({
                                 className="fixed inset-0 z-30"
                                 onClick={() => setActiveKebabMenuColId(null)}
                               />
-                              <div className="absolute right-0 top-7 z-40 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 text-xs text-slate-700 animate-in fade-in zoom-in-95 duration-100">
+                              <div className="absolute right-0 top-7 z-40 w-64 bg-white rounded-2xl shadow-xl shadow-purple-950/10 border border-slate-100 p-1.5 text-xs text-slate-700 animate-in fade-in-0 zoom-in-95 duration-100">
                                 {/* Change Title & Color */}
                                 <button
                                   onClick={() => {
@@ -1150,14 +1173,19 @@ export function ActivitiesClient({
                                     setIsEditingNewColumn(false);
                                     setIsColumnEditModalOpen(true);
                                   }}
-                                  className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-800 font-medium transition cursor-pointer"
+                                  className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
                                 >
-                                  <Pencil className="w-3.5 h-3.5 text-indigo-500" />
-                                  <span>Edit Title & Colors</span>
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span>Edit Title & Colors</span>
+                                  </div>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
                                 </button>
 
                                 {/* Quick Color Swatches */}
-                                <div className="px-3 py-2 border-t border-slate-100">
+                                <div className="px-3 py-2 border-t border-slate-100 my-1">
                                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
                                     Change Color Theme:
                                   </span>
@@ -1169,7 +1197,7 @@ export function ActivitiesClient({
                                           handleQuickColorChange(col.id, theme.id);
                                         }}
                                         className={`w-4 h-4 rounded-full ${theme.dot} transition hover:scale-125 cursor-pointer ${
-                                          col.colorTheme === theme.id ? "ring-2 ring-slate-800 ring-offset-1" : ""
+                                          col.colorTheme === theme.id ? "ring-2 ring-purple-600 ring-offset-1" : ""
                                         }`}
                                         title={theme.name}
                                       />
@@ -1187,10 +1215,15 @@ export function ActivitiesClient({
                                     setIsEditingNewColumn(true);
                                     setIsColumnEditModalOpen(true);
                                   }}
-                                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-800 font-medium transition cursor-pointer"
+                                  className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
                                 >
-                                  <Plus className="w-3.5 h-3.5 text-emerald-500" />
-                                  <span>Create New Card</span>
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                                      <Plus className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span>Create New Card</span>
+                                  </div>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
                                 </button>
 
                                 {/* Hide Card */}
@@ -1199,10 +1232,15 @@ export function ActivitiesClient({
                                     setActiveKebabMenuColId(null);
                                     handleHideColumn(col.id);
                                   }}
-                                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-800 font-medium transition cursor-pointer"
+                                  className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
                                 >
-                                  <EyeOff className="w-3.5 h-3.5 text-amber-500" />
-                                  <span>Hide Card from Flow</span>
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-amber-500 group-hover:bg-slate-200/80 shrink-0">
+                                      <EyeOff className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span>Hide Card from Flow</span>
+                                  </div>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
                                 </button>
 
                                 {/* Configure Flow */}
@@ -1211,10 +1249,15 @@ export function ActivitiesClient({
                                     setActiveKebabMenuColId(null);
                                     setIsVisualFlowModalOpen(true);
                                   }}
-                                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-800 font-medium transition cursor-pointer"
+                                  className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
                                 >
-                                  <Share2 className="w-3.5 h-3.5 text-indigo-500" />
-                                  <span>Configure Flow...</span>
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                                      <Share2 className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span>Configure Flow...</span>
+                                  </div>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
                                 </button>
 
                                 <div className="border-t border-slate-100 my-1" />
@@ -1225,10 +1268,15 @@ export function ActivitiesClient({
                                     setActiveKebabMenuColId(null);
                                     handleDeleteColumn(col.id);
                                   }}
-                                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-rose-50 text-rose-600 font-medium transition cursor-pointer"
+                                  className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  <span>Delete Card</span>
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 group-hover:bg-rose-100 shrink-0">
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span>Delete Card</span>
+                                  </div>
+                                  <ChevronRight className="w-3.5 h-3.5 text-rose-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition" />
                                 </button>
                               </div>
                             </>
@@ -1279,34 +1327,49 @@ export function ActivitiesClient({
                                         className="fixed inset-0 z-30"
                                         onClick={() => setActiveKebabActivityId(null)}
                                       />
-                                      <div className="absolute right-0 top-5 z-40 w-44 bg-white rounded-xl shadow-lg border border-slate-200 py-1 text-xs">
+                                      <div className="absolute right-0 top-5 z-40 w-52 bg-white rounded-2xl shadow-xl shadow-purple-950/10 border border-slate-100 p-1.5 text-xs animate-in fade-in-0 zoom-in-95 duration-100">
                                         <button
                                           onClick={() => {
                                             setActiveKebabActivityId(null);
                                             handleEditActivityTitle(act.id, act.title);
                                           }}
-                                          className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-700 cursor-pointer font-medium"
+                                          className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
                                         >
-                                          <Pencil className="w-3 h-3 text-indigo-500" />
-                                          <span>Rename Title</span>
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                                              <Pencil className="w-3 h-3" />
+                                            </div>
+                                            <span>Rename Title</span>
+                                          </div>
+                                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
                                         </button>
                                         <Link
                                           href={`/activities/${act.id}`}
-                                          className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-700 font-medium"
+                                          className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 transition"
                                         >
-                                          <ExternalLink className="w-3 h-3 text-slate-400" />
-                                          <span>View Details</span>
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                                              <ExternalLink className="w-3 h-3" />
+                                            </div>
+                                            <span>View Details</span>
+                                          </div>
+                                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
                                         </Link>
-                                        <div className="border-t border-slate-100 my-0.5" />
+                                        <div className="border-t border-slate-100 my-1" />
                                         <button
                                           onClick={() => {
                                             setActiveKebabActivityId(null);
                                             handleDeleteActivity(act.id, act.title);
                                           }}
-                                          className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-rose-50 text-rose-600 cursor-pointer font-medium"
+                                          className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                                         >
-                                          <Trash2 className="w-3 h-3" />
-                                          <span>Delete Activity</span>
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-md bg-rose-50 flex items-center justify-center text-rose-600 group-hover:bg-rose-100 shrink-0">
+                                              <Trash2 className="w-3 h-3" />
+                                            </div>
+                                            <span>Delete Activity</span>
+                                          </div>
+                                          <ChevronRight className="w-3.5 h-3.5 text-rose-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition" />
                                         </button>
                                       </div>
                                     </>
@@ -1510,33 +1573,21 @@ export function ActivitiesClient({
 
                                 {/* Quick Chain Move Dropdown */}
                                 {CHAIN_TRANSITIONS[act.status]?.length > 0 && (
-                                  <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                                    <span className="shrink-0 text-slate-400">
-                                      Move:
-                                    </span>
-                                    <select
+                                  <div className="pt-0.5">
+                                    <CustomDropdown
                                       value=""
-                                      onChange={(e) => {
-                                        if (e.target.value)
-                                          handleChainTransition(
-                                            act.id,
-                                            e.target.value
-                                          );
+                                      onChange={(targetStatus) => {
+                                        if (targetStatus)
+                                          handleChainTransition(act.id, targetStatus);
                                       }}
-                                      className="w-full text-[10px] font-medium bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-700 focus:outline-none cursor-pointer"
-                                    >
-                                      <option value="" disabled>
-                                        Move along chain...
-                                      </option>
-                                      {CHAIN_TRANSITIONS[act.status].map((t) => (
-                                        <option
-                                          key={t.targetStatus}
-                                          value={t.targetStatus}
-                                        >
-                                          → {t.label}
-                                        </option>
-                                      ))}
-                                    </select>
+                                      placeholder="Move along chain..."
+                                      size="sm"
+                                      options={CHAIN_TRANSITIONS[act.status].map((t) => ({
+                                        value: t.targetStatus,
+                                        label: t.label,
+                                        icon: <ArrowRight className="w-3.5 h-3.5" />,
+                                      }))}
+                                    />
                                   </div>
                                 )}
                               </div>
@@ -1760,29 +1811,22 @@ export function ActivitiesClient({
                           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
                             {/* Quick Chain Move Dropdown */}
                             {CHAIN_TRANSITIONS[act.status]?.length > 0 && (
-                              <select
-                                value=""
-                                onChange={(e) => {
-                                  if (e.target.value)
-                                    handleChainTransition(
-                                      act.id,
-                                      e.target.value
-                                    );
-                                }}
-                                className="text-xs font-medium bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none cursor-pointer"
-                              >
-                                <option value="" disabled>
-                                  Move along chain...
-                                </option>
-                                {CHAIN_TRANSITIONS[act.status].map((t) => (
-                                  <option
-                                    key={t.targetStatus}
-                                    value={t.targetStatus}
-                                  >
-                                    → {t.label}
-                                  </option>
-                                ))}
-                              </select>
+                              <div className="w-48">
+                                <CustomDropdown
+                                  value=""
+                                  onChange={(targetStatus) => {
+                                    if (targetStatus)
+                                      handleChainTransition(act.id, targetStatus);
+                                  }}
+                                  placeholder="Move along chain..."
+                                  size="sm"
+                                  options={CHAIN_TRANSITIONS[act.status].map((t) => ({
+                                    value: t.targetStatus,
+                                    label: t.label,
+                                    icon: <ArrowRight className="w-3.5 h-3.5" />,
+                                  }))}
+                                />
+                              </div>
                             )}
 
                             {act.status === "scheduled" && (
@@ -1854,21 +1898,16 @@ export function ActivitiesClient({
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                   </div>
                 ) : (
-                  <select
+                  <CustomDropdown
                     value={newCampaignId}
-                    onChange={(e) => setNewCampaignId(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                    required
-                  >
-                    <option value="" disabled>
-                      Select a campaign...
-                    </option>
-                    {currentCampaigns.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setNewCampaignId}
+                    placeholder="Select a campaign..."
+                    options={currentCampaigns.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                      icon: <Layers className="w-3.5 h-3.5" />,
+                    }))}
+                  />
                 )}
 
                 {/* Empty State Banner when no campaigns exist */}
@@ -1972,39 +2011,39 @@ export function ActivitiesClient({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Platform *
                   </label>
-                  <select
+                  <CustomDropdown
                     value={newPlatform}
-                    onChange={(e) => setNewPlatform(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="twitter">Twitter / X</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="linkedin">LinkedIn</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="youtube">YouTube</option>
-                    <option value="facebook">Facebook</option>
-                    <option value="threads">Threads</option>
-                  </select>
+                    onChange={setNewPlatform}
+                    options={[
+                      { value: "twitter", label: "Twitter / X", icon: <span className="font-bold text-xs">𝕏</span> },
+                      { value: "instagram", label: "Instagram", icon: <span className="text-pink-600 font-bold text-xs">IG</span> },
+                      { value: "tiktok", label: "TikTok", icon: <span className="text-cyan-600 font-bold text-xs">TT</span> },
+                      { value: "linkedin", label: "LinkedIn", icon: <span className="text-blue-600 font-bold text-xs">in</span> },
+                      { value: "youtube", label: "YouTube", icon: <span className="text-red-600 font-bold text-xs">YT</span> },
+                      { value: "facebook", label: "Facebook", icon: <span className="text-blue-700 font-bold text-xs">fb</span> },
+                      { value: "threads", label: "Threads", icon: <span className="font-bold text-xs">@</span> },
+                    ]}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Content Type *
                   </label>
-                  <select
+                  <CustomDropdown
                     value={newContentType}
-                    onChange={(e) => setNewContentType(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="post">Post</option>
-                    <option value="reel">Reel</option>
-                    <option value="video">Video</option>
-                    <option value="reel_video">Reel / Video</option>
-                    <option value="story">Story</option>
-                    <option value="thread">Thread</option>
-                    <option value="carousel">Carousel</option>
-                    <option value="article">Article</option>
-                  </select>
+                    onChange={setNewContentType}
+                    options={[
+                      { value: "post", label: "Post", icon: <FileText className="w-3.5 h-3.5" /> },
+                      { value: "reel", label: "Reel", icon: <Film className="w-3.5 h-3.5" /> },
+                      { value: "video", label: "Video", icon: <Video className="w-3.5 h-3.5" /> },
+                      { value: "reel_video", label: "Reel / Video", icon: <Video className="w-3.5 h-3.5" /> },
+                      { value: "story", label: "Story", icon: <Sparkles className="w-3.5 h-3.5" /> },
+                      { value: "thread", label: "Thread", icon: <Hash className="w-3.5 h-3.5" /> },
+                      { value: "carousel", label: "Carousel", icon: <Layers className="w-3.5 h-3.5" /> },
+                      { value: "article", label: "Article", icon: <FileText className="w-3.5 h-3.5" /> },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -2022,18 +2061,20 @@ export function ActivitiesClient({
                   </button>
                 </div>
 
-                <select
+                <CustomDropdown
                   value={newChannelId}
-                  onChange={(e) => setNewChannelId(e.target.value)}
-                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                >
-                  <option value="">No channel (None)</option>
-                  {currentChannels.map((ch) => (
-                    <option key={ch.id} value={ch.id}>
-                      #{ch.name} {ch.platform ? `(${ch.platform})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setNewChannelId}
+                  placeholder="No channel (None)"
+                  options={[
+                    { value: "", label: "No channel (None)" },
+                    ...currentChannels.map((ch) => ({
+                      value: ch.id,
+                      label: `#${ch.name}`,
+                      subtitle: ch.platform ? ch.platform.toUpperCase() : undefined,
+                      icon: <Hash className="w-3.5 h-3.5" />,
+                    })),
+                  ]}
+                />
 
                 {quickChannelOpen && (
                   <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
@@ -2073,32 +2114,31 @@ export function ActivitiesClient({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Initial Status
                   </label>
-                  <select
+                  <CustomDropdown
                     value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value as any)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="scheduled">Scheduled</option>
-                  </select>
+                    onChange={(val) => setNewStatus(val as any)}
+                    options={[
+                      { value: "draft", label: "Draft", subtitle: "Pre-scheduling stage", icon: <span className="w-2.5 h-2.5 rounded-full bg-slate-500" /> },
+                      { value: "scheduled", label: "Scheduled", subtitle: "Queue with deadline", icon: <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> },
+                    ]}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Owner
                   </label>
-                  <select
+                  <CustomDropdown
                     value={newOwnerId}
-                    onChange={(e) => setNewOwnerId(e.target.value)}
+                    onChange={setNewOwnerId}
                     disabled={userRole !== "admin"}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white disabled:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {teammates.map((m) => (
-                      <option key={m.userId} value={m.userId}>
-                        {m.displayName || m.name} ({m.role})
-                      </option>
-                    ))}
-                  </select>
+                    options={teammates.map((m) => ({
+                      value: m.userId,
+                      label: m.displayName || m.name,
+                      subtitle: m.role,
+                      icon: <Users className="w-3.5 h-3.5" />,
+                    }))}
+                  />
                 </div>
               </div>
 
@@ -2138,19 +2178,19 @@ export function ActivitiesClient({
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Repeat Frequency
                     </label>
-                    <select
+                    <CustomDropdown
                       value={newRecurrenceRule}
-                      onChange={(e) => setNewRecurrenceRule(e.target.value)}
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="none">Does not repeat</option>
-                      <option value="daily">By day (Every day)</option>
-                      <option value="every_2_days">Every 2 days</option>
-                      <option value="every_5_days">Every 5 days</option>
-                      <option value="weekly">Every week (Weekly)</option>
-                      <option value="weekends">Only weekends (Sat & Sun)</option>
-                      <option value="specific_day">On a specific day of the week</option>
-                    </select>
+                      onChange={setNewRecurrenceRule}
+                      options={[
+                        { value: "none", label: "Does not repeat", icon: <X className="w-3.5 h-3.5 text-slate-400" /> },
+                        { value: "daily", label: "By day (Every day)", icon: <Repeat className="w-3.5 h-3.5" /> },
+                        { value: "every_2_days", label: "Every 2 days", icon: <Repeat className="w-3.5 h-3.5" /> },
+                        { value: "every_5_days", label: "Every 5 days", icon: <Repeat className="w-3.5 h-3.5" /> },
+                        { value: "weekly", label: "Every week (Weekly)", icon: <Calendar className="w-3.5 h-3.5" /> },
+                        { value: "weekends", label: "Only weekends (Sat & Sun)", icon: <Calendar className="w-3.5 h-3.5" /> },
+                        { value: "specific_day", label: "On a specific day of the week", icon: <Calendar className="w-3.5 h-3.5" /> },
+                      ]}
+                    />
                     <span className="text-[10px] text-slate-400 mt-1 block">
                       Automatically generates recurring activities
                     </span>
@@ -2164,19 +2204,19 @@ export function ActivitiesClient({
                         <label className="block text-xs font-semibold text-slate-700 mb-1">
                           Select Day of Week
                         </label>
-                        <select
+                        <CustomDropdown
                           value={newRecurrenceDay}
-                          onChange={(e) => setNewRecurrenceDay(e.target.value)}
-                          className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                          <option value="monday">Every Monday</option>
-                          <option value="tuesday">Every Tuesday</option>
-                          <option value="wednesday">Every Wednesday</option>
-                          <option value="thursday">Every Thursday</option>
-                          <option value="friday">Every Friday</option>
-                          <option value="saturday">Every Saturday</option>
-                          <option value="sunday">Every Sunday</option>
-                        </select>
+                          onChange={setNewRecurrenceDay}
+                          options={[
+                            { value: "monday", label: "Every Monday" },
+                            { value: "tuesday", label: "Every Tuesday" },
+                            { value: "wednesday", label: "Every Wednesday" },
+                            { value: "thursday", label: "Every Thursday" },
+                            { value: "friday", label: "Every Friday" },
+                            { value: "saturday", label: "Every Saturday" },
+                            { value: "sunday", label: "Every Sunday" },
+                          ]}
+                        />
                       </div>
                     )}
 
@@ -2200,19 +2240,19 @@ export function ActivitiesClient({
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Max Occurrences
                       </label>
-                      <select
-                        value={newRecurrenceCount}
-                        onChange={(e) => setNewRecurrenceCount(Number(e.target.value))}
-                        className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value={3}>3 occurrences</option>
-                        <option value={5}>5 occurrences</option>
-                        <option value={8}>8 occurrences</option>
-                        <option value={10}>10 occurrences</option>
-                        <option value={14}>14 occurrences</option>
-                        <option value={20}>20 occurrences</option>
-                        <option value={30}>30 occurrences</option>
-                      </select>
+                      <CustomDropdown
+                        value={String(newRecurrenceCount)}
+                        onChange={(val) => setNewRecurrenceCount(Number(val))}
+                        options={[
+                          { value: "3", label: "3 occurrences" },
+                          { value: "5", label: "5 occurrences" },
+                          { value: "8", label: "8 occurrences" },
+                          { value: "10", label: "10 occurrences" },
+                          { value: "14", label: "14 occurrences" },
+                          { value: "20", label: "20 occurrences" },
+                          { value: "30", label: "30 occurrences" },
+                        ]}
+                      />
                       <span className="text-[10px] text-slate-400 mt-1 block">
                         {newRecurrenceEndDate
                           ? `Up to ${newRecurrenceCount} occurrences before end date`
@@ -2245,21 +2285,22 @@ export function ActivitiesClient({
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Assigned Reviewer *
                     </label>
-                    <select
+                    <CustomDropdown
                       value={newReviewerId}
-                      onChange={(e) => setNewReviewerId(e.target.value)}
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      required={newStatus === "scheduled"}
-                    >
-                      <option value="">Select an eligible reviewer</option>
-                      {teammates
-                        .filter((m) => m.userId !== newOwnerId && m.userId !== currentUser.id)
-                        .map((m) => (
-                          <option key={m.userId} value={m.userId}>
-                            {m.displayName || m.name} ({m.role})
-                          </option>
-                        ))}
-                    </select>
+                      onChange={setNewReviewerId}
+                      placeholder="Select an eligible reviewer"
+                      options={[
+                        { value: "", label: "Select an eligible reviewer" },
+                        ...teammates
+                          .filter((m) => m.userId !== newOwnerId && m.userId !== currentUser.id)
+                          .map((m) => ({
+                            value: m.userId,
+                            label: m.displayName || m.name,
+                            subtitle: m.role,
+                            icon: <Users className="w-3.5 h-3.5" />,
+                          })),
+                      ]}
+                    />
                   </div>
 
                   <div>

@@ -29,9 +29,11 @@ import {
   HelpCircle,
   Info,
   Repeat,
+  User,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
+import { CustomDropdown } from "@/components/ui/CustomDropdown";
 
 interface ActivityDetailClientProps {
   currentUser: {
@@ -1442,26 +1444,27 @@ export function ActivityDetailClient({
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Select New Reviewer *
                 </label>
-                <select
+                <CustomDropdown
                   value={newReviewerId}
-                  onChange={(e) => setNewReviewerId(e.target.value)}
-                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                >
-                  <option value="">Select an eligible teammate</option>
-                  {teammates
-                    .filter(
-                      (m) =>
-                        m.userId !== activity.ownerId &&
-                        m.userId !== activity.createdById &&
-                        m.userId !== activity.reviewerId
-                    )
-                    .map((m) => (
-                      <option key={m.userId} value={m.userId}>
-                        {m.displayName || m.name} ({m.role})
-                      </option>
-                    ))}
-                </select>
+                  onChange={setNewReviewerId}
+                  placeholder="Select an eligible teammate"
+                  options={[
+                    { value: "", label: "Select an eligible teammate" },
+                    ...teammates
+                      .filter(
+                        (m) =>
+                          m.userId !== activity.ownerId &&
+                          m.userId !== activity.createdById &&
+                          m.userId !== activity.reviewerId
+                      )
+                      .map((m) => ({
+                        value: m.userId,
+                        label: m.displayName || m.name,
+                        subtitle: m.role ? m.role.toUpperCase() : undefined,
+                        icon: <User className="w-3.5 h-3.5" />,
+                      })),
+                  ]}
+                />
                 <p className="text-[10px] text-slate-400 mt-1">
                   Must be an active teammate who is neither the creator nor the owner.
                 </p>

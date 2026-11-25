@@ -13,8 +13,10 @@ import {
   Clock,
   X,
   CheckCircle,
+  Shield,
 } from "lucide-react";
 import { useToast, setPendingToast } from "@/components/Toast";
+import { CustomDropdown } from "@/components/ui/CustomDropdown";
 
 interface TeamClientProps {
   currentUser: {
@@ -414,30 +416,30 @@ export function TeamClient({
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Workspace Role
                     </label>
-                    <select
+                    <CustomDropdown
                       value={inviteRole}
-                      onChange={(e) => setInviteRole(e.target.value as any)}
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="member">Member</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                      onChange={(v) => setInviteRole(v as any)}
+                      options={[
+                        { value: "member", label: "Member", icon: <Users className="w-3.5 h-3.5" /> },
+                        { value: "admin", label: "Admin", icon: <Shield className="w-3.5 h-3.5" /> },
+                      ]}
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Expires In
                     </label>
-                    <select
+                    <CustomDropdown
                       value={expiresInDays}
-                      onChange={(e) => setExpiresInDays(e.target.value)}
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="1">24 hours</option>
-                      <option value="3">3 days</option>
-                      <option value="7">7 days</option>
-                      <option value="14">14 days</option>
-                    </select>
+                      onChange={setExpiresInDays}
+                      options={[
+                        { value: "1", label: "24 hours", icon: <Clock className="w-3.5 h-3.5" /> },
+                        { value: "3", label: "3 days", icon: <Clock className="w-3.5 h-3.5" /> },
+                        { value: "7", label: "7 days", icon: <Clock className="w-3.5 h-3.5" /> },
+                        { value: "14", label: "14 days", icon: <Clock className="w-3.5 h-3.5" /> },
+                      ]}
+                    />
                   </div>
                 </div>
 

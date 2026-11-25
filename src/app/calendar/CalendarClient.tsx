@@ -12,8 +12,18 @@ import {
   X,
   AlertCircle,
   Repeat,
+  Layers,
+  Radio,
+  Hash,
+  FileText,
+  Film,
+  Video,
+  Sparkles,
+  Users,
+  User,
 } from "lucide-react";
 import { setPendingToast } from "@/components/Toast";
+import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import {
   format,
   addMonths,
@@ -412,21 +422,16 @@ export function CalendarClient({
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                   </div>
                 ) : (
-                  <select
+                  <CustomDropdown
                     value={formCampaignId}
-                    onChange={(e) => setFormCampaignId(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                    required
-                  >
-                    <option value="" disabled>
-                      Select a campaign...
-                    </option>
-                    {campaigns.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setFormCampaignId}
+                    placeholder="Select a campaign..."
+                    options={campaigns.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                      icon: <Layers className="w-3.5 h-3.5" />,
+                    }))}
+                  />
                 )}
 
                 {campaigns.length === 0 && (
@@ -489,39 +494,39 @@ export function CalendarClient({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Platform *
                   </label>
-                  <select
+                  <CustomDropdown
                     value={formPlatform}
-                    onChange={(e) => setFormPlatform(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="twitter">Twitter / X</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="linkedin">LinkedIn</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="youtube">YouTube</option>
-                    <option value="facebook">Facebook</option>
-                    <option value="threads">Threads</option>
-                  </select>
+                    onChange={setFormPlatform}
+                    options={[
+                      { value: "twitter", label: "Twitter / X", icon: <span className="font-bold text-xs">𝕏</span> },
+                      { value: "instagram", label: "Instagram", icon: <span className="text-pink-600 font-bold text-xs">IG</span> },
+                      { value: "tiktok", label: "TikTok", icon: <span className="text-cyan-600 font-bold text-xs">TT</span> },
+                      { value: "linkedin", label: "LinkedIn", icon: <span className="text-blue-600 font-bold text-xs">in</span> },
+                      { value: "youtube", label: "YouTube", icon: <span className="text-red-600 font-bold text-xs">YT</span> },
+                      { value: "facebook", label: "Facebook", icon: <span className="text-blue-700 font-bold text-xs">fb</span> },
+                      { value: "threads", label: "Threads", icon: <span className="font-bold text-xs">@</span> },
+                    ]}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Content Type *
                   </label>
-                  <select
+                  <CustomDropdown
                     value={formContentType}
-                    onChange={(e) => setFormContentType(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="post">Post</option>
-                    <option value="reel">Reel</option>
-                    <option value="video">Video</option>
-                    <option value="reel_video">Reel / Video</option>
-                    <option value="story">Story</option>
-                    <option value="thread">Thread</option>
-                    <option value="carousel">Carousel</option>
-                    <option value="article">Article</option>
-                  </select>
+                    onChange={setFormContentType}
+                    options={[
+                      { value: "post", label: "Post", icon: <FileText className="w-3.5 h-3.5" /> },
+                      { value: "reel", label: "Reel", icon: <Film className="w-3.5 h-3.5" /> },
+                      { value: "video", label: "Video", icon: <Video className="w-3.5 h-3.5" /> },
+                      { value: "reel_video", label: "Reel / Video", icon: <Video className="w-3.5 h-3.5" /> },
+                      { value: "story", label: "Story", icon: <Sparkles className="w-3.5 h-3.5" /> },
+                      { value: "thread", label: "Thread", icon: <Hash className="w-3.5 h-3.5" /> },
+                      { value: "carousel", label: "Carousel", icon: <Layers className="w-3.5 h-3.5" /> },
+                      { value: "article", label: "Article", icon: <FileText className="w-3.5 h-3.5" /> },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -529,18 +534,20 @@ export function CalendarClient({
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Channel <span className="font-normal text-slate-400">(Optional)</span>
                 </label>
-                <select
+                <CustomDropdown
                   value={formChannelId}
-                  onChange={(e) => setFormChannelId(e.target.value)}
-                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                >
-                  <option value="">No channel (None)</option>
-                  {channels.map((ch) => (
-                    <option key={ch.id} value={ch.id}>
-                      #{ch.name} {ch.platform ? `(${ch.platform})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setFormChannelId}
+                  placeholder="No channel (None)"
+                  options={[
+                    { value: "", label: "No channel (None)" },
+                    ...channels.map((ch) => ({
+                      value: ch.id,
+                      label: `#${ch.name}`,
+                      subtitle: ch.platform ? ch.platform.toUpperCase() : undefined,
+                      icon: <Hash className="w-3.5 h-3.5" />,
+                    })),
+                  ]}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -560,16 +567,16 @@ export function CalendarClient({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Review Deadline
                   </label>
-                  <select
+                  <CustomDropdown
                     value={formReviewDeadlineDays}
-                    onChange={(e) => setFormReviewDeadlineDays(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="1">1 day after schedule</option>
-                    <option value="2">2 days after schedule</option>
-                    <option value="3">3 days after schedule</option>
-                    <option value="7">1 week after schedule</option>
-                  </select>
+                    onChange={setFormReviewDeadlineDays}
+                    options={[
+                      { value: "1", label: "1 day after schedule", icon: <Clock className="w-3.5 h-3.5" /> },
+                      { value: "2", label: "2 days after schedule", icon: <Clock className="w-3.5 h-3.5" /> },
+                      { value: "3", label: "3 days after schedule", icon: <Clock className="w-3.5 h-3.5" /> },
+                      { value: "7", label: "1 week after schedule", icon: <Clock className="w-3.5 h-3.5" /> },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -592,19 +599,19 @@ export function CalendarClient({
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Frequency
                     </label>
-                    <select
+                    <CustomDropdown
                       value={formRecurrenceRule}
-                      onChange={(e) => setFormRecurrenceRule(e.target.value)}
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="none">Does not repeat</option>
-                      <option value="daily">By day (Every day)</option>
-                      <option value="every_2_days">Every 2 days</option>
-                      <option value="every_5_days">Every 5 days</option>
-                      <option value="weekly">Every week (Weekly)</option>
-                      <option value="weekends">Only weekends (Sat & Sun)</option>
-                      <option value="specific_day">On a specific day of the week</option>
-                    </select>
+                      onChange={setFormRecurrenceRule}
+                      options={[
+                        { value: "none", label: "Does not repeat", icon: <Repeat className="w-3.5 h-3.5" /> },
+                        { value: "daily", label: "By day (Every day)", icon: <Repeat className="w-3.5 h-3.5" /> },
+                        { value: "every_2_days", label: "Every 2 days", icon: <Repeat className="w-3.5 h-3.5" /> },
+                        { value: "every_5_days", label: "Every 5 days", icon: <Repeat className="w-3.5 h-3.5" /> },
+                        { value: "weekly", label: "Every week (Weekly)", icon: <Repeat className="w-3.5 h-3.5" /> },
+                        { value: "weekends", label: "Only weekends (Sat & Sun)", icon: <Repeat className="w-3.5 h-3.5" /> },
+                        { value: "specific_day", label: "On a specific day of the week", icon: <CalendarIcon className="w-3.5 h-3.5" /> },
+                      ]}
+                    />
                   </div>
 
                   <div>
@@ -631,19 +638,19 @@ export function CalendarClient({
                         <label className="block text-xs font-semibold text-slate-700 mb-1">
                           Select Day of Week
                         </label>
-                        <select
+                        <CustomDropdown
                           value={formRecurrenceDay}
-                          onChange={(e) => setFormRecurrenceDay(e.target.value)}
-                          className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                          <option value="monday">Every Monday</option>
-                          <option value="tuesday">Every Tuesday</option>
-                          <option value="wednesday">Every Wednesday</option>
-                          <option value="thursday">Every Thursday</option>
-                          <option value="friday">Every Friday</option>
-                          <option value="saturday">Every Saturday</option>
-                          <option value="sunday">Every Sunday</option>
-                        </select>
+                          onChange={setFormRecurrenceDay}
+                          options={[
+                            { value: "monday", label: "Every Monday", icon: <CalendarIcon className="w-3.5 h-3.5" /> },
+                            { value: "tuesday", label: "Every Tuesday", icon: <CalendarIcon className="w-3.5 h-3.5" /> },
+                            { value: "wednesday", label: "Every Wednesday", icon: <CalendarIcon className="w-3.5 h-3.5" /> },
+                            { value: "thursday", label: "Every Thursday", icon: <CalendarIcon className="w-3.5 h-3.5" /> },
+                            { value: "friday", label: "Every Friday", icon: <CalendarIcon className="w-3.5 h-3.5" /> },
+                            { value: "saturday", label: "Every Saturday", icon: <CalendarIcon className="w-3.5 h-3.5" /> },
+                            { value: "sunday", label: "Every Sunday", icon: <CalendarIcon className="w-3.5 h-3.5" /> },
+                          ]}
+                        />
                       </div>
                     )}
 
@@ -651,19 +658,19 @@ export function CalendarClient({
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Max Occurrences
                       </label>
-                      <select
-                        value={formRecurrenceCount}
-                        onChange={(e) => setFormRecurrenceCount(Number(e.target.value))}
-                        className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value={3}>3 occurrences</option>
-                        <option value={5}>5 occurrences</option>
-                        <option value={8}>8 occurrences</option>
-                        <option value={10}>10 occurrences</option>
-                        <option value={14}>14 occurrences</option>
-                        <option value={20}>20 occurrences</option>
-                        <option value={30}>30 occurrences</option>
-                      </select>
+                      <CustomDropdown
+                        value={String(formRecurrenceCount)}
+                        onChange={(v) => setFormRecurrenceCount(Number(v))}
+                        options={[
+                          { value: "3", label: "3 occurrences", icon: <Hash className="w-3.5 h-3.5" /> },
+                          { value: "5", label: "5 occurrences", icon: <Hash className="w-3.5 h-3.5" /> },
+                          { value: "8", label: "8 occurrences", icon: <Hash className="w-3.5 h-3.5" /> },
+                          { value: "10", label: "10 occurrences", icon: <Hash className="w-3.5 h-3.5" /> },
+                          { value: "14", label: "14 occurrences", icon: <Hash className="w-3.5 h-3.5" /> },
+                          { value: "20", label: "20 occurrences", icon: <Hash className="w-3.5 h-3.5" /> },
+                          { value: "30", label: "30 occurrences", icon: <Hash className="w-3.5 h-3.5" /> },
+                        ]}
+                      />
                     </div>
                   </div>
                 )}
@@ -674,38 +681,39 @@ export function CalendarClient({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Owner
                   </label>
-                  <select
+                  <CustomDropdown
                     value={formOwnerId}
-                    onChange={(e) => setFormOwnerId(e.target.value)}
+                    onChange={setFormOwnerId}
                     disabled={userRole !== "admin"}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white disabled:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {teammates.map((m) => (
-                      <option key={m.userId} value={m.userId}>
-                        {m.displayName || m.name} ({m.role})
-                      </option>
-                    ))}
-                  </select>
+                    options={teammates.map((m) => ({
+                      value: m.userId,
+                      label: m.displayName || m.name,
+                      subtitle: m.role ? m.role.toUpperCase() : undefined,
+                      icon: <User className="w-3.5 h-3.5" />,
+                    }))}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Reviewer (Different Teammate)
                   </label>
-                  <select
+                  <CustomDropdown
                     value={formReviewerId}
-                    onChange={(e) => setFormReviewerId(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="">Select an eligible reviewer</option>
-                    {teammates
-                      .filter((m) => m.userId !== formOwnerId && m.userId !== currentUser.id)
-                      .map((m) => (
-                        <option key={m.userId} value={m.userId}>
-                          {m.displayName || m.name} ({m.role})
-                        </option>
-                      ))}
-                  </select>
+                    onChange={setFormReviewerId}
+                    placeholder="Select an eligible reviewer"
+                    options={[
+                      { value: "", label: "Select an eligible reviewer" },
+                      ...teammates
+                        .filter((m) => m.userId !== formOwnerId && m.userId !== currentUser.id)
+                        .map((m) => ({
+                          value: m.userId,
+                          label: m.displayName || m.name,
+                          subtitle: m.role ? m.role.toUpperCase() : undefined,
+                          icon: <User className="w-3.5 h-3.5" />,
+                        })),
+                    ]}
+                  />
                 </div>
               </div>
 

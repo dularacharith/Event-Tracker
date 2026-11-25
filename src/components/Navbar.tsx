@@ -15,6 +15,7 @@ import {
   X,
   Loader2,
   Radio,
+  ChevronRight,
 } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { NotificationCenter } from "./NotificationCenter";
@@ -173,16 +174,16 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                     </button>
 
                     {profileDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-[60]">
-                        <div className="px-4 py-2 border-b border-slate-100">
-                          <p className="text-xs font-semibold text-slate-900">
+                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl shadow-purple-950/10 border border-slate-100 p-1.5 z-[60] animate-in fade-in-0 zoom-in-95 duration-100">
+                        <div className="px-3 py-2.5 border-b border-slate-100 mb-1">
+                          <p className="text-xs font-bold text-slate-900">
                             {effectiveUser.displayName || effectiveUser.name}
                           </p>
                           <p className="text-[11px] text-slate-500 truncate">
                             {effectiveUser.email}
                           </p>
                           {effectiveUser.jobTitle && (
-                            <p className="text-[10px] text-indigo-600 mt-0.5">
+                            <p className="text-[10px] font-semibold text-purple-600 mt-0.5">
                               {effectiveUser.jobTitle}
                             </p>
                           )}
@@ -191,29 +192,44 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                         <Link
                           href="/profile"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition"
+                          className="group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 transition"
                         >
-                          <User className="w-3.5 h-3.5 text-slate-400" />
-                          Edit Profile
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                              <User className="w-3.5 h-3.5" />
+                            </div>
+                            <span>Edit Profile</span>
+                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
                         </Link>
 
                         <Link
                           href="/team"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition"
+                          className="group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 transition"
                         >
-                          <Users className="w-3.5 h-3.5 text-slate-400" />
-                          Team & Workspace
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                              <Users className="w-3.5 h-3.5" />
+                            </div>
+                            <span>Team & Workspace</span>
+                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
                         </Link>
 
                         <div className="border-t border-slate-100 my-1" />
 
                         <button
                           onClick={handleSignOut}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 transition text-left font-medium"
+                          className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition text-left cursor-pointer"
                         >
-                          <LogOut className="w-3.5 h-3.5" />
-                          Sign Out
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 group-hover:bg-rose-100 shrink-0">
+                              <LogOut className="w-3.5 h-3.5" />
+                            </div>
+                            <span>Sign Out</span>
+                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-rose-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition" />
                         </button>
                       </div>
                     )}

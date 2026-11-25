@@ -13,8 +13,10 @@ import {
   Share2,
   CheckCircle2,
   Sparkles,
+  Globe,
 } from "lucide-react";
 import { useToast, setPendingToast } from "@/components/Toast";
+import { CustomDropdown } from "@/components/ui/CustomDropdown";
 
 interface ChannelItem {
   id: string;
@@ -423,20 +425,20 @@ export function ChannelsClient({
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Social Media Platform *
                 </label>
-                <select
+                <CustomDropdown
                   value={platform}
-                  onChange={(e) => setPlatform(e.target.value)}
-                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="twitter">Twitter / X</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="linkedin">LinkedIn</option>
-                  <option value="youtube">YouTube</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="threads">Threads</option>
-                  <option value="other">Other / General</option>
-                </select>
+                  onChange={setPlatform}
+                  options={[
+                    { value: "twitter", label: "Twitter / X", subtitle: "Microblogging & announcements", icon: <span className="font-bold text-xs">𝕏</span> },
+                    { value: "instagram", label: "Instagram", subtitle: "Reels, Posts & Stories", icon: <span className="text-pink-600 font-bold text-xs">IG</span> },
+                    { value: "tiktok", label: "TikTok", subtitle: "Short-form video", icon: <span className="text-cyan-600 font-bold text-xs">TT</span> },
+                    { value: "linkedin", label: "LinkedIn", subtitle: "Professional network", icon: <span className="text-blue-600 font-bold text-xs">in</span> },
+                    { value: "youtube", label: "YouTube", subtitle: "Long-form & Shorts", icon: <span className="text-red-600 font-bold text-xs">YT</span> },
+                    { value: "facebook", label: "Facebook", subtitle: "Community & Pages", icon: <span className="text-blue-700 font-bold text-xs">fb</span> },
+                    { value: "threads", label: "Threads", subtitle: "Text conversations", icon: <span className="font-bold text-xs">@</span> },
+                    { value: "other", label: "Other / General", subtitle: "Blog, newsletter, etc.", icon: <Globe className="w-3.5 h-3.5 text-slate-600" /> },
+                  ]}
+                />
                 <span className="text-[10px] text-slate-400 mt-1 block">
                   Select the social network or platform this channel represents
                 </span>
