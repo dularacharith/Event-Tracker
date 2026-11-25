@@ -60,12 +60,60 @@ interface ActivitiesClientProps {
 }
 
 const STATUS_COLUMNS = [
-  { id: "draft", label: "Draft", bg: "bg-slate-50", border: "border-slate-200" },
-  { id: "scheduled", label: "Scheduled", bg: "bg-blue-50/50", border: "border-blue-200" },
-  { id: "in_progress", label: "In Progress", bg: "bg-amber-50/50", border: "border-amber-200" },
-  { id: "awaiting_review", label: "Awaiting Review", bg: "bg-purple-50/50", border: "border-purple-200" },
-  { id: "passed", label: "Passed", bg: "bg-emerald-50/50", border: "border-emerald-200" },
-  { id: "failed", label: "Failed", bg: "bg-rose-50/50", border: "border-rose-200" },
+  {
+    id: "draft",
+    step: "1",
+    label: "Draft",
+    bg: "bg-slate-50/80",
+    border: "border-slate-200",
+    badgeBg: "bg-slate-200 text-slate-700",
+    headerText: "text-slate-800",
+  },
+  {
+    id: "scheduled",
+    step: "2",
+    label: "Scheduled",
+    bg: "bg-blue-50/40",
+    border: "border-blue-200",
+    badgeBg: "bg-blue-100 text-blue-700",
+    headerText: "text-blue-900",
+  },
+  {
+    id: "in_progress",
+    step: "3",
+    label: "In Progress",
+    bg: "bg-amber-50/40",
+    border: "border-amber-200",
+    badgeBg: "bg-amber-100 text-amber-700",
+    headerText: "text-amber-900",
+  },
+  {
+    id: "awaiting_review",
+    step: "4",
+    label: "Awaiting Review",
+    bg: "bg-purple-50/40",
+    border: "border-purple-200",
+    badgeBg: "bg-purple-100 text-purple-700",
+    headerText: "text-purple-900",
+  },
+  {
+    id: "passed",
+    step: "5",
+    label: "Passed",
+    bg: "bg-emerald-50/40",
+    border: "border-emerald-200",
+    badgeBg: "bg-emerald-100 text-emerald-700",
+    headerText: "text-emerald-900",
+  },
+  {
+    id: "failed",
+    step: "6",
+    label: "Failed",
+    bg: "bg-rose-50/40",
+    border: "border-rose-200",
+    badgeBg: "bg-rose-100 text-rose-700",
+    headerText: "text-rose-900",
+  },
 ];
 
 export function ActivitiesClient({
@@ -315,136 +363,221 @@ export function ActivitiesClient({
         </div>
       </div>
 
-      {/* View: Status Board (Kanban Columns with Explicit Action Buttons) */}
+      {/* View: Status Board (Linked Pipeline Flow & Kanban Columns) */}
       {viewMode === "board" ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-start overflow-x-auto pb-4">
-          {STATUS_COLUMNS.map((col) => {
-            const colActivities = filteredActivities.filter((a) => a.status === col.id);
-            return (
-              <div
-                key={col.id}
-                className={`rounded-2xl border ${col.border} ${col.bg} p-3 min-w-[240px] flex flex-col gap-3 shadow-sm`}
-              >
-                {/* Column Header */}
-                <div className="flex items-center justify-between pb-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-xs uppercase tracking-wider text-slate-700">
-                      {col.label}
-                    </span>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-2xs">
-                    {colActivities.length}
-                  </span>
-                </div>
-
-                {/* Cards */}
-                <div className="space-y-3 min-h-[300px]">
-                  {colActivities.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                      No activities
-                    </div>
-                  ) : (
-                    colActivities.map((act) => (
-                      <div
-                        key={act.id}
-                        className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs hover:shadow transition space-y-2.5"
+        <div className="space-y-4">
+          {/* Linked Pipeline Stepper Flow Bar */}
+          <div className="hidden lg:block bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+            <div className="flex items-center justify-between gap-2 overflow-x-auto">
+              {STATUS_COLUMNS.map((col, idx) => {
+                const count = filteredActivities.filter(
+                  (a) => a.status === col.id
+                ).length;
+                return (
+                  <React.Fragment key={col.id}>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${col.badgeBg}`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-                            {act.socialPlatform}
+                        {col.step}
+                      </span>
+                      <span
+                        className={`text-xs font-semibold ${col.headerText}`}
+                      >
+                        {col.label}
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                        {count}
+                      </span>
+                    </div>
+                    {idx < STATUS_COLUMNS.length - 1 && (
+                      <div className="flex items-center px-1 text-slate-300">
+                        {idx === 4 ? (
+                          <span className="text-xs font-semibold text-slate-300">
+                            or
                           </span>
-                          <span className="text-[10px] text-slate-400 capitalize">
-                            {act.contentType.replace("_", " ")}
-                          </span>
-                        </div>
-
-                        <Link
-                          href={`/activities/${act.id}`}
-                          className="font-semibold text-xs text-slate-900 hover:text-indigo-600 transition block line-clamp-2"
-                        >
-                          {act.title}
-                        </Link>
-
-                        {act.campaignName && (
-                          <p className="text-[10px] text-indigo-600 font-medium truncate">
-                            {act.campaignName}
-                          </p>
+                        ) : (
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
                         )}
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
 
-                        <div className="text-[10px] text-slate-400 space-y-0.5 pt-1 border-t border-slate-50">
-                          {act.scheduledAt && (
-                            <div className="flex items-center gap-1 truncate">
-                              <Calendar className="w-3 h-3 shrink-0" />
-                              <span>
-                                {new Date(act.scheduledAt).toLocaleDateString(undefined, {
-                                  month: "short",
-                                  day: "numeric",
-                                })}
-                              </span>
-                            </div>
-                          )}
-                          {act.reviewDeadline && (
-                            <div className="flex items-center gap-1 text-slate-500 truncate">
-                              <Clock className="w-3 h-3 shrink-0" />
-                              <span>
-                                Review:{" "}
-                                {new Date(act.reviewDeadline).toLocaleDateString(undefined, {
-                                  month: "short",
-                                  day: "numeric",
-                                })}
-                              </span>
-                            </div>
-                          )}
+          {/* Linked Kanban Columns Track */}
+          <div className="flex gap-4 items-start overflow-x-auto pb-6 pt-1 px-1">
+            {STATUS_COLUMNS.map((col, idx) => {
+              const colActivities = filteredActivities.filter(
+                (a) => a.status === col.id
+              );
+              return (
+                <div
+                  key={col.id}
+                  className="relative flex-1 min-w-[260px] max-w-[320px] shrink-0"
+                >
+                  <div
+                    className={`rounded-2xl border ${col.border} ${col.bg} p-3.5 flex flex-col gap-3 shadow-2xs hover:shadow-xs transition`}
+                  >
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between pb-1">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${col.badgeBg}`}
+                        >
+                          {col.step}
+                        </span>
+                        <span
+                          className={`font-bold text-xs uppercase tracking-wider ${col.headerText}`}
+                        >
+                          {col.label}
+                        </span>
+                      </div>
+                      <span className="text-xs font-semibold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-2xs">
+                        {colActivities.length}
+                      </span>
+                    </div>
+
+                    {/* Cards */}
+                    <div className="space-y-3 min-h-[300px]">
+                      {colActivities.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-slate-400 border border-dashed border-slate-200/90 rounded-xl bg-white/50">
+                          No activities
                         </div>
+                      ) : (
+                        colActivities.map((act) => (
+                          <div
+                            key={act.id}
+                            className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs hover:shadow transition space-y-2.5"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                                {act.socialPlatform}
+                              </span>
+                              <span className="text-[10px] text-slate-400 capitalize">
+                                {act.contentType.replace("_", " ")}
+                              </span>
+                            </div>
 
-                        {/* Explicit Action Buttons */}
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
-                          {act.status === "scheduled" && (
-                            <button
-                              onClick={() => handleStartProgress(act.id)}
-                              className="w-full flex items-center justify-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
-                            >
-                              <Play className="w-3 h-3" /> Start Work
-                            </button>
-                          )}
-
-                          {act.status === "awaiting_review" && act.reviewerId === currentUser.id && (
                             <Link
                               href={`/activities/${act.id}`}
-                              className="w-full flex items-center justify-center gap-1 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                              className="font-semibold text-xs text-slate-900 hover:text-indigo-600 transition block line-clamp-2"
                             >
-                              Review <ArrowRight className="w-3 h-3" />
+                              {act.title}
                             </Link>
-                          )}
 
-                          {act.status === "failed" &&
-                            (act.ownerId === currentUser.id || userRole === "admin") && (
-                              <Link
-                                href={`/activities/${act.id}`}
-                                className="w-full flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
-                              >
-                                <RotateCcw className="w-3 h-3" /> Reschedule
-                              </Link>
+                            {act.campaignName && (
+                              <p className="text-[10px] text-indigo-600 font-medium truncate">
+                                {act.campaignName}
+                              </p>
                             )}
 
-                          {act.status !== "scheduled" &&
-                            !(act.status === "awaiting_review" && act.reviewerId === currentUser.id) &&
-                            !(act.status === "failed" && (act.ownerId === currentUser.id || userRole === "admin")) && (
-                              <Link
-                                href={`/activities/${act.id}`}
-                                className="w-full text-center text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 py-1 px-2 rounded-lg transition"
-                              >
-                                Details
-                              </Link>
-                            )}
-                        </div>
-                      </div>
-                    ))
+                            <div className="text-[10px] text-slate-400 space-y-0.5 pt-1 border-t border-slate-50">
+                              {act.scheduledAt && (
+                                <div className="flex items-center gap-1 truncate">
+                                  <Calendar className="w-3 h-3 shrink-0" />
+                                  <span>
+                                    {new Date(
+                                      act.scheduledAt
+                                    ).toLocaleDateString(undefined, {
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </span>
+                                </div>
+                              )}
+                              {act.reviewDeadline && (
+                                <div className="flex items-center gap-1 text-slate-500 truncate">
+                                  <Clock className="w-3 h-3 shrink-0" />
+                                  <span>
+                                    Review:{" "}
+                                    {new Date(
+                                      act.reviewDeadline
+                                    ).toLocaleDateString(undefined, {
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Explicit Action Buttons */}
+                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
+                              {act.status === "scheduled" && (
+                                <button
+                                  onClick={() => handleStartProgress(act.id)}
+                                  className="w-full flex items-center justify-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                >
+                                  <Play className="w-3 h-3" /> Start Work
+                                </button>
+                              )}
+
+                              {act.status === "awaiting_review" &&
+                                act.reviewerId === currentUser.id && (
+                                  <Link
+                                    href={`/activities/${act.id}`}
+                                    className="w-full flex items-center justify-center gap-1 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                  >
+                                    Review <ArrowRight className="w-3 h-3" />
+                                  </Link>
+                                )}
+
+                              {act.status === "failed" &&
+                                (act.ownerId === currentUser.id ||
+                                  userRole === "admin") && (
+                                  <Link
+                                    href={`/activities/${act.id}`}
+                                    className="w-full flex items-center justify-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                  >
+                                    <RotateCcw className="w-3 h-3" /> Reschedule
+                                  </Link>
+                                )}
+
+                              {act.status !== "scheduled" &&
+                                !(
+                                  act.status === "awaiting_review" &&
+                                  act.reviewerId === currentUser.id
+                                ) &&
+                                !(
+                                  act.status === "failed" &&
+                                  (act.ownerId === currentUser.id ||
+                                    userRole === "admin")
+                                ) && (
+                                  <Link
+                                    href={`/activities/${act.id}`}
+                                    className="w-full text-center text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 py-1 px-2 rounded-lg transition"
+                                  >
+                                    Details
+                                  </Link>
+                                )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Visual Link Connector between adjacent stages */}
+                  {idx < STATUS_COLUMNS.length - 1 && (
+                    <div
+                      className="hidden xl:flex absolute -right-3 top-5 z-20 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-xs items-center justify-center text-slate-400 pointer-events-none"
+                    >
+                      {idx === 4 ? (
+                        <span className="text-[9px] font-bold text-slate-400">
+                          /
+                        </span>
+                      ) : (
+                        <ArrowRight className="w-3 h-3 text-slate-400" />
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       ) : (
         /* View: Filterable List */
