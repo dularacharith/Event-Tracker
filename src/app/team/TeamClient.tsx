@@ -322,8 +322,8 @@ export function TeamClient({
 
       {/* Invite Teammate Modal */}
       {inviteModalOpen && (
-        <div className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[calc(100vh-5rem)]">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 flex items-center justify-center p-4 pt-20">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[calc(100vh-6rem)]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900">
                 Invite New Teammate

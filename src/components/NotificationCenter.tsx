@@ -99,7 +99,7 @@ export function NotificationCenter() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-slate-200 z-[60] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
             <span className="font-semibold text-sm text-slate-800">Notifications</span>
             {unreadCount > 0 && (
