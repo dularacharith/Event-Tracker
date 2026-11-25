@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useToast, setPendingToast } from "@/components/Toast";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 interface TeamClientProps {
   currentUser: {
@@ -35,6 +36,7 @@ export function TeamClient({
   initialInvites,
 }: TeamClientProps) {
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"member" | "admin">("member");
@@ -81,7 +83,14 @@ export function TeamClient({
   };
 
   const handleRevokeInvite = async (inviteId: string) => {
-    if (!confirm("Are you sure you want to revoke this invite?")) return;
+    const ok = await confirm({
+      title: "Are you sure you want to revoke this invite?",
+      description: "The invitation link will be invalidated immediately.",
+      confirmLabel: "Revoke",
+      cancelLabel: "Cancel",
+    });
+    if (!ok) return;
+
     try {
       const res = await fetch(`/api/team/invites/${inviteId}/revoke`, {
         method: "POST",
@@ -103,7 +112,14 @@ export function TeamClient({
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
-    if (!confirm(`Are you sure you want to remove ${memberName} from this workspace?`)) return;
+    const ok = await confirm({
+      title: `Are you sure you want to remove ${memberName}?`,
+      description: "This teammate will lose access to the workspace immediately.",
+      confirmLabel: "Remove",
+      cancelLabel: "Cancel",
+    });
+    if (!ok) return;
+
     try {
       const res = await fetch(`/api/team/members/${memberId}/remove`, {
         method: "POST",

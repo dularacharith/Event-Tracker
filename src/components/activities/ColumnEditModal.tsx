@@ -17,6 +17,7 @@ import {
   getColumnStyles,
 } from "@/lib/flowColumns";
 import { CustomDropdown, DropdownOption } from "@/components/ui/CustomDropdown";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 interface ColumnEditModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export function ColumnEditModal({
   onDelete,
   onHide,
 }: ColumnEditModalProps) {
+  const confirm = useConfirm();
   const [label, setLabel] = useState("");
   const [colorTheme, setColorTheme] = useState("amber");
   const [customHex, setCustomHex] = useState("");
@@ -327,13 +329,19 @@ export function ColumnEditModal({
                   {onDelete && (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (confirm(`Are you sure you want to delete the "${column.label}" card from the flow?`)) {
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: `Are you sure you want to delete the "${column.label}" card?`,
+                          description: "This card will be removed from the flow pipeline.",
+                          confirmLabel: "Delete",
+                          cancelLabel: "Cancel",
+                        });
+                        if (ok) {
                           onDelete(column.id);
                           onClose();
                         }
                       }}
-                      className="px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition flex items-center gap-1"
+                      className="px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition flex items-center gap-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Delete</span>

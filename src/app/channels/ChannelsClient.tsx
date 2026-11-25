@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useToast, setPendingToast } from "@/components/Toast";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 interface ChannelItem {
   id: string;
@@ -105,6 +106,7 @@ export function ChannelsClient({
   initialChannels,
 }: ChannelsClientProps) {
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [channelsList, setChannelsList] = useState<ChannelItem[]>(initialChannels);
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState("");
@@ -183,9 +185,13 @@ export function ChannelsClient({
   };
 
   const handleDeleteChannel = async (id: string, channelName: string) => {
-    if (!confirm(`Are you sure you want to delete channel "#${channelName}"? Activities linked to this channel will remain safe.`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Are you sure you want to delete channel "#${channelName}"?`,
+      description: "Activities linked to this channel will remain safe.",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+    });
+    if (!ok) return;
 
     try {
       setDeletingId(id);

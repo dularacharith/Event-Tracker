@@ -4,6 +4,7 @@ import { getCurrentAuth } from "@/lib/session";
 import { AppShell } from "@/components/AppShell";
 import { DevAccountSwitcher } from "@/components/DevAccountSwitcher";
 import { ToastProvider } from "@/components/Toast";
+import { ConfirmProvider } from "@/components/ui/ConfirmModal";
 
 export const dynamic = "force-dynamic";
 
@@ -31,13 +32,15 @@ export default async function RootLayout({
     <html lang="en">
       <body className="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col">
         <ToastProvider>
-          <AppShell
-            currentUser={authContext?.user || null}
-            userRole={authContext?.member?.role || null}
-          >
-            {children}
-          </AppShell>
-          <DevAccountSwitcher />
+          <ConfirmProvider>
+            <AppShell
+              currentUser={authContext?.user || null}
+              userRole={authContext?.member?.role || null}
+            >
+              {children}
+            </AppShell>
+            <DevAccountSwitcher />
+          </ConfirmProvider>
         </ToastProvider>
       </body>
     </html>

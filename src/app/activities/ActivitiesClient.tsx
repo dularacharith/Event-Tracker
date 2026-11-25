@@ -64,6 +64,7 @@ import { ColumnEditModal } from "@/components/activities/ColumnEditModal";
 import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
 import { HowItWorksModal } from "@/components/activities/HowItWorksModal";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 interface ActivityItem {
   id: string;
@@ -272,6 +273,7 @@ export function ActivitiesClient({
   initialFilterChannel = "",
 }: ActivitiesClientProps) {
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [viewMode, setViewMode] = useState<"list" | "board">("board");
   const [howItWorksModalOpen, setHowItWorksModalOpen] = useState(false);
 
@@ -310,25 +312,27 @@ export function ActivitiesClient({
     toast.success("Card hidden", "Card removed from the flow. Restore it anytime in Configure Flow.");
   };
 
-  const handleDeleteColumn = (colId: string) => {
+  const handleDeleteColumn = async (colId: string) => {
     if (flowColumns.length <= 1) {
       toast.error("Cannot delete", "At least one card must remain in the flow.");
       return;
     }
     const target = flowColumns.find((c) => c.id === colId);
     const count = initialActivities.filter((a) => a.status === colId).length;
-    if (
-      confirm(
+    const ok = await confirm({
+      title: `Are you sure you want to delete the "${target?.label || colId}" card?`,
+      description:
         count > 0
-          ? `"${target?.label || colId}" has ${count} activities. Removing it will remove the card from the flow. Continue?`
-          : `Delete "${target?.label || colId}" card from the flow?`
-      )
-    ) {
-      const updated = flowColumns.filter((c) => c.id !== colId);
-      updateColumns(updated);
-      if (filterStatus === colId) setFilterStatus("");
-      toast.success("Card deleted", `"${target?.label || colId}" has been deleted.`);
-    }
+          ? `This card has ${count} activities. Removing it will remove the card from the flow.`
+          : "This will remove the card from the visual flow pipeline.",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
+
+    const updated = flowColumns.filter((c) => c.id !== colId);
+    updateColumns(updated);
+    if (filterStatus === colId) setFilterStatus("");
+    toast.success("Card deleted", `"${target?.label || colId}" has been deleted.`);
   };
 
   const handleQuickColorChange = (colId: string, themeId: string) => {
@@ -379,7 +383,13 @@ export function ActivitiesClient({
   };
 
   const handleDeleteActivity = async (activityId: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+    const ok = await confirm({
+      title: "Are you sure you want to delete this task?",
+      description: `"${title}" will be permanently removed.`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/activities/${activityId}`, {

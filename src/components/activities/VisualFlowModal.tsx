@@ -29,6 +29,7 @@ import {
   COLOR_THEMES,
   getColumnStyles,
 } from "@/lib/flowColumns";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 interface VisualFlowModalProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ export function VisualFlowModal({
   onResetToDefault,
   activitiesCountByStatus,
 }: VisualFlowModalProps) {
+  const confirm = useConfirm();
   const [selectedColId, setSelectedColId] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -87,17 +89,19 @@ export function VisualFlowModal({
     onUpdateColumns(updated);
   };
 
-  const deleteColumn = (colId: string) => {
+  const deleteColumn = async (colId: string) => {
     if (columns.length <= 1) {
       alert("You must have at least one card in the flow.");
       return;
     }
     const target = columns.find((c) => c.id === colId);
-    if (
-      confirm(
-        `Are you sure you want to delete the "${target?.label || colId}" card from the flow?`
-      )
-    ) {
+    const ok = await confirm({
+      title: `Are you sure you want to delete the "${target?.label || colId}" card?`,
+      description: "This card will be removed from the visual flow pipeline.",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+    });
+    if (ok) {
       onUpdateColumns(columns.filter((c) => c.id !== colId));
     }
   };
@@ -151,12 +155,18 @@ export function VisualFlowModal({
               <span>Add Stage / Card</span>
             </button>
             <button
-              onClick={() => {
-                if (confirm("Reset the entire flow pipeline to the original default 7 columns?")) {
+              onClick={async () => {
+                const ok = await confirm({
+                  title: "Reset the entire flow pipeline?",
+                  description: "Restore the original default 7 columns and pipeline stages.",
+                  confirmLabel: "Reset Flow",
+                  cancelLabel: "Cancel",
+                });
+                if (ok) {
                   onResetToDefault();
                 }
               }}
-              className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-1 transition"
+              className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
               title="Reset to default flow"
             >
               <RotateCcw className="w-3.5 h-3.5" />

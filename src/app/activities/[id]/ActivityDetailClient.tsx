@@ -34,6 +34,7 @@ import {
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 interface ActivityDetailClientProps {
   currentUser: {
@@ -100,6 +101,8 @@ export function ActivityDetailClient({
   activity,
   teammates,
 }: ActivityDetailClientProps) {
+  const { toast } = useToast();
+  const confirm = useConfirm();
   // Action modals
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   const [verdictModalOpen, setVerdictModalOpen] = useState(false);
@@ -292,7 +295,14 @@ export function ActivityDetailClient({
 
   // Remove evidence
   const handleRemoveEvidence = async (evidenceId: string) => {
-    if (!confirm("Are you sure you want to remove this evidence item?")) return;
+    const ok = await confirm({
+      title: "Are you sure you want to remove this evidence item?",
+      description: "The uploaded proof attachment will be deleted.",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+    });
+    if (!ok) return;
+
     try {
       const res = await fetch(`/api/activities/${activity.id}/evidence?evidenceId=${evidenceId}`, {
         method: "DELETE",
@@ -305,10 +315,10 @@ export function ActivityDetailClient({
         window.location.reload();
       } else {
         const d = await res.json();
-        alert(d.error || "Failed to remove evidence");
+        toast.error("Failed to remove evidence", d.error);
       }
     } catch (err: any) {
-      alert(err.message);
+      toast.error("Error", err.message);
     }
   };
 
