@@ -39,6 +39,7 @@ interface ActivityItem {
   channelName?: string | null;
   recurrenceRule?: string | null;
   recurrenceDay?: string | null;
+  recurrenceEndDate?: Date | string | null;
   parentActivityId?: string | null;
   scheduledAt?: Date | string | null;
   reviewDeadline?: Date | string | null;
@@ -91,6 +92,7 @@ export function CalendarClient({
   const [formCriteria, setFormCriteria] = useState("");
   const [formRecurrenceRule, setFormRecurrenceRule] = useState("none");
   const [formRecurrenceDay, setFormRecurrenceDay] = useState("monday");
+  const [formRecurrenceEndDate, setFormRecurrenceEndDate] = useState("");
   const [formRecurrenceCount, setFormRecurrenceCount] = useState(5);
 
   const userTz = currentUser.timezone || "UTC";
@@ -173,6 +175,7 @@ export function CalendarClient({
           reviewDeadline: deadlineDate.toISOString(),
           recurrenceRule: formRecurrenceRule !== "none" ? formRecurrenceRule : null,
           recurrenceDay: formRecurrenceRule === "specific_day" ? formRecurrenceDay : null,
+          recurrenceEndDate: formRecurrenceEndDate ? new Date(formRecurrenceEndDate).toISOString() : null,
           recurrenceCount: formRecurrenceCount,
           ownerId: formOwnerId,
           reviewerId: formReviewerId || null,
@@ -606,42 +609,62 @@ export function CalendarClient({
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Occurrences
+                      Recur Until Date (Last Day)
                     </label>
-                    <select
-                      value={formRecurrenceCount}
-                      onChange={(e) => setFormRecurrenceCount(Number(e.target.value))}
+                    <input
+                      type="date"
+                      value={formRecurrenceEndDate}
+                      onChange={(e) => setFormRecurrenceEndDate(e.target.value)}
                       disabled={formRecurrenceRule === "none"}
                       className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white disabled:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value={3}>3 occurrences</option>
-                      <option value={5}>5 occurrences</option>
-                      <option value={8}>8 occurrences</option>
-                      <option value={10}>10 occurrences</option>
-                      <option value={14}>14 occurrences</option>
-                      <option value={20}>20 occurrences</option>
-                    </select>
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      Events after this date are dropped
+                    </span>
                   </div>
                 </div>
 
-                {formRecurrenceRule === "specific_day" && (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Select Day of Week
-                    </label>
-                    <select
-                      value={formRecurrenceDay}
-                      onChange={(e) => setFormRecurrenceDay(e.target.value)}
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="monday">Every Monday</option>
-                      <option value="tuesday">Every Tuesday</option>
-                      <option value="wednesday">Every Wednesday</option>
-                      <option value="thursday">Every Thursday</option>
-                      <option value="friday">Every Friday</option>
-                      <option value="saturday">Every Saturday</option>
-                      <option value="sunday">Every Sunday</option>
-                    </select>
+                {formRecurrenceRule !== "none" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {formRecurrenceRule === "specific_day" && (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Select Day of Week
+                        </label>
+                        <select
+                          value={formRecurrenceDay}
+                          onChange={(e) => setFormRecurrenceDay(e.target.value)}
+                          className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value="monday">Every Monday</option>
+                          <option value="tuesday">Every Tuesday</option>
+                          <option value="wednesday">Every Wednesday</option>
+                          <option value="thursday">Every Thursday</option>
+                          <option value="friday">Every Friday</option>
+                          <option value="saturday">Every Saturday</option>
+                          <option value="sunday">Every Sunday</option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Max Occurrences
+                      </label>
+                      <select
+                        value={formRecurrenceCount}
+                        onChange={(e) => setFormRecurrenceCount(Number(e.target.value))}
+                        className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value={3}>3 occurrences</option>
+                        <option value={5}>5 occurrences</option>
+                        <option value={8}>8 occurrences</option>
+                        <option value={10}>10 occurrences</option>
+                        <option value={14}>14 occurrences</option>
+                        <option value={20}>20 occurrences</option>
+                        <option value={30}>30 occurrences</option>
+                      </select>
+                    </div>
                   </div>
                 )}
               </div>

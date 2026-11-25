@@ -55,6 +55,7 @@ export interface CreateActivityInput {
   reviewDeadline?: Date | null;
   recurrenceRule?: string | null;
   recurrenceDay?: string | null;
+  recurrenceEndDate?: Date | null;
   recurrenceCount?: number;
   parentActivityId?: string | null;
   ownerId?: string | null;
@@ -147,43 +148,72 @@ export function generateRecurrenceDates({
   rule,
   specificDay,
   count = 5,
+  untilDate,
 }: {
   startDate: Date;
   rule: string;
   specificDay?: string | null;
   count?: number;
+  untilDate?: Date | null;
 }): Date[] {
+  let cutoff: Date | null = null;
+  if (untilDate) {
+    cutoff = new Date(untilDate.getTime());
+    const isUtcMidnight =
+      cutoff.getUTCHours() === 0 &&
+      cutoff.getUTCMinutes() === 0 &&
+      cutoff.getUTCSeconds() === 0 &&
+      cutoff.getUTCMilliseconds() === 0;
+    const isLocalMidnight =
+      cutoff.getHours() === 0 &&
+      cutoff.getMinutes() === 0 &&
+      cutoff.getSeconds() === 0 &&
+      cutoff.getMilliseconds() === 0;
+
+    if (isUtcMidnight) {
+      cutoff.setUTCHours(23, 59, 59, 999);
+    } else if (isLocalMidnight) {
+      cutoff.setHours(23, 59, 59, 999);
+    }
+  }
+
+  const rawCount = count ? Number(count) : cutoff ? 50 : 5;
+  const maxCount = Math.min(Math.max(rawCount, 1), 60);
   const dates: Date[] = [];
-  const maxCount = Math.min(Math.max(count || 5, 1), 30);
   const current = new Date(startDate.getTime());
 
   if (rule === "daily") {
     for (let i = 0; i < maxCount; i++) {
       const d = new Date(current.getTime());
       d.setDate(d.getDate() + i);
+      if (cutoff && d.getTime() > cutoff.getTime()) break;
       dates.push(d);
     }
   } else if (rule === "every_2_days") {
     for (let i = 0; i < maxCount; i++) {
       const d = new Date(current.getTime());
       d.setDate(d.getDate() + i * 2);
+      if (cutoff && d.getTime() > cutoff.getTime()) break;
       dates.push(d);
     }
   } else if (rule === "every_5_days") {
     for (let i = 0; i < maxCount; i++) {
       const d = new Date(current.getTime());
       d.setDate(d.getDate() + i * 5);
+      if (cutoff && d.getTime() > cutoff.getTime()) break;
       dates.push(d);
     }
   } else if (rule === "weekly") {
     for (let i = 0; i < maxCount; i++) {
       const d = new Date(current.getTime());
       d.setDate(d.getDate() + i * 7);
+      if (cutoff && d.getTime() > cutoff.getTime()) break;
       dates.push(d);
     }
   } else if (rule === "weekends") {
     const probe = new Date(current.getTime());
     while (dates.length < maxCount) {
+      if (cutoff && probe.getTime() > cutoff.getTime()) break;
       const day = probe.getDay(); // 0 is Sunday, 6 is Saturday
       if (day === 0 || day === 6) {
         dates.push(new Date(probe.getTime()));
@@ -208,10 +238,18 @@ export function generateRecurrenceDates({
     for (let i = 0; i < maxCount; i++) {
       const d = new Date(probe.getTime());
       d.setDate(d.getDate() + i * 7);
+      if (cutoff && d.getTime() > cutoff.getTime()) break;
       dates.push(d);
     }
   } else {
-    dates.push(new Date(current.getTime()));
+    if (!cutoff || current.getTime() <= cutoff.getTime()) {
+      dates.push(new Date(current.getTime()));
+    }
+  }
+
+  // Safety filter: ensure no date exceeds cutoff
+  if (cutoff) {
+    return dates.filter((d) => d.getTime() <= cutoff!.getTime());
   }
 
   return dates;
@@ -251,7 +289,8 @@ export async function createActivity(input: CreateActivityInput) {
           startDate: input.scheduledAt || new Date(),
           rule: input.recurrenceRule,
           specificDay: input.recurrenceDay,
-          count: input.recurrenceCount || 5,
+          count: input.recurrenceCount || (input.recurrenceEndDate ? 50 : 5),
+          untilDate: input.recurrenceEndDate || null,
         })
       : null;
 
@@ -276,6 +315,7 @@ export async function createActivity(input: CreateActivityInput) {
         reviewDeadline: input.reviewDeadline || null,
         recurrenceRule: input.recurrenceRule || null,
         recurrenceDay: input.recurrenceDay || null,
+        recurrenceEndDate: input.recurrenceEndDate || null,
         parentActivityId: input.parentActivityId || null,
         ownerId: input.ownerId || null,
         reviewerId: input.reviewerId || null,
@@ -323,6 +363,7 @@ export async function createActivity(input: CreateActivityInput) {
           reviewDeadline: occReviewDeadline,
           recurrenceRule: input.recurrenceRule || null,
           recurrenceDay: input.recurrenceDay || null,
+          recurrenceEndDate: input.recurrenceEndDate || null,
           parentActivityId: activityId,
           ownerId: input.ownerId || null,
           reviewerId: input.reviewerId || null,
@@ -1076,6 +1117,7 @@ export async function getActivityDetails(workspaceId: string, activityId: string
         channelName: channels.name,
         recurrenceRule: activities.recurrenceRule,
         recurrenceDay: activities.recurrenceDay,
+        recurrenceEndDate: activities.recurrenceEndDate,
         parentActivityId: activities.parentActivityId,
       })
       .from(activities)
@@ -1115,6 +1157,7 @@ export async function getActivityDetails(workspaceId: string, activityId: string
         channelName: sql<string | null>`null`.as("channel_name"),
         recurrenceRule: activities.recurrenceRule,
         recurrenceDay: activities.recurrenceDay,
+        recurrenceEndDate: activities.recurrenceEndDate,
         parentActivityId: activities.parentActivityId,
       })
       .from(activities)
@@ -1316,6 +1359,7 @@ export async function listActivities({
         campaignName: campaigns.name,
         recurrenceRule: activities.recurrenceRule,
         recurrenceDay: activities.recurrenceDay,
+        recurrenceEndDate: activities.recurrenceEndDate,
         parentActivityId: activities.parentActivityId,
         owner: {
           id: userTable.id,
@@ -1355,6 +1399,7 @@ export async function listActivities({
         campaignName: campaigns.name,
         recurrenceRule: activities.recurrenceRule,
         recurrenceDay: activities.recurrenceDay,
+        recurrenceEndDate: activities.recurrenceEndDate,
         parentActivityId: activities.parentActivityId,
         owner: {
           id: userTable.id,

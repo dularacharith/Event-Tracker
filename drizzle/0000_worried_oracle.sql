@@ -36,6 +36,7 @@ CREATE TABLE "activities" (
 	"review_deadline" timestamp with time zone,
 	"recurrence_rule" text,
 	"recurrence_day" text,
+	"recurrence_end_date" timestamp with time zone,
 	"parent_activity_id" text,
 	"owner_id" text,
 	"reviewer_id" text,

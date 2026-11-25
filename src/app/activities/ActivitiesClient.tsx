@@ -43,6 +43,7 @@ interface ActivityItem {
   channelName?: string | null;
   recurrenceRule?: string | null;
   recurrenceDay?: string | null;
+  recurrenceEndDate?: Date | string | null;
   parentActivityId?: string | null;
   title: string;
   brief: string;
@@ -64,24 +65,42 @@ interface ActivityItem {
   } | null;
 }
 
-function formatRecurrenceLabel(rule?: string | null, day?: string | null) {
+function formatRecurrenceLabel(
+  rule?: string | null,
+  day?: string | null,
+  untilDate?: Date | string | null
+) {
   if (!rule || rule === "none") return "";
+  let label = "";
   switch (rule) {
     case "daily":
-      return "Daily";
+      label = "Daily";
+      break;
     case "every_2_days":
-      return "Every 2 days";
+      label = "Every 2 days";
+      break;
     case "every_5_days":
-      return "Every 5 days";
+      label = "Every 5 days";
+      break;
     case "weekly":
-      return "Weekly";
+      label = "Weekly";
+      break;
     case "weekends":
-      return "Weekends (Sat & Sun)";
+      label = "Weekends (Sat & Sun)";
+      break;
     case "specific_day":
-      return day ? `Every ${day.charAt(0).toUpperCase() + day.slice(1)}` : "Weekly";
+      label = day ? `Every ${day.charAt(0).toUpperCase() + day.slice(1)}` : "Weekly";
+      break;
     default:
-      return rule;
+      label = rule;
   }
+  if (untilDate) {
+    label += ` until ${new Date(untilDate).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    })}`;
+  }
+  return label;
 }
 
 function formatRecurrenceBadge(rule?: string | null, day?: string | null) {
@@ -407,6 +426,7 @@ export function ActivitiesClient({
   const [newStatus, setNewStatus] = useState<"draft" | "scheduled">("draft");
   const [newRecurrenceRule, setNewRecurrenceRule] = useState<string>("none");
   const [newRecurrenceDay, setNewRecurrenceDay] = useState<string>("monday");
+  const [newRecurrenceEndDate, setNewRecurrenceEndDate] = useState<string>("");
   const [newRecurrenceCount, setNewRecurrenceCount] = useState<number>(5);
 
   // Filtering
@@ -477,6 +497,9 @@ export function ActivitiesClient({
         body.recurrenceRule = newRecurrenceRule;
         if (newRecurrenceRule === "specific_day") {
           body.recurrenceDay = newRecurrenceDay;
+        }
+        if (newRecurrenceEndDate) {
+          body.recurrenceEndDate = new Date(newRecurrenceEndDate).toISOString();
         }
         body.recurrenceCount = newRecurrenceCount;
       }
@@ -1044,7 +1067,7 @@ export function ActivitiesClient({
                                 {act.recurrenceRule && act.recurrenceRule !== "none" && (
                                   <span
                                     className="text-[10px] font-semibold px-2 py-0.5 rounded-md border bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1"
-                                    title={`Recurring: ${formatRecurrenceLabel(act.recurrenceRule, act.recurrenceDay)}`}
+                                    title={`Recurring: ${formatRecurrenceLabel(act.recurrenceRule, act.recurrenceDay, act.recurrenceEndDate)}`}
                                   >
                                     <Repeat className="w-2.5 h-2.5" />
                                     <span>{formatRecurrenceBadge(act.recurrenceRule, act.recurrenceDay)}</span>
@@ -1386,10 +1409,10 @@ export function ActivitiesClient({
                               {act.recurrenceRule && act.recurrenceRule !== "none" && (
                                 <span
                                   className="text-xs font-semibold px-2 py-0.5 rounded-md border bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1"
-                                  title={`Recurring: ${formatRecurrenceLabel(act.recurrenceRule, act.recurrenceDay)}`}
+                                  title={`Recurring: ${formatRecurrenceLabel(act.recurrenceRule, act.recurrenceDay, act.recurrenceEndDate)}`}
                                 >
                                   <Repeat className="w-3 h-3" />
-                                  <span>{formatRecurrenceLabel(act.recurrenceRule, act.recurrenceDay)}</span>
+                                  <span>{formatRecurrenceLabel(act.recurrenceRule, act.recurrenceDay, act.recurrenceEndDate)}</span>
                                 </span>
                               )}
                             </div>
@@ -1854,7 +1877,23 @@ export function ActivitiesClient({
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Occurrences to Generate
+                        Recur Until Date (Last Day)
+                      </label>
+                      <input
+                        type="date"
+                        value={newRecurrenceEndDate}
+                        onChange={(e) => setNewRecurrenceEndDate(e.target.value)}
+                        min={newScheduledAt ? newScheduledAt.split("T")[0] : undefined}
+                        className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        Events after this day will be dropped
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Max Occurrences
                       </label>
                       <select
                         value={newRecurrenceCount}
@@ -1867,9 +1906,12 @@ export function ActivitiesClient({
                         <option value={10}>10 occurrences</option>
                         <option value={14}>14 occurrences</option>
                         <option value={20}>20 occurrences</option>
+                        <option value={30}>30 occurrences</option>
                       </select>
                       <span className="text-[10px] text-slate-400 mt-1 block">
-                        Creates {newRecurrenceCount} occurrences on schedule
+                        {newRecurrenceEndDate
+                          ? `Up to ${newRecurrenceCount} occurrences before end date`
+                          : `Creates ${newRecurrenceCount} occurrences on schedule`}
                       </span>
                     </div>
                   </div>

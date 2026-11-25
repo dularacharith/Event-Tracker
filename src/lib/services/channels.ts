@@ -32,6 +32,9 @@ export async function ensureChannelsTable() {
         ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "recurrence_day" text;
       `);
       await db.execute(sql`
+        ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "recurrence_end_date" timestamp with time zone;
+      `);
+      await db.execute(sql`
         ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "parent_activity_id" text;
       `);
       tableEnsured = true;

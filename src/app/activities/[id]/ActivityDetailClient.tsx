@@ -443,6 +443,11 @@ export function ActivityDetailClient({
                     : activity.recurrenceRule === "specific_day"
                     ? `Every ${activity.recurrenceDay ? activity.recurrenceDay.charAt(0).toUpperCase() + activity.recurrenceDay.slice(1) : "week"}`
                     : activity.recurrenceRule}
+                  {activity.recurrenceEndDate && (
+                    <span className="opacity-75">
+                      {" "}until {new Date(activity.recurrenceEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </span>
+                  )}
                 </span>
               </span>
             )}

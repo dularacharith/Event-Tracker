@@ -1,0 +1,1 @@
+ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "recurrence_end_date" timestamp with time zone;
