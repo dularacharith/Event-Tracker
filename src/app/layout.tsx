@@ -9,6 +9,9 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "CampaignFlow — Private Social Campaign Tracker",
   description: "Campaign activity scheduling and review tracker for social media teams",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default async function RootLayout({
