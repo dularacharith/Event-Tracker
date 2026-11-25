@@ -259,7 +259,10 @@ export function MyWorkClient({
       </div>
 
       {/* Activities List */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div
+        key={activeTab}
+        className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-tab-slide-right"
+      >
         {currentList.length === 0 ? (
           <div className="p-12 text-center">
             <Layers className="w-10 h-10 text-slate-300 mx-auto mb-3" />

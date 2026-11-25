@@ -364,7 +364,7 @@ export function ChannelsClient({
           )}
         </div>
       ) : (
-        <div className="space-y-6">
+        <div key={filterPlatform || "all"} className="space-y-6 animate-tab-slide-right">
           {ALL_PLATFORMS.map((platformDef) => {
             const groupChannels = groupedChannels.get(platformDef.id);
             if (!groupChannels || groupChannels.length === 0) return null;

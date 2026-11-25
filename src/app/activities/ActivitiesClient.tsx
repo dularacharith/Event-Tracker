@@ -723,17 +723,25 @@ export function ActivitiesClient({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* List vs Board Toggle */}
-          <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold">
+          {/* List vs Board Toggle with sliding animated pill */}
+          <div className="relative bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold select-none border border-slate-200/60 shadow-2xs w-44">
+            {/* Sliding white pill indicator */}
+            <div
+              className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg bg-white shadow-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                viewMode === "board" ? "left-1 translate-x-0" : "left-1 translate-x-full"
+              }`}
+            />
+
             <button
+              type="button"
               onClick={() => {
                 if (viewMode !== "board") {
                   setPendingTab("board");
                   startTabTransition(() => setViewMode("board"));
                 }
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                viewMode === "board" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+              className={`relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer ${
+                viewMode === "board" ? "text-slate-900 font-bold" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               {isTabPending && pendingTab === "board" ? (
@@ -744,14 +752,15 @@ export function ActivitiesClient({
               <span>Board</span>
             </button>
             <button
+              type="button"
               onClick={() => {
                 if (viewMode !== "list") {
                   setPendingTab("list");
                   startTabTransition(() => setViewMode("list"));
                 }
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                viewMode === "list" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
+              className={`relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer ${
+                viewMode === "list" ? "text-slate-900 font-bold" : "text-slate-500 hover:text-slate-800"
               }`}
             >
               {isTabPending && pendingTab === "list" ? (
@@ -873,7 +882,7 @@ export function ActivitiesClient({
 
       {/* View: Status Board (Linked Pipeline Flow & Kanban Columns) */}
       {viewMode === "board" ? (
-        <div className="space-y-4 flex-1 flex flex-col min-h-0">
+        <div key="board-view" className="space-y-4 flex-1 flex flex-col min-h-0 animate-tab-slide-left">
           {/* Quick Column Jump Pills & Visual Flow Controls */}
           <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs px-1">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -971,8 +980,11 @@ export function ActivitiesClient({
             </div>
           </div>
 
-          {/* Linked Kanban Columns Track */}
-          <div className="flex items-stretch overflow-x-auto pb-4 pt-1 px-1 flex-1 min-h-[calc(100vh-270px)]">
+          {/* Linked Kanban Columns Track with animated tab slide effect */}
+          <div
+            key={`track-${filterStatus || "all"}`}
+            className="flex items-stretch overflow-x-auto pb-4 pt-1 px-1 flex-1 min-h-[calc(100vh-270px)] animate-tab-slide-right"
+          >
             {visibleColumns.filter(
               (col) => !filterStatus || filterStatus === col.id
             ).map((col, idx, arr) => {
@@ -1652,7 +1664,7 @@ export function ActivitiesClient({
         </div>
       ) : (
         /* View: Grouped List (displaying board columns as list groups) */
-        <div className="space-y-4">
+        <div key={`list-view-${filterStatus || "all"}`} className="space-y-4 animate-tab-slide-right">
           {visibleColumns.filter(
             (col) => !filterStatus || filterStatus === col.id
           ).map((col) => {
