@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = req.nextUrl;
     const campaignId = searchParams.get("campaignId") || undefined;
+    const channelId = searchParams.get("channelId") || undefined;
     const status = (searchParams.get("status") as ActivityStatus) || undefined;
     const socialPlatform =
       (searchParams.get("socialPlatform") as SocialPlatform) || undefined;
@@ -27,6 +28,7 @@ export async function GET(req: NextRequest) {
     const items = await listActivities({
       workspaceId: member.workspaceId,
       campaignId,
+      channelId,
       status,
       socialPlatform,
       ownerId,
@@ -49,6 +51,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       campaignId,
+      channelId,
       title,
       brief,
       socialPlatform,
@@ -72,6 +75,7 @@ export async function POST(req: NextRequest) {
     const activity = await createActivity({
       workspaceId: member.workspaceId,
       campaignId,
+      channelId: channelId || null,
       title,
       brief,
       socialPlatform,

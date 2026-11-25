@@ -25,6 +25,10 @@ import {
   HelpCircle,
   Info,
   AlertCircle,
+  AlignLeft,
+  MoreVertical,
+  Radio,
+  Hash,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
@@ -33,6 +37,8 @@ interface ActivityItem {
   id: string;
   campaignId: string;
   campaignName?: string | null;
+  channelId?: string | null;
+  channelName?: string | null;
   title: string;
   brief: string;
   socialPlatform: string;
@@ -63,6 +69,7 @@ interface ActivitiesClientProps {
   userRole: "admin" | "member";
   initialActivities: ActivityItem[];
   campaigns: any[];
+  channels?: any[];
   teammates: any[];
   initialOpenCreate?: boolean;
 }
@@ -76,6 +83,7 @@ const STATUS_COLUMNS = [
     border: "border-slate-200",
     badgeBg: "bg-slate-200 text-slate-700",
     headerText: "text-slate-800",
+    dotColor: "bg-amber-500",
   },
   {
     id: "scheduled",
@@ -85,6 +93,7 @@ const STATUS_COLUMNS = [
     border: "border-blue-200",
     badgeBg: "bg-blue-100 text-blue-700",
     headerText: "text-blue-900",
+    dotColor: "bg-blue-500",
   },
   {
     id: "in_progress",
@@ -94,6 +103,7 @@ const STATUS_COLUMNS = [
     border: "border-amber-200",
     badgeBg: "bg-amber-100 text-amber-700",
     headerText: "text-amber-900",
+    dotColor: "bg-purple-500",
   },
   {
     id: "awaiting_review",
@@ -103,6 +113,7 @@ const STATUS_COLUMNS = [
     border: "border-purple-200",
     badgeBg: "bg-purple-100 text-purple-700",
     headerText: "text-purple-900",
+    dotColor: "bg-violet-500",
   },
   {
     id: "passed",
@@ -112,6 +123,7 @@ const STATUS_COLUMNS = [
     border: "border-emerald-200",
     badgeBg: "bg-emerald-100 text-emerald-700",
     headerText: "text-emerald-900",
+    dotColor: "bg-emerald-500",
   },
   {
     id: "failed",
@@ -121,6 +133,7 @@ const STATUS_COLUMNS = [
     border: "border-rose-200",
     badgeBg: "bg-rose-100 text-rose-700",
     headerText: "text-rose-900",
+    dotColor: "bg-rose-500",
   },
   {
     id: "canceled",
@@ -130,8 +143,53 @@ const STATUS_COLUMNS = [
     border: "border-zinc-300",
     badgeBg: "bg-zinc-200 text-zinc-700",
     headerText: "text-zinc-800",
+    dotColor: "bg-zinc-400",
   },
 ];
+
+const getPlatformTagStyle = (platform: string) => {
+  switch (platform?.toLowerCase()) {
+    case "twitter":
+      return { label: "Twitter / X", bg: "bg-sky-100 text-sky-800 border-sky-200" };
+    case "instagram":
+      return { label: "Instagram", bg: "bg-pink-100 text-pink-800 border-pink-200" };
+    case "youtube":
+      return { label: "YouTube", bg: "bg-red-100 text-red-800 border-red-200" };
+    case "linkedin":
+      return { label: "LinkedIn", bg: "bg-blue-100 text-blue-800 border-blue-200" };
+    case "tiktok":
+      return { label: "TikTok", bg: "bg-cyan-100 text-cyan-800 border-cyan-200" };
+    case "facebook":
+      return { label: "Facebook", bg: "bg-indigo-100 text-indigo-800 border-indigo-200" };
+    case "threads":
+      return { label: "Threads", bg: "bg-slate-100 text-slate-800 border-slate-200" };
+    default:
+      return { label: platform || "Social", bg: "bg-slate-100 text-slate-700 border-slate-200" };
+  }
+};
+
+const getContentTypeTagStyle = (type: string) => {
+  switch (type?.toLowerCase()) {
+    case "reel":
+      return { label: "Reel", bg: "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200" };
+    case "video":
+      return { label: "Video", bg: "bg-violet-100 text-violet-800 border-violet-200" };
+    case "reel_video":
+      return { label: "Reel / Video", bg: "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200" };
+    case "post":
+      return { label: "Post", bg: "bg-amber-100 text-amber-900 border-amber-200" };
+    case "story":
+      return { label: "Story", bg: "bg-rose-100 text-rose-800 border-rose-200" };
+    case "thread":
+      return { label: "Thread", bg: "bg-teal-100 text-teal-800 border-teal-200" };
+    case "carousel":
+      return { label: "Carousel", bg: "bg-emerald-100 text-emerald-800 border-emerald-200" };
+    case "article":
+      return { label: "Article", bg: "bg-purple-100 text-purple-800 border-purple-200" };
+    default:
+      return { label: type || "Content", bg: "bg-slate-100 text-slate-700 border-slate-200" };
+  }
+};
 
 const CHAIN_TRANSITIONS: Record<
   string,
@@ -184,6 +242,7 @@ export function ActivitiesClient({
   userRole,
   initialActivities,
   campaigns,
+  channels = [],
   teammates,
   initialOpenCreate = false,
 }: ActivitiesClientProps) {
@@ -211,6 +270,7 @@ export function ActivitiesClient({
   };
   const [search, setSearch] = useState("");
   const [filterCampaign, setFilterCampaign] = useState("");
+  const [filterChannel, setFilterChannel] = useState("");
   const [filterPlatform, setFilterPlatform] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterOwner, setFilterOwner] = useState("");
@@ -253,6 +313,41 @@ export function ActivitiesClient({
     }
   };
 
+  // Channel state & inline creation
+  const [currentChannels, setCurrentChannels] = useState<any[]>(channels || []);
+  const [newChannelId, setNewChannelId] = useState("");
+  const [quickChannelName, setQuickChannelName] = useState("");
+  const [quickChannelOpen, setQuickChannelOpen] = useState(false);
+  const [creatingQuickChannel, setCreatingQuickChannel] = useState(false);
+  const [quickChannelError, setQuickChannelError] = useState<string | null>(null);
+
+  const handleQuickCreateChannel = async () => {
+    if (!quickChannelName.trim()) return;
+    try {
+      setCreatingQuickChannel(true);
+      setQuickChannelError(null);
+      const res = await fetch("/api/channels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: quickChannelName.trim(),
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Failed to create channel");
+
+      toast.success("Channel created!", `"${d.channel.name}" has been created and selected.`);
+      setCurrentChannels((prev) => [...prev, d.channel]);
+      setNewChannelId(d.channel.id);
+      setQuickChannelName("");
+      setQuickChannelOpen(false);
+    } catch (err: any) {
+      setQuickChannelError(err.message);
+    } finally {
+      setCreatingQuickChannel(false);
+    }
+  };
+
   // Create form state
   const [newCampaignId, setNewCampaignId] = useState(campaigns[0]?.id || "");
   const [newTitle, setNewTitle] = useState("");
@@ -277,6 +372,7 @@ export function ActivitiesClient({
       if (!match) return false;
     }
     if (filterCampaign && act.campaignId !== filterCampaign) return false;
+    if (filterChannel && act.channelId !== filterChannel) return false;
     if (filterPlatform && act.socialPlatform !== filterPlatform) return false;
     if (filterStatus && act.status !== filterStatus) return false;
     if (filterOwner && act.ownerId !== filterOwner) return false;
@@ -315,6 +411,7 @@ export function ActivitiesClient({
 
       const body: any = {
         campaignId: newCampaignId,
+        channelId: newChannelId || null,
         title: newTitle,
         brief: newBrief,
         socialPlatform: newPlatform,
@@ -458,6 +555,21 @@ export function ActivitiesClient({
               {currentCampaigns.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={filterChannel}
+              onChange={(e) => setFilterChannel(e.target.value)}
+              className="text-xs border border-slate-200 rounded-xl px-2.5 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="">
+                {currentChannels.length === 0 ? "No Channels" : "All Channels"}
+              </option>
+              {currentChannels.map((ch) => (
+                <option key={ch.id} value={ch.id}>
+                  #{ch.name}
                 </option>
               ))}
             </select>
@@ -789,216 +901,291 @@ export function ActivitiesClient({
                       className={`rounded-2xl border ${col.border} ${col.bg} p-3.5 flex flex-col gap-3 shadow-2xs hover:shadow-xs transition`}
                     >
                     {/* Column Header */}
-                    <div className="flex items-center justify-between pb-1">
+                    <div className="flex items-center justify-between pb-1.5">
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${col.badgeBg}`}
-                        >
-                          {col.step}
-                        </span>
-                        <span
-                          className={`font-bold text-xs uppercase tracking-wider ${col.headerText}`}
-                        >
+                        <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`} />
+                        <span className="font-bold text-xs uppercase tracking-wider text-slate-800">
                           {col.label}
                         </span>
                       </div>
-                      <span className="text-xs font-semibold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-2xs">
-                        {colActivities.length}
-                      </span>
+                      <div className="flex items-center gap-1.5 text-slate-400">
+                        <span className="text-[11px] font-medium text-slate-500">
+                          {colActivities.length} {colActivities.length === 1 ? "task" : "tasks"}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
+                            setCreateModalOpen(true);
+                          }}
+                          className="p-1 hover:text-slate-700 hover:bg-white/80 rounded-md transition cursor-pointer"
+                          title={`Add task to ${col.label}`}
+                        >
+                          <Plus className="w-3.5 h-3.5 text-slate-500" />
+                        </button>
+                        <div className="p-0.5">
+                          <MoreVertical className="w-3.5 h-3.5 text-slate-400" />
+                        </div>
+                      </div>
                     </div>
 
                     {/* Cards */}
-                    <div className="space-y-3 min-h-[300px]">
+                    <div className="space-y-3 min-h-[260px]">
                       {colActivities.length === 0 ? (
                         <div className="p-4 text-center text-xs text-slate-400 border border-dashed border-slate-200/90 rounded-xl bg-white/50">
                           No activities
                         </div>
                       ) : (
-                        colActivities.map((act) => (
-                          <div
-                            key={act.id}
-                            className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs hover:shadow transition space-y-2.5"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-                                {act.socialPlatform}
-                              </span>
-                              <span className="text-[10px] text-slate-400 capitalize">
-                                {act.contentType.replace("_", " ")}
-                              </span>
-                            </div>
+                        colActivities.map((act) => {
+                          const pStyle = getPlatformTagStyle(act.socialPlatform);
+                          const cStyle = getContentTypeTagStyle(act.contentType);
 
-                            <Link
-                              href={`/activities/${act.id}`}
-                              className="font-semibold text-xs text-slate-900 hover:text-indigo-600 transition block line-clamp-2"
+                          return (
+                            <div
+                              key={act.id}
+                              className="bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-xs hover:shadow transition flex flex-col gap-2.5"
                             >
-                              {act.title}
-                            </Link>
+                              {/* Title at top */}
+                              <Link
+                                href={`/activities/${act.id}`}
+                                className="font-bold text-xs text-slate-900 hover:text-indigo-600 transition block line-clamp-2 leading-snug"
+                              >
+                                {act.title}
+                              </Link>
 
-                            {act.campaignName && (
-                              <p className="text-[10px] text-indigo-600 font-medium truncate">
-                                {act.campaignName}
-                              </p>
-                            )}
-
-                            <div className="text-[10px] text-slate-400 space-y-0.5 pt-1 border-t border-slate-50">
-                              {act.scheduledAt && (
-                                <div className="flex items-center gap-1 truncate">
-                                  <Calendar className="w-3 h-3 shrink-0" />
-                                  <span>
-                                    {new Date(
-                                      act.scheduledAt
-                                    ).toLocaleDateString(undefined, {
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
-                                  </span>
-                                </div>
-                              )}
-                              {act.reviewDeadline && (
-                                <div className="flex items-center gap-1 text-slate-500 truncate">
-                                  <Clock className="w-3 h-3 shrink-0" />
-                                  <span>
-                                    Review:{" "}
-                                    {new Date(
-                                      act.reviewDeadline
-                                    ).toLocaleDateString(undefined, {
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Explicit & Chain Action Controls */}
-                            <div className="pt-2 border-t border-slate-100 flex flex-col gap-1.5">
-                              <div className="flex items-center gap-1">
-                                {act.status === "draft" && (
-                                  <button
-                                    onClick={() =>
-                                      handleChainTransition(
-                                        act.id,
-                                        "in_progress"
-                                      )
-                                    }
-                                    className="flex-1 flex items-center justify-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
-                                  >
-                                    <Play className="w-3 h-3" /> Start Work
-                                  </button>
-                                )}
-
-                                {act.status === "scheduled" && (
-                                  <button
-                                    onClick={() => handleStartProgress(act.id)}
-                                    className="flex-1 flex items-center justify-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
-                                  >
-                                    <Play className="w-3 h-3" /> Start Work
-                                  </button>
-                                )}
-
-                                {act.status === "in_progress" && (
-                                  <button
-                                    onClick={() =>
-                                      handleChainTransition(
-                                        act.id,
-                                        "awaiting_review"
-                                      )
-                                    }
-                                    className="flex-1 flex items-center justify-center gap-1 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
-                                  >
-                                    <Clock className="w-3 h-3" /> Submit Review
-                                  </button>
-                                )}
-
-                                {act.status === "awaiting_review" && (
-                                  <Link
-                                    href={`/activities/${act.id}`}
-                                    className="flex-1 flex items-center justify-center gap-1 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold py-1 px-2 rounded-lg transition"
-                                  >
-                                    Review <ArrowRight className="w-3 h-3" />
-                                  </Link>
-                                )}
-
-                                {act.status === "failed" && (
-                                  <button
-                                    onClick={() =>
-                                      handleChainTransition(
-                                        act.id,
-                                        "scheduled"
-                                      )
-                                    }
-                                    className="flex-1 flex items-center justify-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
-                                  >
-                                    <RotateCcw className="w-3 h-3" />{" "}
-                                    Reschedule
-                                  </button>
-                                )}
-
-                                {act.status === "canceled" && (
-                                  <button
-                                    onClick={() =>
-                                      handleChainTransition(act.id, "draft")
-                                    }
-                                    className="flex-1 flex items-center justify-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition"
-                                  >
-                                    <RotateCcw className="w-3 h-3" /> Restore
-                                  </button>
-                                )}
-
-                                {act.status === "passed" && (
-                                  <Link
-                                    href={`/activities/${act.id}`}
-                                    className="flex-1 text-center text-[11px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 py-1 px-2 rounded-lg transition"
-                                  >
-                                    Completed ✓
-                                  </Link>
-                                )}
-
-                                <Link
-                                  href={`/activities/${act.id}`}
-                                  className="text-center text-[11px] font-medium text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 py-1 px-2 rounded-lg transition shrink-0"
+                              {/* Tags row: Platform, Content Type, Channel, Campaign */}
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span
+                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${pStyle.bg}`}
                                 >
-                                  Details
-                                </Link>
+                                  {pStyle.label}
+                                </span>
+                                <span
+                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${cStyle.bg}`}
+                                >
+                                  {cStyle.label}
+                                </span>
+                                {act.channelName && (
+                                  <span
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md border bg-emerald-50 text-emerald-800 border-emerald-200 flex items-center gap-0.5"
+                                    title={`Channel: ${act.channelName}`}
+                                  >
+                                    <span className="opacity-70">#</span>
+                                    <span>{act.channelName}</span>
+                                  </span>
+                                )}
+                                {act.campaignName && (
+                                  <span
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md border bg-indigo-50 text-indigo-700 border-indigo-100 max-w-[130px] truncate"
+                                    title={`Campaign: ${act.campaignName}`}
+                                  >
+                                    {act.campaignName}
+                                  </span>
+                                )}
                               </div>
 
-                              {/* Quick Chain Move Dropdown */}
-                              {CHAIN_TRANSITIONS[act.status]?.length > 0 && (
-                                <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                                  <span className="shrink-0 text-slate-400">
-                                    Move:
-                                  </span>
-                                  <select
-                                    value=""
-                                    onChange={(e) => {
-                                      if (e.target.value)
+                              {/* Bottom row: Priority indicator [∧], Date box [📅 Jul 15, 2025], Notes [≡], Owner Avatar */}
+                              <div className="flex items-center justify-between pt-1 text-slate-600">
+                                <div className="flex items-center gap-1.5">
+                                  {/* Priority indicator [∧] */}
+                                  <div
+                                    className={`w-6 h-6 rounded-md flex items-center justify-center border text-xs ${
+                                      act.status === "in_progress"
+                                        ? "border-amber-200 bg-amber-50 text-amber-600"
+                                        : act.status === "awaiting_review"
+                                        ? "border-purple-200 bg-purple-50 text-purple-600"
+                                        : act.status === "passed"
+                                        ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                                        : act.status === "failed"
+                                        ? "border-rose-200 bg-rose-50 text-rose-600"
+                                        : "border-sky-200 bg-sky-50 text-sky-600"
+                                    }`}
+                                    title={`Status: ${act.status}`}
+                                  >
+                                    <ChevronUp className="w-3.5 h-3.5 stroke-[2.5]" />
+                                  </div>
+
+                                  {/* Date Box: [📅 Jun 10, 2025] */}
+                                  <div className="flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 bg-slate-50/60 text-[10px] font-medium text-slate-600">
+                                    <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                                    <span className="whitespace-nowrap">
+                                      {act.scheduledAt
+                                        ? new Date(act.scheduledAt).toLocaleDateString(undefined, {
+                                            month: "short",
+                                            day: "numeric",
+                                            year: "numeric",
+                                          })
+                                        : act.createdAt
+                                        ? new Date(act.createdAt).toLocaleDateString(undefined, {
+                                            month: "short",
+                                            day: "numeric",
+                                          })
+                                        : "No date"}
+                                    </span>
+                                  </div>
+
+                                  {/* Notes / Details [≡] Button */}
+                                  <Link
+                                    href={`/activities/${act.id}`}
+                                    className="w-6 h-6 rounded-md flex items-center justify-center border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 transition"
+                                    title="View activity details and brief"
+                                  >
+                                    <AlignLeft className="w-3 h-3" />
+                                  </Link>
+                                </div>
+
+                                {/* Owner avatar */}
+                                <div
+                                  className="shrink-0"
+                                  title={act.owner?.displayName || act.owner?.name || "Assigned owner"}
+                                >
+                                  <UserAvatar
+                                    name={act.owner?.displayName || act.owner?.name}
+                                    avatarUrl={act.owner?.avatarUrl || act.owner?.image}
+                                    size="sm"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Explicit & Chain Action Controls */}
+                              <div className="pt-2 border-t border-slate-100 flex flex-col gap-1.5">
+                                <div className="flex items-center gap-1">
+                                  {act.status === "draft" && (
+                                    <button
+                                      onClick={() =>
                                         handleChainTransition(
                                           act.id,
-                                          e.target.value
-                                        );
-                                    }}
-                                    className="w-full text-[10px] font-medium bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-700 focus:outline-none cursor-pointer"
+                                          "in_progress"
+                                        )
+                                      }
+                                      className="flex-1 flex items-center justify-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition cursor-pointer"
+                                    >
+                                      <Play className="w-3 h-3" /> Start Work
+                                    </button>
+                                  )}
+
+                                  {act.status === "scheduled" && (
+                                    <button
+                                      onClick={() => handleStartProgress(act.id)}
+                                      className="flex-1 flex items-center justify-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition cursor-pointer"
+                                    >
+                                      <Play className="w-3 h-3" /> Start Work
+                                    </button>
+                                  )}
+
+                                  {act.status === "in_progress" && (
+                                    <button
+                                      onClick={() =>
+                                        handleChainTransition(
+                                          act.id,
+                                          "awaiting_review"
+                                        )
+                                      }
+                                      className="flex-1 flex items-center justify-center gap-1 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition cursor-pointer"
+                                    >
+                                      <Clock className="w-3 h-3" /> Submit Review
+                                    </button>
+                                  )}
+
+                                  {act.status === "awaiting_review" && (
+                                    <Link
+                                      href={`/activities/${act.id}`}
+                                      className="flex-1 flex items-center justify-center gap-1 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                    >
+                                      Review <ArrowRight className="w-3 h-3" />
+                                    </Link>
+                                  )}
+
+                                  {act.status === "failed" && (
+                                    <button
+                                      onClick={() =>
+                                        handleChainTransition(
+                                          act.id,
+                                          "scheduled"
+                                        )
+                                      }
+                                      className="flex-1 flex items-center justify-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition cursor-pointer"
+                                    >
+                                      <RotateCcw className="w-3 h-3" /> Reschedule
+                                    </button>
+                                  )}
+
+                                  {act.status === "canceled" && (
+                                    <button
+                                      onClick={() =>
+                                        handleChainTransition(act.id, "draft")
+                                      }
+                                      className="flex-1 flex items-center justify-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold py-1 px-2 rounded-lg transition cursor-pointer"
+                                    >
+                                      <RotateCcw className="w-3 h-3" /> Restore
+                                    </button>
+                                  )}
+
+                                  {act.status === "passed" && (
+                                    <Link
+                                      href={`/activities/${act.id}`}
+                                      className="flex-1 text-center text-[11px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 py-1 px-2 rounded-lg transition"
+                                    >
+                                      Completed ✓
+                                    </Link>
+                                  )}
+
+                                  <Link
+                                    href={`/activities/${act.id}`}
+                                    className="text-center text-[11px] font-medium text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 py-1 px-2 rounded-lg transition shrink-0"
                                   >
-                                    <option value="" disabled>
-                                      Move along chain...
-                                    </option>
-                                    {CHAIN_TRANSITIONS[act.status].map((t) => (
-                                      <option
-                                        key={t.targetStatus}
-                                        value={t.targetStatus}
-                                      >
-                                        → {t.label}
-                                      </option>
-                                    ))}
-                                  </select>
+                                    Details
+                                  </Link>
                                 </div>
-                              )}
+
+                                {/* Quick Chain Move Dropdown */}
+                                {CHAIN_TRANSITIONS[act.status]?.length > 0 && (
+                                  <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                                    <span className="shrink-0 text-slate-400">
+                                      Move:
+                                    </span>
+                                    <select
+                                      value=""
+                                      onChange={(e) => {
+                                        if (e.target.value)
+                                          handleChainTransition(
+                                            act.id,
+                                            e.target.value
+                                          );
+                                      }}
+                                      className="w-full text-[10px] font-medium bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-700 focus:outline-none cursor-pointer"
+                                    >
+                                      <option value="" disabled>
+                                        Move along chain...
+                                      </option>
+                                      {CHAIN_TRANSITIONS[act.status].map((t) => (
+                                        <option
+                                          key={t.targetStatus}
+                                          value={t.targetStatus}
+                                        >
+                                          → {t.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
+
+                    {/* Column Footer: + Add Task */}
+                    <button
+                      onClick={() => {
+                        setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
+                        setCreateModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 hover:bg-white/80 p-2 rounded-xl transition w-full text-left cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Task</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1096,6 +1283,9 @@ export function ActivitiesClient({
                   ) : (
                     colActivities.map((act) => {
                       const owner = teammates.find((m) => m.userId === act.ownerId);
+                      const pStyle = getPlatformTagStyle(act.socialPlatform);
+                      const cStyle = getContentTypeTagStyle(act.contentType);
+
                       return (
                         <div
                           key={act.id}
@@ -1104,12 +1294,21 @@ export function ActivitiesClient({
                           <div className="space-y-1.5 flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               {getStatusBadge(act.status)}
-                              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                                {act.socialPlatform}
+                              <span
+                                className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${pStyle.bg}`}
+                              >
+                                {pStyle.label}
                               </span>
-                              <span className="text-xs text-slate-400 capitalize">
-                                {act.contentType.replace("_", " ")}
+                              <span
+                                className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${cStyle.bg}`}
+                              >
+                                {cStyle.label}
                               </span>
+                              {act.channelName && (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-md border bg-emerald-50 text-emerald-800 border-emerald-200">
+                                  #{act.channelName}
+                                </span>
+                              )}
                               {act.campaignName && (
                                 <span className="text-xs text-indigo-600 font-medium">
                                   • {act.campaignName}
@@ -1392,6 +1591,8 @@ export function ActivitiesClient({
                     className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="post">Post</option>
+                    <option value="reel">Reel</option>
+                    <option value="video">Video</option>
                     <option value="reel_video">Reel / Video</option>
                     <option value="story">Story</option>
                     <option value="thread">Thread</option>
@@ -1399,6 +1600,66 @@ export function ActivitiesClient({
                     <option value="article">Article</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Channel <span className="font-normal text-slate-400">(Optional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setQuickChannelOpen(!quickChannelOpen)}
+                    className="text-[11px] font-medium text-indigo-600 hover:text-indigo-800 transition cursor-pointer"
+                  >
+                    {quickChannelOpen ? "Close" : "+ Add Channel"}
+                  </button>
+                </div>
+
+                <select
+                  value={newChannelId}
+                  onChange={(e) => setNewChannelId(e.target.value)}
+                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
+                >
+                  <option value="">No channel (None)</option>
+                  {currentChannels.map((ch) => (
+                    <option key={ch.id} value={ch.id}>
+                      #{ch.name} {ch.platform ? `(${ch.platform})` : ""}
+                    </option>
+                  ))}
+                </select>
+
+                {quickChannelOpen && (
+                  <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <p className="text-[11px] text-slate-600 font-medium">Add a publication channel (e.g. @BrandOfficial, YouTube Main):</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Enter channel name..."
+                        value={quickChannelName}
+                        onChange={(e) => setQuickChannelName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleQuickCreateChannel();
+                          }
+                        }}
+                        className="flex-1 min-w-0 text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        disabled={creatingQuickChannel || !quickChannelName.trim()}
+                        onClick={handleQuickCreateChannel}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 shrink-0 whitespace-nowrap cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        {creatingQuickChannel ? "Adding..." : "Add Channel"}
+                      </button>
+                    </div>
+                    {quickChannelError && (
+                      <p className="text-[10px] text-rose-600 font-medium">{quickChannelError}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

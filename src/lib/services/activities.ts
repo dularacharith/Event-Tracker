@@ -9,6 +9,7 @@ import {
   workspaceMembers,
   user as userTable,
   campaigns,
+  channels,
   mediaFiles,
 } from "@/db/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
@@ -25,6 +26,8 @@ export type SocialPlatform =
 
 export type ContentType =
   | "post"
+  | "reel"
+  | "video"
   | "reel_video"
   | "story"
   | "thread"
@@ -42,6 +45,7 @@ export type ActivityStatus =
 export interface CreateActivityInput {
   workspaceId: string;
   campaignId: string;
+  channelId?: string | null;
   title: string;
   brief: string;
   socialPlatform: SocialPlatform;
@@ -165,6 +169,7 @@ export async function createActivity(input: CreateActivityInput) {
       .values({
         id: activityId,
         campaignId: input.campaignId,
+        channelId: input.channelId || null,
         workspaceId: input.workspaceId,
         title,
         brief,
@@ -915,9 +920,12 @@ export async function getActivityDetails(workspaceId: string, activityId: string
       createdAt: activities.createdAt,
       updatedAt: activities.updatedAt,
       campaignName: campaigns.name,
+      channelId: activities.channelId,
+      channelName: channels.name,
     })
     .from(activities)
     .leftJoin(campaigns, eq(activities.campaignId, campaigns.id))
+    .leftJoin(channels, eq(activities.channelId, channels.id))
     .where(
       and(
         eq(activities.id, activityId),
@@ -1055,6 +1063,7 @@ export async function getActivityDetails(workspaceId: string, activityId: string
 export async function listActivities({
   workspaceId,
   campaignId,
+  channelId,
   status,
   socialPlatform,
   ownerId,
@@ -1062,6 +1071,7 @@ export async function listActivities({
 }: {
   workspaceId: string;
   campaignId?: string;
+  channelId?: string;
   status?: ActivityStatus;
   socialPlatform?: SocialPlatform;
   ownerId?: string;
@@ -1071,6 +1081,9 @@ export async function listActivities({
 
   if (campaignId) {
     conditions.push(eq(activities.campaignId, campaignId));
+  }
+  if (channelId) {
+    conditions.push(eq(activities.channelId, channelId));
   }
   if (status) {
     conditions.push(eq(activities.status, status));
@@ -1089,6 +1102,8 @@ export async function listActivities({
     .select({
       id: activities.id,
       campaignId: activities.campaignId,
+      channelId: activities.channelId,
+      channelName: channels.name,
       title: activities.title,
       brief: activities.brief,
       socialPlatform: activities.socialPlatform,
@@ -1111,6 +1126,7 @@ export async function listActivities({
     })
     .from(activities)
     .leftJoin(campaigns, eq(activities.campaignId, campaigns.id))
+    .leftJoin(channels, eq(activities.channelId, channels.id))
     .leftJoin(userTable, eq(activities.ownerId, userTable.id))
     .where(and(...conditions))
     .orderBy(desc(activities.createdAt));

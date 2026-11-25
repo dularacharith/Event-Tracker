@@ -34,6 +34,8 @@ interface ActivityItem {
   brief: string;
   socialPlatform: string;
   contentType: string;
+  channelId?: string | null;
+  channelName?: string | null;
   scheduledAt?: Date | string | null;
   reviewDeadline?: Date | string | null;
   status: string;
@@ -50,6 +52,7 @@ interface CalendarClientProps {
   userRole: "admin" | "member";
   activities: ActivityItem[];
   campaigns: any[];
+  channels?: any[];
   teammates: any[];
 }
 
@@ -58,6 +61,7 @@ export function CalendarClient({
   userRole,
   activities,
   campaigns,
+  channels = [],
   teammates,
 }: CalendarClientProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -71,6 +75,7 @@ export function CalendarClient({
   const [formCampaignId, setFormCampaignId] = useState(
     campaigns[0]?.id || ""
   );
+  const [formChannelId, setFormChannelId] = useState("");
   const [formTitle, setFormTitle] = useState("");
   const [formBrief, setFormBrief] = useState("");
   const [formPlatform, setFormPlatform] = useState("twitter");
@@ -152,6 +157,7 @@ export function CalendarClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campaignId: formCampaignId,
+          channelId: formChannelId || null,
           title: formTitle,
           brief: formBrief,
           socialPlatform: formPlatform,
@@ -492,6 +498,8 @@ export function CalendarClient({
                     className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="post">Post</option>
+                    <option value="reel">Reel</option>
+                    <option value="video">Video</option>
                     <option value="reel_video">Reel / Video</option>
                     <option value="story">Story</option>
                     <option value="thread">Thread</option>
@@ -499,6 +507,24 @@ export function CalendarClient({
                     <option value="article">Article</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Channel <span className="font-normal text-slate-400">(Optional)</span>
+                </label>
+                <select
+                  value={formChannelId}
+                  onChange={(e) => setFormChannelId(e.target.value)}
+                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
+                >
+                  <option value="">No channel (None)</option>
+                  {channels.map((ch) => (
+                    <option key={ch.id} value={ch.id}>
+                      #{ch.name} {ch.platform ? `(${ch.platform})` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

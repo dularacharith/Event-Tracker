@@ -171,11 +171,30 @@ export const campaigns = pgTable("campaigns", {
     .notNull(),
 });
 
+// ---------------------------------------------------------------------------
+// Channels (Optional publication channels e.g. @BrandAccount, YouTube Main)
+// ---------------------------------------------------------------------------
+export const channels = pgTable("channels", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  platform: text("platform"),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
 export const activities = pgTable("activities", {
   id: text("id").primaryKey(),
   campaignId: text("campaign_id")
     .notNull()
     .references(() => campaigns.id, { onDelete: "cascade" }),
+  channelId: text("channel_id").references(() => channels.id, {
+    onDelete: "set null",
+  }),
   workspaceId: text("workspace_id")
     .notNull()
     .references(() => workspaces.id, { onDelete: "cascade" }),
@@ -193,7 +212,16 @@ export const activities = pgTable("activities", {
     ],
   }).notNull(),
   contentType: text("content_type", {
-    enum: ["post", "reel_video", "story", "thread", "carousel", "article"],
+    enum: [
+      "post",
+      "reel",
+      "video",
+      "reel_video",
+      "story",
+      "thread",
+      "carousel",
+      "article",
+    ],
   }).notNull(),
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
   reviewDeadline: timestamp("review_deadline", { withTimezone: true }),
