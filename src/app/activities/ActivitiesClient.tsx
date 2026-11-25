@@ -506,16 +506,16 @@ export function ActivitiesClient({
                 <div className="flex flex-col justify-between items-center h-28 relative w-12 text-slate-300 shrink-0">
                   {/* Top branch line up to Scheduled */}
                   <div className="absolute top-4 left-0 w-6 h-10 border-t-2 border-l-2 border-slate-200 rounded-tl-xl" />
-                  <ArrowRight className="absolute top-2 right-0 w-3.5 h-3.5 text-blue-400" />
+                  <ArrowRight className="absolute top-2 right-1.5 w-3.5 h-3.5 text-blue-400" />
 
                   {/* Middle direct dash line to In Progress */}
                   <div className="w-full border-t border-dashed border-slate-300 relative my-auto">
-                    <ArrowRight className="absolute -top-1.5 right-0 w-3.5 h-3.5 text-amber-400" />
+                    <ArrowRight className="absolute -top-1.5 right-1.5 w-3.5 h-3.5 text-amber-400" />
                   </div>
 
                   {/* Bottom branch line down to Canceled */}
                   <div className="absolute bottom-4 left-0 w-6 h-10 border-b-2 border-l-2 border-slate-200 rounded-bl-xl" />
-                  <ArrowRight className="absolute bottom-2 right-0 w-3.5 h-3.5 text-zinc-400" />
+                  <ArrowRight className="absolute bottom-2 right-1.5 w-3.5 h-3.5 text-zinc-400" />
                 </div>
 
                 {/* TWO SEPARATE BOXES (NOT LINKED HORIZONTALLY): Scheduled (top) & Canceled (bottom) */}
@@ -557,7 +557,7 @@ export function ActivitiesClient({
                 <div className="flex flex-col justify-between h-28 py-1 items-center relative w-12 text-slate-300 shrink-0">
                   {/* Line from Scheduled down to In Progress */}
                   <div className="absolute top-4 left-0 w-6 h-10 border-t-2 border-r-2 border-slate-200 rounded-tr-xl" />
-                  <span title="Bidirectional Scheduled ⇄ In Progress" className="absolute top-2 right-0">
+                  <span title="Bidirectional Scheduled ⇄ In Progress" className="absolute top-2 right-1.5">
                     <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
                   </span>
 
@@ -692,19 +692,19 @@ export function ActivitiesClient({
           </div>
 
           {/* Linked Kanban Columns Track */}
-          <div className="flex gap-4 items-start overflow-x-auto pb-6 pt-1 px-1">
-            {STATUS_COLUMNS.filter((col) => !filterStatus || filterStatus === col.id).map((col, idx) => {
+          <div className="flex items-start overflow-x-auto pb-6 pt-1 px-1">
+            {STATUS_COLUMNS.filter(
+              (col) => !filterStatus || filterStatus === col.id
+            ).map((col, idx, arr) => {
               const colActivities = filteredActivities.filter(
                 (a) => a.status === col.id
               );
               return (
-                <div
-                  key={col.id}
-                  className="relative flex-1 min-w-[260px] max-w-[320px] shrink-0"
-                >
-                  <div
-                    className={`rounded-2xl border ${col.border} ${col.bg} p-3.5 flex flex-col gap-3 shadow-2xs hover:shadow-xs transition`}
-                  >
+                <React.Fragment key={col.id}>
+                  <div className="flex-1 min-w-[260px] max-w-[320px] shrink-0">
+                    <div
+                      className={`rounded-2xl border ${col.border} ${col.bg} p-3.5 flex flex-col gap-3 shadow-2xs hover:shadow-xs transition`}
+                    >
                     {/* Column Header */}
                     <div className="flex items-center justify-between pb-1">
                       <div className="flex items-center gap-2">
@@ -917,24 +917,30 @@ export function ActivitiesClient({
                       )}
                     </div>
                   </div>
+                </div>
 
-                  {/* Visual Link Connector between adjacent stages (only when viewing all columns and before Failed/Canceled) */}
-                  {!filterStatus && idx < 5 && (
-                    <div
-                      className="hidden xl:flex absolute -right-3 top-5 z-20 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-xs items-center justify-center text-slate-400 pointer-events-none"
-                    >
+                {/* Independent Arrow Connector NEXT to the box (in the gap between boxes, NEVER overlapping!) */}
+                  {!filterStatus && idx < arr.length - 1 && (
+                    <div className="hidden xl:flex flex-col items-center justify-start pt-5 px-1.5 shrink-0 text-slate-400 select-none">
                       {idx === 1 ? (
-                        <ArrowLeftRight className="w-3 h-3 text-slate-400" />
-                      ) : idx === 4 ? (
-                        <span className="text-[9px] font-bold text-slate-400">
+                        <div
+                          className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 shadow-2xs"
+                          title="Bidirectional: Scheduled ⇄ In Progress"
+                        >
+                          <ArrowLeftRight className="w-3.5 h-3.5" />
+                        </div>
+                      ) : idx === 4 || idx === 5 ? (
+                        <div className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 font-bold text-xs shadow-2xs">
                           /
-                        </span>
+                        </div>
                       ) : (
-                        <ArrowRight className="w-3 h-3 text-slate-400" />
+                        <div className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 shadow-2xs">
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </div>
                       )}
                     </div>
                   )}
-                </div>
+                </React.Fragment>
               );
             })}
           </div>

@@ -525,14 +525,14 @@ export function ActivityDetailClient({
             {/* Split Branch Connector from Draft to Scheduled (top), In Progress (direct), Canceled (bottom) */}
             <div className="flex flex-col justify-between items-center h-28 relative w-12 text-slate-300 shrink-0">
               <div className="absolute top-4 left-0 w-6 h-10 border-t-2 border-l-2 border-slate-200 rounded-tl-xl" />
-              <ArrowRight className="absolute top-2 right-0 w-3.5 h-3.5 text-blue-400" />
+              <ArrowRight className="absolute top-2 right-1.5 w-3.5 h-3.5 text-blue-400" />
 
               <div className="w-full border-t border-dashed border-slate-300 relative my-auto">
-                <ArrowRight className="absolute -top-1.5 right-0 w-3.5 h-3.5 text-amber-400" />
+                <ArrowRight className="absolute -top-1.5 right-1.5 w-3.5 h-3.5 text-amber-400" />
               </div>
 
               <div className="absolute bottom-4 left-0 w-6 h-10 border-b-2 border-l-2 border-slate-200 rounded-bl-xl" />
-              <ArrowRight className="absolute bottom-2 right-0 w-3.5 h-3.5 text-zinc-400" />
+              <ArrowRight className="absolute bottom-2 right-1.5 w-3.5 h-3.5 text-zinc-400" />
             </div>
 
             {/* TWO SEPARATE BOXES (NOT LINKED HORIZONTALLY): Scheduled & Canceled */}
@@ -561,7 +561,7 @@ export function ActivityDetailClient({
             {/* Connector to In Progress (and Canceled loopback) */}
             <div className="flex flex-col justify-between h-28 py-1 items-center relative w-12 text-slate-300 shrink-0">
               <div className="absolute top-4 left-0 w-6 h-10 border-t-2 border-r-2 border-slate-200 rounded-tr-xl" />
-              <span title="Bidirectional Scheduled ⇄ In Progress" className="absolute top-2 right-0">
+              <span title="Bidirectional Scheduled ⇄ In Progress" className="absolute top-2 right-1.5">
                 <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
               </span>
 
