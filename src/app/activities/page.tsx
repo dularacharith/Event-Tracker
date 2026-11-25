@@ -20,12 +20,11 @@ export default async function ActivitiesPage({
 
   const { new: openNewModal } = await searchParams;
 
+  const campaigns = await listCampaigns(member.workspaceId);
+  const channels = await listChannels(member.workspaceId);
   const activities = await listActivities({
     workspaceId: member.workspaceId,
   });
-
-  const campaigns = await listCampaigns(member.workspaceId);
-  const channels = await listChannels(member.workspaceId);
   const teammates = await listWorkspaceMembers(member.workspaceId);
 
   return (

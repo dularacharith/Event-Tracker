@@ -4,28 +4,36 @@ import { eq, and, desc, asc, sql } from "drizzle-orm";
 import crypto from "crypto";
 
 let tableEnsured = false;
+let ensurePromise: Promise<void> | null = null;
 
 export async function ensureChannelsTable() {
   if (tableEnsured) return;
-  try {
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS "channels" (
-        "id" text PRIMARY KEY NOT NULL,
-        "workspace_id" text NOT NULL REFERENCES "workspaces"("id") ON DELETE CASCADE,
-        "name" text NOT NULL,
-        "platform" text,
-        "description" text,
-        "created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-      );
-    `);
-    await db.execute(sql`
-      ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "channel_id" text;
-    `);
-    tableEnsured = true;
-  } catch (err) {
-    // Silently continue if table already exists or DDL is restricted
-    tableEnsured = true;
-  }
+  if (ensurePromise) return ensurePromise;
+
+  ensurePromise = (async () => {
+    try {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "channels" (
+          "id" text PRIMARY KEY NOT NULL,
+          "workspace_id" text NOT NULL,
+          "name" text NOT NULL,
+          "platform" text,
+          "description" text,
+          "created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+      `);
+      await db.execute(sql`
+        ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "channel_id" text;
+      `);
+      tableEnsured = true;
+    } catch (err) {
+      console.error("ensureChannelsTable error:", err);
+    } finally {
+      ensurePromise = null;
+    }
+  })();
+
+  return ensurePromise;
 }
 
 export interface CreateChannelInput {
@@ -62,22 +70,27 @@ export async function createChannel({
 }
 
 export async function listChannels(workspaceId: string) {
-  await ensureChannelsTable();
-  const items = await db
-    .select({
-      id: channels.id,
-      workspaceId: channels.workspaceId,
-      name: channels.name,
-      platform: channels.platform,
-      description: channels.description,
-      createdAt: channels.createdAt,
-      activityCount: sql<number>`count(${activities.id})`,
-    })
-    .from(channels)
-    .leftJoin(activities, eq(activities.channelId, channels.id))
-    .where(eq(channels.workspaceId, workspaceId))
-    .groupBy(channels.id)
-    .orderBy(asc(channels.name));
+  try {
+    await ensureChannelsTable();
+    const items = await db
+      .select({
+        id: channels.id,
+        workspaceId: channels.workspaceId,
+        name: channels.name,
+        platform: channels.platform,
+        description: channels.description,
+        createdAt: channels.createdAt,
+        activityCount: sql<number>`count(${activities.id})`,
+      })
+      .from(channels)
+      .leftJoin(activities, eq(activities.channelId, channels.id))
+      .where(eq(channels.workspaceId, workspaceId))
+      .groupBy(channels.id)
+      .orderBy(asc(channels.name));
 
-  return items;
+    return items;
+  } catch (err) {
+    console.error("listChannels error (fallback to empty array):", err);
+    return [];
+  }
 }

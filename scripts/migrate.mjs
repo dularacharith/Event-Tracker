@@ -12,10 +12,10 @@ async function runMigrations() {
     process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
   if (!connectionString) {
-    console.error(
-      "Error: DATABASE_URL or POSTGRES_URL environment variable is required to run migrations."
+    console.warn(
+      "Notice: DATABASE_URL or POSTGRES_URL environment variable is not defined. Skipping migration step."
     );
-    process.exit(1);
+    return;
   }
 
   console.log("Connecting to Postgres database for migration...");

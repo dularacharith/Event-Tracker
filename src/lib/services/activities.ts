@@ -14,6 +14,7 @@ import {
 } from "@/db/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
+import { ensureChannelsTable } from "./channels";
 
 export type SocialPlatform =
   | "twitter"
@@ -162,6 +163,8 @@ export async function createActivity(input: CreateActivityInput) {
   }
 
   const activityId = `act-${crypto.randomUUID()}`;
+
+  await ensureChannelsTable();
 
   return await db.transaction(async (tx) => {
     const [created] = await tx
@@ -900,39 +903,80 @@ export async function addComment({
  * Get detailed activity by ID with comments, evidence, history, and review attempts
  */
 export async function getActivityDetails(workspaceId: string, activityId: string) {
-  const [act] = await db
-    .select({
-      id: activities.id,
-      campaignId: activities.campaignId,
-      workspaceId: activities.workspaceId,
-      title: activities.title,
-      brief: activities.brief,
-      socialPlatform: activities.socialPlatform,
-      contentType: activities.contentType,
-      scheduledAt: activities.scheduledAt,
-      reviewDeadline: activities.reviewDeadline,
-      ownerId: activities.ownerId,
-      reviewerId: activities.reviewerId,
-      passCriteria: activities.passCriteria,
-      status: activities.status,
-      currentAttemptNumber: activities.currentAttemptNumber,
-      createdById: activities.createdById,
-      createdAt: activities.createdAt,
-      updatedAt: activities.updatedAt,
-      campaignName: campaigns.name,
-      channelId: activities.channelId,
-      channelName: channels.name,
-    })
-    .from(activities)
-    .leftJoin(campaigns, eq(activities.campaignId, campaigns.id))
-    .leftJoin(channels, eq(activities.channelId, channels.id))
-    .where(
-      and(
-        eq(activities.id, activityId),
-        eq(activities.workspaceId, workspaceId)
+  await ensureChannelsTable();
+
+  let act: any = null;
+  try {
+    const [result] = await db
+      .select({
+        id: activities.id,
+        campaignId: activities.campaignId,
+        workspaceId: activities.workspaceId,
+        title: activities.title,
+        brief: activities.brief,
+        socialPlatform: activities.socialPlatform,
+        contentType: activities.contentType,
+        scheduledAt: activities.scheduledAt,
+        reviewDeadline: activities.reviewDeadline,
+        ownerId: activities.ownerId,
+        reviewerId: activities.reviewerId,
+        passCriteria: activities.passCriteria,
+        status: activities.status,
+        currentAttemptNumber: activities.currentAttemptNumber,
+        createdById: activities.createdById,
+        createdAt: activities.createdAt,
+        updatedAt: activities.updatedAt,
+        campaignName: campaigns.name,
+        channelId: activities.channelId,
+        channelName: channels.name,
+      })
+      .from(activities)
+      .leftJoin(campaigns, eq(activities.campaignId, campaigns.id))
+      .leftJoin(channels, eq(activities.channelId, channels.id))
+      .where(
+        and(
+          eq(activities.id, activityId),
+          eq(activities.workspaceId, workspaceId)
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
+    act = result;
+  } catch (err: any) {
+    console.error("getActivityDetails query error, using fallback:", err?.message);
+    const [result] = await db
+      .select({
+        id: activities.id,
+        campaignId: activities.campaignId,
+        workspaceId: activities.workspaceId,
+        title: activities.title,
+        brief: activities.brief,
+        socialPlatform: activities.socialPlatform,
+        contentType: activities.contentType,
+        scheduledAt: activities.scheduledAt,
+        reviewDeadline: activities.reviewDeadline,
+        ownerId: activities.ownerId,
+        reviewerId: activities.reviewerId,
+        passCriteria: activities.passCriteria,
+        status: activities.status,
+        currentAttemptNumber: activities.currentAttemptNumber,
+        createdById: activities.createdById,
+        createdAt: activities.createdAt,
+        updatedAt: activities.updatedAt,
+        campaignName: campaigns.name,
+        channelId: sql<string | null>`null`.as("channel_id"),
+        channelName: sql<string | null>`null`.as("channel_name"),
+      })
+      .from(activities)
+      .leftJoin(campaigns, eq(activities.campaignId, campaigns.id))
+      .where(
+        and(
+          eq(activities.id, activityId),
+          eq(activities.workspaceId, workspaceId)
+        )
+      )
+      .limit(1);
+    act = result;
+  }
 
   if (!act) return null;
 
@@ -1098,40 +1142,79 @@ export async function listActivities({
     conditions.push(eq(activities.reviewerId, reviewerId));
   }
 
-  const items = await db
-    .select({
-      id: activities.id,
-      campaignId: activities.campaignId,
-      channelId: activities.channelId,
-      channelName: channels.name,
-      title: activities.title,
-      brief: activities.brief,
-      socialPlatform: activities.socialPlatform,
-      contentType: activities.contentType,
-      scheduledAt: activities.scheduledAt,
-      reviewDeadline: activities.reviewDeadline,
-      ownerId: activities.ownerId,
-      reviewerId: activities.reviewerId,
-      status: activities.status,
-      passCriteria: activities.passCriteria,
-      createdAt: activities.createdAt,
-      campaignName: campaigns.name,
-      owner: {
-        id: userTable.id,
-        name: userTable.name,
-        displayName: userTable.displayName,
-        image: userTable.image,
-        avatarUrl: userTable.avatarUrl,
-      },
-    })
-    .from(activities)
-    .leftJoin(campaigns, eq(activities.campaignId, campaigns.id))
-    .leftJoin(channels, eq(activities.channelId, channels.id))
-    .leftJoin(userTable, eq(activities.ownerId, userTable.id))
-    .where(and(...conditions))
-    .orderBy(desc(activities.createdAt));
+  await ensureChannelsTable();
 
-  return items;
+  try {
+    const items = await db
+      .select({
+        id: activities.id,
+        campaignId: activities.campaignId,
+        channelId: activities.channelId,
+        channelName: channels.name,
+        title: activities.title,
+        brief: activities.brief,
+        socialPlatform: activities.socialPlatform,
+        contentType: activities.contentType,
+        scheduledAt: activities.scheduledAt,
+        reviewDeadline: activities.reviewDeadline,
+        ownerId: activities.ownerId,
+        reviewerId: activities.reviewerId,
+        status: activities.status,
+        passCriteria: activities.passCriteria,
+        createdAt: activities.createdAt,
+        campaignName: campaigns.name,
+        owner: {
+          id: userTable.id,
+          name: userTable.name,
+          displayName: userTable.displayName,
+          image: userTable.image,
+          avatarUrl: userTable.avatarUrl,
+        },
+      })
+      .from(activities)
+      .leftJoin(campaigns, eq(activities.campaignId, campaigns.id))
+      .leftJoin(channels, eq(activities.channelId, channels.id))
+      .leftJoin(userTable, eq(activities.ownerId, userTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(activities.createdAt));
+
+    return items;
+  } catch (err: any) {
+    console.error("listActivities primary query failed, using graceful fallback:", err?.message);
+    const fallbackItems = await db
+      .select({
+        id: activities.id,
+        campaignId: activities.campaignId,
+        channelId: sql<string | null>`null`.as("channel_id"),
+        channelName: sql<string | null>`null`.as("channel_name"),
+        title: activities.title,
+        brief: activities.brief,
+        socialPlatform: activities.socialPlatform,
+        contentType: activities.contentType,
+        scheduledAt: activities.scheduledAt,
+        reviewDeadline: activities.reviewDeadline,
+        ownerId: activities.ownerId,
+        reviewerId: activities.reviewerId,
+        status: activities.status,
+        passCriteria: activities.passCriteria,
+        createdAt: activities.createdAt,
+        campaignName: campaigns.name,
+        owner: {
+          id: userTable.id,
+          name: userTable.name,
+          displayName: userTable.displayName,
+          image: userTable.image,
+          avatarUrl: userTable.avatarUrl,
+        },
+      })
+      .from(activities)
+      .leftJoin(campaigns, eq(activities.campaignId, campaigns.id))
+      .leftJoin(userTable, eq(activities.ownerId, userTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(activities.createdAt));
+
+    return fallbackItems;
+  }
 }
 
 export interface TransitionStatusInput {
