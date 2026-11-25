@@ -773,7 +773,11 @@ export function ActivitiesClient({
           </div>
 
           <button
-            onClick={() => setCreateModalOpen(true)}
+            type="button"
+            onClick={() => {
+              setNewStatus("draft");
+              setCreateModalOpen(true);
+            }}
             className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition"
           >
             <Plus className="w-4 h-4" /> New Activity
@@ -1024,17 +1028,21 @@ export function ActivitiesClient({
                         </div>
                       </div>
                       <div className="flex items-center gap-1 text-slate-400 shrink-0 pt-0.5">
+                        {(col.id === "draft" || col.id === "scheduled") && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
+                              setCreateModalOpen(true);
+                            }}
+                            className="p-1 hover:text-slate-700 hover:bg-white/80 rounded-md transition cursor-pointer"
+                            title={col.id === "scheduled" ? "Schedule new task" : "Add draft task"}
+                          >
+                            <Plus className="w-3.5 h-3.5 text-slate-500" />
+                          </button>
+                        )}
                         <button
-                          onClick={() => {
-                            setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
-                            setCreateModalOpen(true);
-                          }}
-                          className="p-1 hover:text-slate-700 hover:bg-white/80 rounded-md transition cursor-pointer"
-                          title={`Add task to ${col.label}`}
-                        >
-                          <Plus className="w-3.5 h-3.5 text-slate-500" />
-                        </button>
-                        <button
+                          type="button"
                           onClick={() =>
                             setActiveKebabMenuColId(
                               activeKebabMenuColId === col.id ? null : col.id
@@ -1598,19 +1606,22 @@ export function ActivitiesClient({
                     </div>
                     </div>
 
-                    {/* Column Footer: + Add Task */}
-                    <div className="pt-2 border-t border-slate-200/50 mt-auto shrink-0">
-                      <button
-                        onClick={() => {
-                          setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
-                          setCreateModalOpen(true);
-                        }}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 hover:bg-white/80 p-2 rounded-xl transition w-full text-left cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Add Task</span>
-                      </button>
-                    </div>
+                    {/* Column Footer: + Add Task only for draft and scheduled */}
+                    {(col.id === "draft" || col.id === "scheduled") && (
+                      <div className="pt-2 border-t border-slate-200/50 mt-auto shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
+                            setCreateModalOpen(true);
+                          }}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 hover:bg-white/80 p-2 rounded-xl transition w-full text-left cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>{col.id === "scheduled" ? "Schedule Task" : "Add Task"}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1703,12 +1714,31 @@ export function ActivitiesClient({
 
                   {col.id === "draft" && (
                     <button
-                      onClick={() => setCreateModalOpen(true)}
+                      type="button"
+                      onClick={() => {
+                        setNewStatus("draft");
+                        setCreateModalOpen(true);
+                      }}
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl transition shadow-2xs cursor-pointer"
-                      title="Create new activity"
+                      title="Create new draft"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>New Activity</span>
+                      <span>New Draft</span>
+                    </button>
+                  )}
+
+                  {col.id === "scheduled" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewStatus("scheduled");
+                        setCreateModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-white hover:bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl transition shadow-2xs cursor-pointer"
+                      title="Schedule new task"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Schedule Task</span>
                     </button>
                   )}
                 </div>
@@ -1721,10 +1751,28 @@ export function ActivitiesClient({
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
                           <span>No activities in Draft.</span>
                           <button
-                            onClick={() => setCreateModalOpen(true)}
+                            type="button"
+                            onClick={() => {
+                              setNewStatus("draft");
+                              setCreateModalOpen(true);
+                            }}
                             className="text-indigo-600 hover:text-indigo-800 font-semibold inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" /> Create first draft
+                          </button>
+                        </div>
+                      ) : col.id === "scheduled" ? (
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                          <span>No activities in Scheduled.</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewStatus("scheduled");
+                              setCreateModalOpen(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Schedule first task
                           </button>
                         </div>
                       ) : (
