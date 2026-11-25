@@ -34,6 +34,8 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  Minimize2,
+  Maximize2,
   Eye,
   EyeOff,
   Share2,
@@ -279,6 +281,33 @@ export function ActivitiesClient({
   const [isTabPending, startTabTransition] = useTransition();
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [howItWorksModalOpen, setHowItWorksModalOpen] = useState(false);
+
+  // Collapsed Activity Cards State
+  const [collapsedCardIds, setCollapsedCardIds] = useState<Set<string>>(new Set());
+
+  const toggleCardCollapse = (activityId: string) => {
+    setCollapsedCardIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(activityId)) {
+        next.delete(activityId);
+      } else {
+        next.add(activityId);
+      }
+      return next;
+    });
+  };
+
+  const areAllCollapsed =
+    initialActivities.length > 0 &&
+    initialActivities.every((a) => collapsedCardIds.has(a.id));
+
+  const toggleCollapseAll = () => {
+    if (areAllCollapsed) {
+      setCollapsedCardIds(new Set());
+    } else {
+      setCollapsedCardIds(new Set(initialActivities.map((a) => a.id)));
+    }
+  };
 
   // Flow Columns & Customization State
   const [flowColumns, setFlowColumns] = useState<FlowColumn[]>(DEFAULT_FLOW_COLUMNS);
@@ -671,7 +700,7 @@ export function ActivitiesClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex-1 flex flex-col min-h-0">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -844,7 +873,7 @@ export function ActivitiesClient({
 
       {/* View: Status Board (Linked Pipeline Flow & Kanban Columns) */}
       {viewMode === "board" ? (
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 flex flex-col min-h-0">
           {/* Quick Column Jump Pills & Visual Flow Controls */}
           <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs px-1">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -910,8 +939,27 @@ export function ActivitiesClient({
               )}
             </div>
 
-            {/* Configure Flow Button */}
+            {/* Board Controls: Collapse/Expand All & Configure Flow */}
             <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={toggleCollapseAll}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-purple-50/50 border border-slate-200 hover:border-purple-200 text-slate-700 hover:text-purple-600 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+                title={areAllCollapsed ? "Expand all activity cards" : "Collapse all activity cards"}
+              >
+                {areAllCollapsed ? (
+                  <>
+                    <Maximize2 className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Expand All</span>
+                  </>
+                ) : (
+                  <>
+                    <Minimize2 className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Collapse All</span>
+                  </>
+                )}
+              </button>
+
               <button
                 onClick={() => setIsVisualFlowModalOpen(true)}
                 className="px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-indigo-600 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
@@ -924,7 +972,7 @@ export function ActivitiesClient({
           </div>
 
           {/* Linked Kanban Columns Track */}
-          <div className="flex items-start overflow-x-auto pb-6 pt-1 px-1">
+          <div className="flex items-stretch overflow-x-auto pb-4 pt-1 px-1 flex-1 min-h-[calc(100vh-270px)]">
             {visibleColumns.filter(
               (col) => !filterStatus || filterStatus === col.id
             ).map((col, idx, arr) => {
@@ -935,11 +983,13 @@ export function ActivitiesClient({
 
               return (
                 <React.Fragment key={col.id}>
-                  <div className="flex-1 min-w-[230px] max-w-[360px] shrink-0">
+                  <div className="flex-1 min-w-[240px] max-w-[360px] shrink-0 self-stretch flex flex-col">
                     <div
-                      className={`rounded-2xl border ${colStyles.borderClass} ${colStyles.bgClass} p-3.5 flex flex-col gap-3 shadow-2xs hover:shadow-xs transition`}
+                      className={`rounded-2xl border ${colStyles.borderClass} ${colStyles.bgClass} p-3.5 flex flex-col justify-between shadow-2xs hover:shadow-xs transition h-full flex-1 min-h-[calc(100vh-280px)]`}
                       style={colStyles.containerStyle}
                     >
+                    {/* Top Column Section: Header & Cards List */}
+                    <div className="flex-1 flex flex-col min-h-0">
                     {/* Column Header */}
                     <div className="flex items-start justify-between pb-1 gap-2 relative">
                       <div className="flex flex-col min-w-0">
@@ -1116,95 +1166,199 @@ export function ActivitiesClient({
                     </div>
 
                     {/* Cards */}
-                    <div className="space-y-3 min-h-[260px]">
+                    <div className="space-y-2.5 flex-1 overflow-y-auto pr-1 my-2 max-h-[calc(100vh-380px)] min-h-[140px]">
                       {colActivities.length === 0 ? (
                         <div className="p-4 text-center text-xs text-slate-400 border border-dashed border-slate-200/90 rounded-xl bg-white/50">
                           No activities
                         </div>
                       ) : (
                         colActivities.map((act) => {
+                          const isCollapsed = collapsedCardIds.has(act.id);
                           const pStyle = getPlatformTagStyle(act.socialPlatform);
                           const cStyle = getContentTypeTagStyle(act.contentType);
+
+                          const kebabMenu = (
+                            <div className="relative shrink-0">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActiveKebabActivityId(
+                                    activeKebabActivityId === act.id ? null : act.id
+                                  )
+                                }
+                                className="p-0.5 text-slate-300 hover:text-slate-600 rounded transition cursor-pointer"
+                                title="Activity options"
+                              >
+                                <MoreVertical className="w-3.5 h-3.5" />
+                              </button>
+                              {activeKebabActivityId === act.id && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-30"
+                                    onClick={() => setActiveKebabActivityId(null)}
+                                  />
+                                  <div className="absolute right-0 top-5 z-40 w-52 bg-white rounded-2xl shadow-xl shadow-purple-950/10 border border-slate-100 p-1.5 text-xs animate-in fade-in-0 zoom-in-95 duration-100">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveKebabActivityId(null);
+                                        handleEditActivityTitle(act.id, act.title);
+                                      }}
+                                      className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                                          <Pencil className="w-3 h-3" />
+                                        </div>
+                                        <span>Rename Title</span>
+                                      </div>
+                                      <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
+                                    </button>
+                                    <Link
+                                      href={`/activities/${act.id}`}
+                                      className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 transition"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                                          <ExternalLink className="w-3 h-3" />
+                                        </div>
+                                        <span>View Details</span>
+                                      </div>
+                                      <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
+                                    </Link>
+                                    <div className="border-t border-slate-100 my-1" />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveKebabActivityId(null);
+                                        handleDeleteActivity(act.id, act.title);
+                                      }}
+                                      className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-md bg-rose-50 flex items-center justify-center text-rose-600 group-hover:bg-rose-100 shrink-0">
+                                          <Trash2 className="w-3 h-3" />
+                                        </div>
+                                        <span>Delete Activity</span>
+                                      </div>
+                                      <ChevronRight className="w-3.5 h-3.5 text-rose-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition" />
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          );
+
+                          if (isCollapsed) {
+                            return (
+                              <div
+                                key={act.id}
+                                className="bg-white rounded-xl border border-slate-200/90 p-2.5 shadow-2xs hover:shadow-xs transition flex flex-col gap-1.5 group/card"
+                              >
+                                {/* Collapsed Top Row: Chevron, Title, Owner, Kebab */}
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleCardCollapse(act.id)}
+                                      className="p-1 -ml-1 text-slate-400 hover:text-purple-600 rounded-md hover:bg-purple-50 transition cursor-pointer shrink-0"
+                                      title="Expand card details"
+                                    >
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    </button>
+                                    <Link
+                                      href={`/activities/${act.id}`}
+                                      className="font-bold text-xs text-slate-800 hover:text-purple-600 transition truncate block"
+                                      title={act.title}
+                                    >
+                                      {act.title}
+                                    </Link>
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <div
+                                      className="shrink-0"
+                                      title={act.owner?.displayName || act.owner?.name || "Assigned owner"}
+                                    >
+                                      <UserAvatar
+                                        name={act.owner?.displayName || act.owner?.name}
+                                        avatarUrl={act.owner?.avatarUrl || act.owner?.image}
+                                        size="sm"
+                                      />
+                                    </div>
+                                    {kebabMenu}
+                                  </div>
+                                </div>
+
+                                {/* Collapsed Meta Sub-row: Platform, Campaign or Content Type, Date */}
+                                <div className="flex items-center justify-between gap-1 text-[10px] pl-5 text-slate-500">
+                                  <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+                                    <span
+                                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${pStyle.bg} shrink-0`}
+                                    >
+                                      {pStyle.label}
+                                    </span>
+                                    {act.campaignName ? (
+                                      <span
+                                        className="text-[9px] font-semibold px-1.5 py-0.5 rounded border bg-indigo-50/70 text-indigo-700 border-indigo-100 truncate max-w-[85px]"
+                                        title={act.campaignName}
+                                      >
+                                        {act.campaignName}
+                                      </span>
+                                    ) : act.contentType ? (
+                                      <span
+                                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${cStyle.bg} shrink-0`}
+                                      >
+                                        {cStyle.label}
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium shrink-0">
+                                    <Calendar className="w-2.5 h-2.5 text-slate-400" />
+                                    <span>
+                                      {act.scheduledAt
+                                        ? new Date(act.scheduledAt).toLocaleDateString(undefined, {
+                                            month: "short",
+                                            day: "numeric",
+                                          })
+                                        : act.createdAt
+                                        ? new Date(act.createdAt).toLocaleDateString(undefined, {
+                                            month: "short",
+                                            day: "numeric",
+                                          })
+                                        : ""}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
 
                           return (
                             <div
                               key={act.id}
                               className="bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-xs hover:shadow transition flex flex-col gap-2.5"
                             >
-                              {/* Title at top with quick action menu */}
+                              {/* Title at top with collapse toggle and quick action menu */}
                               <div className="flex items-start justify-between gap-1.5 relative">
-                                <Link
-                                  href={`/activities/${act.id}`}
-                                  className="font-bold text-xs text-slate-900 hover:text-indigo-600 transition block line-clamp-2 leading-snug flex-1"
-                                >
-                                  {act.title}
-                                </Link>
-                                <div className="relative shrink-0">
+                                <div className="flex items-start gap-1 min-w-0 flex-1">
                                   <button
-                                    onClick={() =>
-                                      setActiveKebabActivityId(
-                                        activeKebabActivityId === act.id ? null : act.id
-                                      )
-                                    }
-                                    className="p-0.5 text-slate-300 hover:text-slate-600 rounded transition cursor-pointer"
-                                    title="Activity options"
+                                    type="button"
+                                    onClick={() => toggleCardCollapse(act.id)}
+                                    className="p-1 -ml-1 text-slate-400 hover:text-purple-600 rounded-md hover:bg-purple-50 transition cursor-pointer shrink-0 mt-0.5"
+                                    title="Collapse card details"
                                   >
-                                    <MoreVertical className="w-3.5 h-3.5" />
+                                    <ChevronUp className="w-3.5 h-3.5" />
                                   </button>
-                                  {activeKebabActivityId === act.id && (
-                                    <>
-                                      <div
-                                        className="fixed inset-0 z-30"
-                                        onClick={() => setActiveKebabActivityId(null)}
-                                      />
-                                      <div className="absolute right-0 top-5 z-40 w-52 bg-white rounded-2xl shadow-xl shadow-purple-950/10 border border-slate-100 p-1.5 text-xs animate-in fade-in-0 zoom-in-95 duration-100">
-                                        <button
-                                          onClick={() => {
-                                            setActiveKebabActivityId(null);
-                                            handleEditActivityTitle(act.id, act.title);
-                                          }}
-                                          className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
-                                        >
-                                          <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
-                                              <Pencil className="w-3 h-3" />
-                                            </div>
-                                            <span>Rename Title</span>
-                                          </div>
-                                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
-                                        </button>
-                                        <Link
-                                          href={`/activities/${act.id}`}
-                                          className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 transition"
-                                        >
-                                          <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
-                                              <ExternalLink className="w-3 h-3" />
-                                            </div>
-                                            <span>View Details</span>
-                                          </div>
-                                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
-                                        </Link>
-                                        <div className="border-t border-slate-100 my-1" />
-                                        <button
-                                          onClick={() => {
-                                            setActiveKebabActivityId(null);
-                                            handleDeleteActivity(act.id, act.title);
-                                          }}
-                                          className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                        >
-                                          <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-md bg-rose-50 flex items-center justify-center text-rose-600 group-hover:bg-rose-100 shrink-0">
-                                              <Trash2 className="w-3 h-3" />
-                                            </div>
-                                            <span>Delete Activity</span>
-                                          </div>
-                                          <ChevronRight className="w-3.5 h-3.5 text-rose-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition" />
-                                        </button>
-                                      </div>
-                                    </>
-                                  )}
+                                  <Link
+                                    href={`/activities/${act.id}`}
+                                    className="font-bold text-xs text-slate-900 hover:text-indigo-600 transition block line-clamp-2 leading-snug flex-1"
+                                  >
+                                    {act.title}
+                                  </Link>
                                 </div>
+                                {kebabMenu}
                               </div>
 
                               {/* Tags row: Platform, Content Type, Channel, Campaign */}
@@ -1426,18 +1580,21 @@ export function ActivitiesClient({
                         })
                       )}
                     </div>
+                    </div>
 
                     {/* Column Footer: + Add Task */}
-                    <button
-                      onClick={() => {
-                        setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
-                        setCreateModalOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 hover:bg-white/80 p-2 rounded-xl transition w-full text-left cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Task</span>
-                    </button>
+                    <div className="pt-2 border-t border-slate-200/50 mt-auto shrink-0">
+                      <button
+                        onClick={() => {
+                          setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
+                          setCreateModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 hover:bg-white/80 p-2 rounded-xl transition w-full text-left cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Task</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1475,7 +1632,7 @@ export function ActivitiesClient({
                     setIsEditingNewColumn(true);
                     setIsColumnEditModalOpen(true);
                   }}
-                  className="w-full h-full min-h-[300px] border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center gap-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/20 transition p-4 cursor-pointer group bg-white/40"
+                  className="w-full h-full min-h-[calc(100vh-280px)] border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center gap-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/20 transition p-4 cursor-pointer group bg-white/40"
                 >
                   <div className="w-10 h-10 rounded-2xl bg-slate-100 group-hover:bg-indigo-100 text-slate-500 group-hover:text-indigo-600 flex items-center justify-center transition shadow-2xs">
                     <Plus className="w-5 h-5" />

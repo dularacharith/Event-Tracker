@@ -25,7 +25,7 @@ function MainLayout({ currentUser, userRole, children }: AppShellProps) {
         }`}
       >
         <Navbar currentUser={currentUser} userRole={userRole} />
-        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 flex flex-col">
           {children}
         </main>
       </div>
