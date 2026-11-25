@@ -212,8 +212,8 @@ export function getColumnStyles(col: FlowColumn) {
     const dotHex = col.customDotHex || hex;
     return {
       containerStyle: {
-        backgroundColor: hexToRgba(hex, 0.08),
-        borderColor: hexToRgba(hex, 0.45),
+        backgroundColor: hexToRgba(hex, 0.06),
+        borderColor: hexToRgba(hex, 0.4),
       },
       dotStyle: {
         backgroundColor: dotHex,
@@ -222,7 +222,7 @@ export function getColumnStyles(col: FlowColumn) {
         color: hexToDark(hex),
       },
       badgeStyle: {
-        backgroundColor: hexToRgba(hex, 0.18),
+        backgroundColor: hexToRgba(hex, 0.15),
         color: hexToDark(hex),
       },
       dotHex,
@@ -241,14 +241,25 @@ export function getColumnStyles(col: FlowColumn) {
     COLOR_THEMES[0];
 
   const dotHex = col.customDotHex || theme.hex;
+  const hex = theme.hex;
 
   return {
-    containerStyle: {},
-    dotStyle: col.customDotHex ? { backgroundColor: col.customDotHex } : {},
-    headerStyle: {},
-    badgeStyle: {},
+    containerStyle: {
+      backgroundColor: hexToRgba(hex, 0.06),
+      borderColor: hexToRgba(hex, 0.38),
+    },
+    dotStyle: {
+      backgroundColor: dotHex,
+    },
+    headerStyle: {
+      color: hexToDark(hex),
+    },
+    badgeStyle: {
+      backgroundColor: hexToRgba(hex, 0.15),
+      color: hexToDark(hex),
+    },
     dotHex,
-    accentHex: theme.hex,
+    accentHex: hex,
     bgClass: theme.bg,
     borderClass: theme.border,
     dotClass: col.customDotHex ? "" : theme.dot,

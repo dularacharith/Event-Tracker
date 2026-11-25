@@ -1011,7 +1011,7 @@ export function ActivitiesClient({
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-slate-400 shrink-0 pt-0.5 relative">
+                      <div className="flex items-center gap-1 text-slate-400 shrink-0 pt-0.5">
                         <button
                           onClick={() => {
                             setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
@@ -1022,147 +1022,151 @@ export function ActivitiesClient({
                         >
                           <Plus className="w-3.5 h-3.5 text-slate-500" />
                         </button>
-                        <div className="relative">
-                          <button
-                            onClick={() =>
-                              setActiveKebabMenuColId(
-                                activeKebabMenuColId === col.id ? null : col.id
-                              )
-                            }
-                            className={`p-1 hover:text-slate-700 hover:bg-white/80 rounded-md transition cursor-pointer ${
-                              activeKebabMenuColId === col.id ? "text-slate-900 bg-white shadow-2xs" : "text-slate-400"
-                            }`}
-                            title="Card options"
-                          >
-                            <MoreVertical className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Kebab Dropdown Menu */}
-                          {activeKebabMenuColId === col.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-30"
-                                onClick={() => setActiveKebabMenuColId(null)}
-                              />
-                              <div className="absolute right-0 top-7 z-40 w-64 bg-white rounded-2xl shadow-xl shadow-purple-950/10 border border-slate-100 p-1.5 text-xs text-slate-700 animate-in fade-in-0 zoom-in-95 duration-100">
-                                {/* Change Title & Color */}
-                                <button
-                                  onClick={() => {
-                                    setActiveKebabMenuColId(null);
-                                    setEditingColumn(col);
-                                    setIsEditingNewColumn(false);
-                                    setIsColumnEditModalOpen(true);
-                                  }}
-                                  className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </div>
-                                    <span>Edit Title & Colors</span>
-                                  </div>
-                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
-                                </button>
-
-                                {/* Quick Color Swatches */}
-                                <div className="px-3 py-2 border-t border-slate-100 my-1">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                                    Change Color Theme:
-                                  </span>
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    {COLOR_THEMES.map((theme) => (
-                                      <button
-                                        key={theme.id}
-                                        onClick={() => {
-                                          handleQuickColorChange(col.id, theme.id);
-                                        }}
-                                        className={`w-4 h-4 rounded-full ${theme.dot} transition hover:scale-125 cursor-pointer ${
-                                          col.colorTheme === theme.id ? "ring-2 ring-purple-600 ring-offset-1" : ""
-                                        }`}
-                                        title={theme.name}
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
-
-                                <div className="border-t border-slate-100 my-1" />
-
-                                {/* Create New Card */}
-                                <button
-                                  onClick={() => {
-                                    setActiveKebabMenuColId(null);
-                                    setEditingColumn(null);
-                                    setIsEditingNewColumn(true);
-                                    setIsColumnEditModalOpen(true);
-                                  }}
-                                  className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
-                                      <Plus className="w-3.5 h-3.5" />
-                                    </div>
-                                    <span>Create New Card</span>
-                                  </div>
-                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
-                                </button>
-
-                                {/* Hide Card */}
-                                <button
-                                  onClick={() => {
-                                    setActiveKebabMenuColId(null);
-                                    handleHideColumn(col.id);
-                                  }}
-                                  className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-amber-500 group-hover:bg-slate-200/80 shrink-0">
-                                      <EyeOff className="w-3.5 h-3.5" />
-                                    </div>
-                                    <span>Hide Card from Flow</span>
-                                  </div>
-                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
-                                </button>
-
-                                {/* Configure Flow */}
-                                <button
-                                  onClick={() => {
-                                    setActiveKebabMenuColId(null);
-                                    setIsVisualFlowModalOpen(true);
-                                  }}
-                                  className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
-                                      <Share2 className="w-3.5 h-3.5" />
-                                    </div>
-                                    <span>Configure Flow...</span>
-                                  </div>
-                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
-                                </button>
-
-                                <div className="border-t border-slate-100 my-1" />
-
-                                {/* Delete Card */}
-                                <button
-                                  onClick={() => {
-                                    setActiveKebabMenuColId(null);
-                                    handleDeleteColumn(col.id);
-                                  }}
-                                  className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 group-hover:bg-rose-100 shrink-0">
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </div>
-                                    <span>Delete Card</span>
-                                  </div>
-                                  <ChevronRight className="w-3.5 h-3.5 text-rose-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition" />
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
+                        <button
+                          onClick={() =>
+                            setActiveKebabMenuColId(
+                              activeKebabMenuColId === col.id ? null : col.id
+                            )
+                          }
+                          className={`p-1 hover:text-slate-700 hover:bg-white/80 rounded-md transition cursor-pointer ${
+                            activeKebabMenuColId === col.id ? "text-slate-900 bg-white shadow-2xs" : "text-slate-400"
+                          }`}
+                          title="Card options"
+                        >
+                          <MoreVertical className="w-3.5 h-3.5" />
+                        </button>
                       </div>
+
+                      {/* Kebab Dropdown Menu positioned smartly inside the Column Header */}
+                      {activeKebabMenuColId === col.id && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-30"
+                            onClick={() => setActiveKebabMenuColId(null)}
+                          />
+                          <div
+                            className={`absolute ${
+                              idx === 0 ? "left-0" : "right-0"
+                            } top-8 z-40 w-64 bg-white rounded-2xl shadow-xl shadow-purple-950/10 border border-slate-100 p-1.5 text-xs text-slate-700 animate-in fade-in-0 zoom-in-95 duration-100`}
+                          >
+                            {/* Change Title & Color */}
+                            <button
+                              onClick={() => {
+                                setActiveKebabMenuColId(null);
+                                setEditingColumn(col);
+                                setIsEditingNewColumn(false);
+                                setIsColumnEditModalOpen(true);
+                              }}
+                              className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </div>
+                                <span>Edit Title & Colors</span>
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
+                            </button>
+
+                            {/* Quick Color Swatches */}
+                            <div className="px-3 py-2 border-t border-slate-100 my-1">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                                Change Color Theme:
+                              </span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {COLOR_THEMES.map((theme) => (
+                                  <button
+                                    key={theme.id}
+                                    type="button"
+                                    onClick={() => {
+                                      handleQuickColorChange(col.id, theme.id);
+                                    }}
+                                    className={`w-4 h-4 rounded-full transition hover:scale-125 cursor-pointer shrink-0 border border-black/10 shadow-2xs ${
+                                      col.colorTheme === theme.id ? "ring-2 ring-purple-600 ring-offset-1" : ""
+                                    }`}
+                                    style={{ backgroundColor: theme.hex }}
+                                    title={theme.name}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="border-t border-slate-100 my-1" />
+
+                            {/* Create New Card */}
+                            <button
+                              onClick={() => {
+                                setActiveKebabMenuColId(null);
+                                setEditingColumn(null);
+                                setIsEditingNewColumn(true);
+                                setIsColumnEditModalOpen(true);
+                              }}
+                              className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                                  <Plus className="w-3.5 h-3.5" />
+                                </div>
+                                <span>Create New Card</span>
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
+                            </button>
+
+                            {/* Hide Card */}
+                            <button
+                              onClick={() => {
+                                setActiveKebabMenuColId(null);
+                                handleHideColumn(col.id);
+                              }}
+                              className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-amber-500 group-hover:bg-slate-200/80 shrink-0">
+                                  <EyeOff className="w-3.5 h-3.5" />
+                                </div>
+                                <span>Hide Card from Flow</span>
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
+                            </button>
+
+                            {/* Configure Flow */}
+                            <button
+                              onClick={() => {
+                                setActiveKebabMenuColId(null);
+                                setIsVisualFlowModalOpen(true);
+                              }}
+                              className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
+                                  <Share2 className="w-3.5 h-3.5" />
+                                </div>
+                                <span>Configure Flow...</span>
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
+                            </button>
+
+                            <div className="border-t border-slate-100 my-1" />
+
+                            {/* Delete Card */}
+                            <button
+                              onClick={() => {
+                                setActiveKebabMenuColId(null);
+                                handleDeleteColumn(col.id);
+                              }}
+                              className="w-full group flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 group-hover:bg-rose-100 shrink-0">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </div>
+                                <span>Delete Card</span>
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 text-rose-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition" />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Cards */}
@@ -1197,7 +1201,7 @@ export function ActivitiesClient({
                                     className="fixed inset-0 z-30"
                                     onClick={() => setActiveKebabActivityId(null)}
                                   />
-                                  <div className="absolute right-0 top-5 z-40 w-52 bg-white rounded-2xl shadow-xl shadow-purple-950/10 border border-slate-100 p-1.5 text-xs animate-in fade-in-0 zoom-in-95 duration-100">
+                                  <div className="absolute right-0 top-5 z-40 w-48 bg-white rounded-2xl shadow-xl shadow-purple-950/10 border border-slate-100 p-1.5 text-xs animate-in fade-in-0 zoom-in-95 duration-100">
                                     <button
                                       type="button"
                                       onClick={() => {

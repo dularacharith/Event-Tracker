@@ -156,16 +156,28 @@ export function ColumnEditModal({
                     }}
                     className={`flex items-center gap-2.5 p-2 rounded-xl border text-xs font-semibold text-left transition cursor-pointer ${
                       isSelected
-                        ? "border-slate-800 bg-white shadow-xs ring-2 ring-slate-800/20"
+                        ? "shadow-2xs ring-2 ring-purple-600/30"
                         : "border-slate-200/90 bg-slate-50 hover:bg-white hover:border-slate-300"
                     }`}
+                    style={
+                      isSelected
+                        ? {
+                            borderColor: theme.hex,
+                            backgroundColor: `${theme.hex}12`,
+                          }
+                        : undefined
+                    }
                   >
                     <span
-                      className={`w-3.5 h-3.5 rounded-full shrink-0 ${theme.dot}`}
+                      className="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs border border-black/10"
+                      style={{ backgroundColor: theme.hex }}
                     />
                     <span className="truncate text-slate-800">{theme.name}</span>
                     {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-slate-800 ml-auto shrink-0" />
+                      <Check
+                        className="w-3.5 h-3.5 ml-auto shrink-0"
+                        style={{ color: theme.hex }}
+                      />
                     )}
                   </button>
                 );
