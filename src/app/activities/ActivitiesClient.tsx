@@ -1268,7 +1268,7 @@ export function ActivitiesClient({
 
                 {/* Empty State Banner when no campaigns exist */}
                 {currentCampaigns.length === 0 && (
-                  <div className="mt-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                  <div className="mt-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 overflow-hidden">
                     <div className="flex items-start gap-2.5">
                       <div className="p-1 rounded-md bg-indigo-50 text-indigo-600 shrink-0 mt-0.5">
                         <AlertCircle className="w-4 h-4" />
@@ -1285,7 +1285,7 @@ export function ActivitiesClient({
 
                     {userRole === "admin" ? (
                       <div className="pt-2 border-t border-slate-200/80 space-y-2">
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2 w-full">
                           <input
                             type="text"
                             placeholder="Enter new campaign name..."
@@ -1297,16 +1297,16 @@ export function ActivitiesClient({
                                 handleQuickCreateCampaign();
                               }
                             }}
-                            className="flex-1 text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="flex-1 min-w-0 text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                           <button
                             type="button"
                             disabled={creatingQuickCampaign || !quickCampaignName.trim()}
                             onClick={handleQuickCreateCampaign}
-                            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 shrink-0 flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 shrink-0 whitespace-nowrap flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
                           >
-                            <Plus className="w-3.5 h-3.5" />
-                            {creatingQuickCampaign ? "Creating..." : "Create Campaign"}
+                            <Plus className="w-3.5 h-3.5 shrink-0" />
+                            <span>{creatingQuickCampaign ? "Creating..." : "Create Campaign"}</span>
                           </button>
                         </div>
                         {quickCampaignError && (
