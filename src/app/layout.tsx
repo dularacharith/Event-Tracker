@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getCurrentAuth } from "@/lib/session";
-import { Navbar } from "@/components/Navbar";
+import { AppShell } from "@/components/AppShell";
 import { DevAccountSwitcher } from "@/components/DevAccountSwitcher";
 import { ToastProvider } from "@/components/Toast";
 
@@ -31,13 +31,12 @@ export default async function RootLayout({
     <html lang="en">
       <body className="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col">
         <ToastProvider>
-          <Navbar
+          <AppShell
             currentUser={authContext?.user || null}
             userRole={authContext?.member?.role || null}
-          />
-          <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
+          >
             {children}
-          </main>
+          </AppShell>
           <DevAccountSwitcher />
         </ToastProvider>
       </body>

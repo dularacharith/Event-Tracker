@@ -46,7 +46,9 @@ import {
   Globe,
   Layers,
   Sparkles,
+  SlidersHorizontal,
 } from "lucide-react";
+import { useFilterContext } from "@/contexts/FilterContext";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
 import {
@@ -411,13 +413,35 @@ export function ActivitiesClient({
       toast.error("Failed to delete", err.message);
     }
   };
-  const [search, setSearch] = useState("");
-  const [filterCampaign, setFilterCampaign] = useState("");
-  const [filterChannel, setFilterChannel] = useState(initialFilterChannel);
-  const [filterPlatform, setFilterPlatform] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [filterOwner, setFilterOwner] = useState("");
+  const {
+    search,
+    setSearch,
+    filterCampaign,
+    setFilterCampaign,
+    filterChannel,
+    setFilterChannel,
+    filterPlatform,
+    setFilterPlatform,
+    filterStatus,
+    setFilterStatus,
+    filterOwner,
+    setFilterOwner,
+    resetFilters,
+    activeFilterCount,
+    setFilterContextData,
+  } = useFilterContext();
   const [filterReviewer, setFilterReviewer] = useState("");
+
+  useEffect(() => {
+    setFilterContextData({
+      campaigns,
+      channels,
+      teammates,
+    });
+    if (initialFilterChannel) {
+      setFilterChannel(initialFilterChannel);
+    }
+  }, [campaigns, channels, teammates, initialFilterChannel, setFilterContextData, setFilterChannel]);
 
   const [createModalOpen, setCreateModalOpen] = useState(initialOpenCreate);
   const [submitting, setSubmitting] = useState(false);
@@ -692,110 +716,104 @@ export function ActivitiesClient({
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by title, brief, campaign..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+      {/* Active Filter Indicators (When Filtered via Sidebar) */}
+      {(activeFilterCount > 0 || search) && (
+        <div className="flex items-center gap-2 flex-wrap text-xs bg-purple-50/80 border border-purple-200/80 rounded-2xl px-4 py-2.5 text-purple-900 shadow-2xs">
+          <div className="flex items-center gap-1.5 font-bold text-purple-700">
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Active Filters:</span>
           </div>
 
-          <div className="grid grid-cols-2 sm:flex items-center gap-2 flex-wrap">
-            <div className="min-w-[135px]">
-              <CustomDropdown
-                value={filterCampaign}
-                onChange={setFilterCampaign}
-                placeholder={currentCampaigns.length === 0 ? "No Campaigns" : "All Campaigns"}
-                size="sm"
-                options={[
-                  { value: "", label: "All Campaigns", icon: <Layers className="w-3.5 h-3.5" /> },
-                  ...currentCampaigns.map((c) => ({
-                    value: c.id,
-                    label: c.name,
-                  })),
-                ]}
-              />
-            </div>
+          {search && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-purple-800 font-medium text-xs">
+              Search: &quot;{search}&quot;
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="hover:text-purple-950 p-0.5 rounded hover:bg-purple-100"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
 
-            <div className="min-w-[135px]">
-              <CustomDropdown
-                value={filterChannel}
-                onChange={setFilterChannel}
-                placeholder={currentChannels.length === 0 ? "No Channels" : "All Channels"}
-                size="sm"
-                options={[
-                  { value: "", label: "All Channels", icon: <Hash className="w-3.5 h-3.5" /> },
-                  ...currentChannels.map((ch) => ({
-                    value: ch.id,
-                    label: `#${ch.name}`,
-                    subtitle: ch.platform ? ch.platform.toUpperCase() : undefined,
-                  })),
-                ]}
-              />
-            </div>
+          {filterCampaign && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-purple-800 font-medium text-xs">
+              Campaign: {currentCampaigns.find((c) => c.id === filterCampaign)?.name || filterCampaign}
+              <button
+                type="button"
+                onClick={() => setFilterCampaign("")}
+                className="hover:text-purple-950 p-0.5 rounded hover:bg-purple-100"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
 
-            <div className="min-w-[135px]">
-              <CustomDropdown
-                value={filterPlatform}
-                onChange={setFilterPlatform}
-                placeholder="All Platforms"
-                size="sm"
-                options={[
-                  { value: "", label: "All Platforms", icon: <Radio className="w-3.5 h-3.5" /> },
-                  { value: "twitter", label: "Twitter / X", icon: <span className="font-bold text-xs">𝕏</span> },
-                  { value: "instagram", label: "Instagram", icon: <span className="text-pink-600 font-bold text-xs">IG</span> },
-                  { value: "tiktok", label: "TikTok", icon: <span className="text-cyan-600 font-bold text-xs">TT</span> },
-                  { value: "linkedin", label: "LinkedIn", icon: <span className="text-blue-600 font-bold text-xs">in</span> },
-                  { value: "youtube", label: "YouTube", icon: <span className="text-red-600 font-bold text-xs">YT</span> },
-                  { value: "facebook", label: "Facebook", icon: <span className="text-blue-700 font-bold text-xs">fb</span> },
-                  { value: "threads", label: "Threads", icon: <span className="font-bold text-xs">@</span> },
-                ]}
-              />
-            </div>
+          {filterChannel && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-purple-800 font-medium text-xs">
+              Channel: #{currentChannels.find((ch) => ch.id === filterChannel)?.name || filterChannel}
+              <button
+                type="button"
+                onClick={() => setFilterChannel("")}
+                className="hover:text-purple-950 p-0.5 rounded hover:bg-purple-100"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
 
-            <div className="min-w-[135px]">
-              <CustomDropdown
-                value={filterStatus}
-                onChange={setFilterStatus}
-                placeholder="All Statuses"
-                size="sm"
-                options={[
-                  { value: "", label: "All Statuses", icon: <Layers className="w-3.5 h-3.5" /> },
-                  { value: "draft", label: "Draft", icon: <span className="w-2.5 h-2.5 rounded-full bg-slate-500" /> },
-                  { value: "scheduled", label: "Scheduled", icon: <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> },
-                  { value: "in_progress", label: "In Progress", icon: <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> },
-                  { value: "awaiting_review", label: "Awaiting Review", icon: <span className="w-2.5 h-2.5 rounded-full bg-purple-500" /> },
-                  { value: "passed", label: "Completed", icon: <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> },
-                  { value: "failed", label: "Failed", icon: <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> },
-                  { value: "canceled", label: "Canceled", icon: <span className="w-2.5 h-2.5 rounded-full bg-zinc-400" /> },
-                ]}
-              />
-            </div>
+          {filterPlatform && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-purple-800 font-medium text-xs">
+              Platform: {filterPlatform.toUpperCase()}
+              <button
+                type="button"
+                onClick={() => setFilterPlatform("")}
+                className="hover:text-purple-950 p-0.5 rounded hover:bg-purple-100"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
 
-            <div className="min-w-[135px]">
-              <CustomDropdown
-                value={filterOwner}
-                onChange={setFilterOwner}
-                placeholder="All Owners"
-                size="sm"
-                options={[
-                  { value: "", label: "All Owners", icon: <Users className="w-3.5 h-3.5" /> },
-                  ...teammates.map((m) => ({
-                    value: m.userId,
-                    label: m.displayName || m.name,
-                  })),
-                ]}
-              />
-            </div>
-          </div>
+          {filterStatus && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-purple-800 font-medium text-xs">
+              Status: {filterStatus.replace("_", " ").toUpperCase()}
+              <button
+                type="button"
+                onClick={() => setFilterStatus("")}
+                className="hover:text-purple-950 p-0.5 rounded hover:bg-purple-100"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {filterOwner && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-purple-800 font-medium text-xs">
+              Owner: {teammates.find((m) => m.userId === filterOwner)?.displayName || "Teammate"}
+              <button
+                type="button"
+                onClick={() => setFilterOwner("")}
+                className="hover:text-purple-950 p-0.5 rounded hover:bg-purple-100"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              resetFilters();
+            }}
+            className="ml-auto text-xs font-semibold text-purple-700 hover:text-purple-900 underline cursor-pointer"
+          >
+            Clear all filters
+          </button>
         </div>
-      </div>
+      )}
 
       {/* View: Status Board (Linked Pipeline Flow & Kanban Columns) */}
       {viewMode === "board" ? (

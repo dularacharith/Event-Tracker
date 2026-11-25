@@ -16,7 +16,9 @@ import {
   Loader2,
   Radio,
   ChevronRight,
+  PanelLeft,
 } from "lucide-react";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { UserAvatar } from "./UserAvatar";
 import { NotificationCenter } from "./NotificationCenter";
 import { signIn, signOut, useSession } from "@/lib/auth-client";
@@ -37,6 +39,7 @@ interface NavbarProps {
 export function Navbar({ currentUser, userRole }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isExpanded, toggleSidebar } = useSidebar();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -104,16 +107,30 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Brand Logo */}
+            {/* Brand Logo / Sidebar Toggle */}
             <div className="flex items-center gap-8">
-              <Link href="/my-work" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar (Logo click)"}
+                className="flex items-center gap-2.5 group p-1.5 -m-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer select-none text-left"
+              >
+                <div className="w-8 h-8 rounded-xl bg-indigo-600 group-hover:bg-purple-600 flex items-center justify-center text-white font-extrabold text-sm shadow-sm transition">
                   CF
                 </div>
-                <span className="font-bold text-lg tracking-tight text-slate-900">
-                  Campaign<span className="text-indigo-600">Flow</span>
-                </span>
-              </Link>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-lg tracking-tight text-slate-900 group-hover:text-purple-900 transition">
+                    Campaign<span className="text-indigo-600 group-hover:text-purple-600">Flow</span>
+                  </span>
+                  <PanelLeft
+                    className={`w-4 h-4 transition ${
+                      isExpanded
+                        ? "text-purple-600"
+                        : "text-slate-400 group-hover:text-purple-600"
+                    }`}
+                  />
+                </div>
+              </button>
 
               {/* Desktop Navigation */}
               {effectiveUser && (
