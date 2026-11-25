@@ -62,6 +62,7 @@ import {
 } from "@/lib/flowColumns";
 import { ColumnEditModal } from "@/components/activities/ColumnEditModal";
 import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
+import { HowItWorksModal } from "@/components/activities/HowItWorksModal";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
 
 interface ActivityItem {
@@ -272,26 +273,7 @@ export function ActivitiesClient({
 }: ActivitiesClientProps) {
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<"list" | "board">("board");
-  const [showFlowGuide, setShowFlowGuide] = useState(false);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("cf_show_flow_guide");
-      if (saved !== null) {
-        setShowFlowGuide(saved === "true");
-      }
-    } catch (_) {}
-  }, []);
-
-  const toggleFlowGuide = () => {
-    setShowFlowGuide((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem("cf_show_flow_guide", String(next));
-      } catch (_) {}
-      return next;
-    });
-  };
+  const [howItWorksModalOpen, setHowItWorksModalOpen] = useState(false);
 
   // Flow Columns & Customization State
   const [flowColumns, setFlowColumns] = useState<FlowColumn[]>(DEFAULT_FLOW_COLUMNS);
@@ -684,6 +666,18 @@ export function ActivitiesClient({
           <p className="text-sm text-slate-500 mt-0.5">
             Manage your social campaign pipeline, schedule deadlines, and review proof
           </p>
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setHowItWorksModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100/90 text-purple-700 text-xs font-semibold border border-purple-200/80 transition cursor-pointer shadow-2xs group"
+            >
+              <span className="w-4 h-4 rounded-full bg-purple-200/80 text-purple-800 flex items-center justify-center text-[10px] font-bold group-hover:bg-purple-600 group-hover:text-white transition">
+                ?
+              </span>
+              <span>How it works</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -818,236 +812,6 @@ export function ActivitiesClient({
       {/* View: Status Board (Linked Pipeline Flow & Kanban Columns) */}
       {viewMode === "board" ? (
         <div className="space-y-4">
-          {/* Collapsible Mind Map & Explanation Flow Guide */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden transition-all duration-200">
-            {/* Header & Toggle Bar */}
-            <div
-              onClick={toggleFlowGuide}
-              className="w-full flex items-center justify-between p-3 sm:px-4 cursor-pointer hover:bg-slate-50/80 transition select-none"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
-                  <HelpCircle className="w-4 h-4" />
-                </span>
-                <span className="text-xs font-normal text-indigo-600">
-                  How it works
-                </span>
-              </div>
-
-              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 transition">
-                {showFlowGuide ? (
-                  <ChevronUp className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                )}
-              </div>
-            </div>
-
-            {/* Expandable Flow Explanation Body */}
-            {showFlowGuide && (
-              <div className="p-4 pt-1 border-t border-slate-100 space-y-3 bg-slate-50/30">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-b border-slate-200/60 pb-2">
-                  <div className="flex items-center gap-2 text-xs text-slate-600">
-                    <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                    <span>
-                      Click any stage in the flow diagram below to filter board activities to that status.
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                    <span>Active filter:</span>
-                    {filterStatus ? (
-                      <button
-                        onClick={() => setFilterStatus("")}
-                        className="flex items-center gap-1 bg-slate-200 hover:bg-slate-300 text-slate-800 px-2 py-0.5 rounded-md font-semibold text-[10px]"
-                      >
-                        Filtered by {filterStatus.replace("_", " ")} <X className="w-2.5 h-2.5" />
-                      </button>
-                    ) : (
-                      <span className="font-semibold text-slate-700">All Stages (Click to filter)</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Mind Map Canvas */}
-                <div className="overflow-x-auto py-1">
-                  <div className="min-w-[860px] flex items-center justify-between gap-3 text-xs">
-                    {/* 1. DRAFT */}
-                    <div className="flex flex-col items-center shrink-0">
-                      <button
-                        onClick={() => setFilterStatus(filterStatus === "draft" ? "" : "draft")}
-                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition shadow-xs ${
-                          filterStatus === "draft"
-                            ? "bg-slate-900 text-white border-slate-900 ring-2 ring-slate-400"
-                            : "bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100"
-                        }`}
-                      >
-                        <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center text-[10px] font-bold">1</span>
-                        <span>Draft</span>
-                        <span className="bg-white text-slate-700 px-1.5 py-0.2 rounded-full text-[10px] border border-slate-200 font-bold">
-                          {filteredActivities.filter((a) => a.status === "draft").length}
-                        </span>
-                      </button>
-                      <span className="text-[10px] text-slate-400 mt-1 font-medium">Initial state</span>
-                    </div>
-
-                    {/* DRAFT BRANCH CONNECTOR: Split from Draft into Scheduled (top), In Progress (middle direct), Canceled (bottom) */}
-                    <div className="flex flex-col justify-between items-center h-28 relative w-12 text-slate-300 shrink-0">
-                      {/* Top branch line up to Scheduled */}
-                      <div className="absolute top-4 left-0 w-6 h-10 border-t-2 border-l-2 border-slate-200 rounded-tl-xl" />
-                      <ArrowRight className="absolute top-2 right-1.5 w-3.5 h-3.5 text-blue-400" />
-
-                      {/* Middle direct dash line to In Progress */}
-                      <div className="w-full border-t border-dashed border-slate-300 relative my-auto">
-                        <ArrowRight className="absolute -top-1.5 right-1.5 w-3.5 h-3.5 text-amber-400" />
-                      </div>
-
-                      {/* Bottom branch line down to Canceled */}
-                      <div className="absolute bottom-4 left-0 w-6 h-10 border-b-2 border-l-2 border-slate-200 rounded-bl-xl" />
-                      <ArrowRight className="absolute bottom-2 right-1.5 w-3.5 h-3.5 text-zinc-400" />
-                    </div>
-
-                    {/* TWO SEPARATE BOXES (NOT LINKED HORIZONTALLY): Scheduled (top) & Canceled (bottom) */}
-                    <div className="flex flex-col justify-between h-28 py-0.5 shrink-0">
-                      {/* SCHEDULED BOX */}
-                      <button
-                        onClick={() => setFilterStatus(filterStatus === "scheduled" ? "" : "scheduled")}
-                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition shadow-xs ${
-                          filterStatus === "scheduled"
-                            ? "bg-blue-600 text-white border-blue-600 ring-2 ring-blue-300"
-                            : "bg-blue-50 text-blue-900 border-blue-200 hover:bg-blue-100"
-                        }`}
-                      >
-                        <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-[10px] font-bold">2</span>
-                        <span>Scheduled</span>
-                        <span className="bg-white text-blue-800 px-1.5 py-0.2 rounded-full text-[10px] border border-blue-100 font-bold">
-                          {filteredActivities.filter((a) => a.status === "scheduled").length}
-                        </span>
-                      </button>
-
-                      {/* CANCELED BOX (SEPARATE BOX, NOT LINKED HORIZONTALLY TO SCHEDULED) */}
-                      <button
-                        onClick={() => setFilterStatus(filterStatus === "canceled" ? "" : "canceled")}
-                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition shadow-xs ${
-                          filterStatus === "canceled"
-                            ? "bg-zinc-800 text-white border-zinc-800 ring-2 ring-zinc-400"
-                            : "bg-zinc-100 text-zinc-800 border-zinc-300 hover:bg-zinc-200"
-                        }`}
-                      >
-                        <Ban className="w-3.5 h-3.5 text-zinc-500" />
-                        <span>Canceled</span>
-                        <span className="bg-white text-zinc-700 px-1.5 py-0.2 rounded-full text-[10px] border border-zinc-200 font-bold">
-                          {filteredActivities.filter((a) => a.status === "canceled").length}
-                        </span>
-                      </button>
-                    </div>
-
-                    {/* CONNECTOR from Scheduled to In Progress (and Canceled loopback) */}
-                    <div className="flex flex-col justify-between h-28 py-1 items-center relative w-12 text-slate-300 shrink-0">
-                      {/* Line from Scheduled down to In Progress */}
-                      <div className="absolute top-4 left-0 w-6 h-10 border-t-2 border-r-2 border-slate-200 rounded-tr-xl" />
-                      <span title="Bidirectional Scheduled ⇄ In Progress" className="absolute top-2 right-1.5">
-                        <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" />
-                      </span>
-
-                      {/* Canceled loop back to Draft indicator */}
-                      <div
-                        onClick={() => setFilterStatus(filterStatus === "canceled" ? "" : "canceled")}
-                        className="absolute bottom-2 flex items-center gap-1 text-[10px] text-indigo-600 font-semibold whitespace-nowrap bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md border border-indigo-100 cursor-pointer transition"
-                        title="Canceled events can be returned back to Draft"
-                      >
-                        <RotateCcw className="w-2.5 h-2.5" />
-                        <span>↶ to Draft</span>
-                      </div>
-                    </div>
-
-                    {/* 3. IN PROGRESS */}
-                    <div className="flex flex-col items-center shrink-0">
-                      <button
-                        onClick={() => setFilterStatus(filterStatus === "in_progress" ? "" : "in_progress")}
-                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition shadow-xs ${
-                          filterStatus === "in_progress"
-                            ? "bg-amber-600 text-white border-amber-600 ring-2 ring-amber-300"
-                            : "bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100"
-                        }`}
-                      >
-                        <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-[10px] font-bold">3</span>
-                        <span>In Progress</span>
-                        <span className="bg-white text-amber-800 px-1.5 py-0.2 rounded-full text-[10px] border border-amber-100 font-bold">
-                          {filteredActivities.filter((a) => a.status === "in_progress").length}
-                        </span>
-                      </button>
-                      <span className="text-[10px] text-amber-600 mt-1 font-medium">Active work</span>
-                    </div>
-
-                    {/* CONNECTOR to Awaiting Review */}
-                    <div className="flex items-center text-slate-300 px-1 shrink-0">
-                      <ArrowRight className="w-4 h-4 text-slate-400" />
-                    </div>
-
-                    {/* 4. AWAITING REVIEW */}
-                    <div className="flex flex-col items-center shrink-0">
-                      <button
-                        onClick={() => setFilterStatus(filterStatus === "awaiting_review" ? "" : "awaiting_review")}
-                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition shadow-xs ${
-                          filterStatus === "awaiting_review"
-                            ? "bg-purple-600 text-white border-purple-600 ring-2 ring-purple-300"
-                            : "bg-purple-50 text-purple-900 border-purple-200 hover:bg-purple-100"
-                        }`}
-                      >
-                        <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center text-[10px] font-bold">4</span>
-                        <span>Awaiting Review</span>
-                        <span className="bg-white text-purple-800 px-1.5 py-0.2 rounded-full text-[10px] border border-purple-100 font-bold">
-                          {filteredActivities.filter((a) => a.status === "awaiting_review").length}
-                        </span>
-                      </button>
-                      <span className="text-[10px] text-purple-600 mt-1 font-medium">Proof inspection</span>
-                    </div>
-
-                    {/* CONNECTOR to Outcomes */}
-                    <div className="flex items-center text-slate-300 px-1 shrink-0">
-                      <ArrowRight className="w-4 h-4 text-slate-400" />
-                    </div>
-
-                    {/* 5 & 6. OUTCOMES: Completed & Failed */}
-                    <div className="flex flex-col justify-between h-28 py-0.5 shrink-0">
-                      {/* COMPLETED */}
-                      <button
-                        onClick={() => setFilterStatus(filterStatus === "passed" ? "" : "passed")}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition shadow-xs ${
-                          filterStatus === "passed"
-                            ? "bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-300"
-                            : "bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100"
-                        }`}
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Completed</span>
-                        <span className="bg-white text-emerald-800 px-1.5 py-0.2 rounded-full text-[10px] border border-emerald-100 font-bold">
-                          {filteredActivities.filter((a) => a.status === "passed").length}
-                        </span>
-                      </button>
-
-                      {/* FAILED */}
-                      <button
-                        onClick={() => setFilterStatus(filterStatus === "failed" ? "" : "failed")}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition shadow-xs ${
-                          filterStatus === "failed"
-                            ? "bg-rose-600 text-white border-rose-600 ring-2 ring-rose-300"
-                            : "bg-rose-50 text-rose-900 border-rose-200 hover:bg-rose-100"
-                        }`}
-                      >
-                        <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                        <span>Failed</span>
-                        <span className="bg-white text-rose-800 px-1.5 py-0.2 rounded-full text-[10px] border border-rose-100 font-bold">
-                          {filteredActivities.filter((a) => a.status === "failed").length}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Quick Column Jump Pills & Visual Flow Controls */}
           <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs px-1">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -2392,6 +2156,12 @@ export function ActivitiesClient({
         }}
         onResetToDefault={handleResetFlow}
         activitiesCountByStatus={activitiesCountByStatus}
+      />
+
+      {/* How it Works Workflow Guide Modal */}
+      <HowItWorksModal
+        isOpen={howItWorksModalOpen}
+        onClose={() => setHowItWorksModalOpen(false)}
       />
     </div>
   );
