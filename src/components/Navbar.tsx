@@ -73,7 +73,7 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
       setIsSigningIn(true);
       await signIn.social({
         provider: "google",
-        callbackURL: "/my-work",
+        callbackURL: "/my-work?signed_in=true",
       });
     } catch (err) {
       console.error("Navbar sign-in error:", err);

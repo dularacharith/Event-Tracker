@@ -33,7 +33,7 @@ function LoginForm() {
       setLoading(true);
       await signIn.social({
         provider: "google",
-        callbackURL: "/my-work",
+        callbackURL: "/my-work?signed_in=true",
       });
     } catch (err: any) {
       alert("Sign in error: " + (err.message || "Unknown error"));
@@ -53,7 +53,7 @@ function LoginForm() {
       if (!res.ok) {
         throw new Error(data.error || "Failed to sign in");
       }
-      router.push("/my-work");
+      router.push("/my-work?signed_in=true");
       router.refresh();
     } catch (err: any) {
       alert(err.message);
@@ -75,16 +75,6 @@ function LoginForm() {
             Private campaign activity & review tracker for social media teams
           </p>
         </div>
-
-        {/* Successfully Signed Out Feedback Banner */}
-        {signedOut && (
-          <div className="mb-6 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-emerald-800 text-sm">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span className="font-medium">
-              You have been successfully signed out.
-            </span>
-          </div>
-        )}
 
         {/* Google Sign In Button */}
         <button

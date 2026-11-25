@@ -44,7 +44,7 @@ export function InviteAcceptClient({
       if (!res.ok) {
         throw new Error(data.error || "Failed to accept invite");
       }
-      router.push("/my-work");
+      router.push("/my-work?signed_in=true");
       router.refresh();
     } catch (err: any) {
       setError(err.message);

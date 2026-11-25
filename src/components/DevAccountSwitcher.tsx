@@ -23,7 +23,7 @@ export function DevAccountSwitcher() {
         body: JSON.stringify({ email, name }),
       });
       if (res.ok) {
-        window.location.reload();
+        window.location.href = "/my-work?signed_in=true";
       }
     } catch {
       // ignore

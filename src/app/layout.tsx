@@ -3,6 +3,7 @@ import "./globals.css";
 import { getCurrentAuth } from "@/lib/session";
 import { Navbar } from "@/components/Navbar";
 import { DevAccountSwitcher } from "@/components/DevAccountSwitcher";
+import { ToastProvider } from "@/components/Toast";
 
 export const dynamic = "force-dynamic";
 
@@ -29,14 +30,16 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col">
-        <Navbar
-          currentUser={authContext?.user || null}
-          userRole={authContext?.member?.role || null}
-        />
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {children}
-        </main>
-        <DevAccountSwitcher />
+        <ToastProvider>
+          <Navbar
+            currentUser={authContext?.user || null}
+            userRole={authContext?.member?.role || null}
+          />
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {children}
+          </main>
+          <DevAccountSwitcher />
+        </ToastProvider>
       </body>
     </html>
   );
