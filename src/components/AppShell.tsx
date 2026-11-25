@@ -17,7 +17,6 @@ function MainLayout({ currentUser, userRole, children }: AppShellProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 relative">
-      <Navbar currentUser={currentUser} userRole={userRole} />
       <Sidebar currentUser={currentUser} userRole={userRole} />
 
       <div
@@ -25,6 +24,7 @@ function MainLayout({ currentUser, userRole, children }: AppShellProps) {
           isExpanded ? "lg:pl-80" : "lg:pl-0"
         }`}
       >
+        <Navbar currentUser={currentUser} userRole={userRole} />
         <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
           {children}
         </main>

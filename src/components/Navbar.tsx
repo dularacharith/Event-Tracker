@@ -110,28 +110,19 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Brand Logo / Sidebar Toggle */}
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6">
               <button
                 type="button"
                 onClick={toggleSidebar}
-                title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar (Logo click)"}
-                className="flex items-center gap-2.5 group p-1.5 -m-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer select-none text-left"
+                title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+                className={`items-center gap-2 group px-2 py-1.5 -ml-2 rounded-xl hover:bg-slate-100/80 transition cursor-pointer select-none text-left shrink-0 ${
+                  isExpanded ? "hidden lg:hidden" : "flex"
+                }`}
               >
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 group-hover:bg-purple-600 flex items-center justify-center text-white font-extrabold text-sm shadow-sm transition">
-                  CF
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-lg tracking-tight text-slate-900 group-hover:text-purple-900 transition">
-                    Campaign<span className="text-indigo-600 group-hover:text-purple-600">Flow</span>
-                  </span>
-                  <PanelLeft
-                    className={`w-4 h-4 transition ${
-                      isExpanded
-                        ? "text-purple-600"
-                        : "text-slate-400 group-hover:text-purple-600"
-                    }`}
-                  />
-                </div>
+                <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-purple-900 transition">
+                  Campaign<span className="text-purple-600">Flow</span>
+                </span>
+                <PanelLeft className="w-4 h-4 text-slate-400 group-hover:text-purple-600 transition" />
               </button>
 
               {/* Desktop Navigation */}

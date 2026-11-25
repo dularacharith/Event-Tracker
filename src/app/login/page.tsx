@@ -65,13 +65,10 @@ function LoginForm() {
     <div className="min-h-[75vh] flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
         <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-3 shadow-md">
-            CF
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Campaign<span className="text-indigo-600">Flow</span>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-1">
+            Campaign<span className="text-purple-600">Flow</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1.5">
             Private campaign activity & review tracker for social media teams
           </p>
         </div>

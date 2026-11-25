@@ -184,34 +184,17 @@ export function Sidebar({ currentUser, userRole }: SidebarProps) {
         }`}
       >
         {/* Top Brand Header */}
-        <div className="h-16 px-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
-          <Link
-            href="/my-work"
-            className="flex items-center gap-2.5 group"
-            onClick={() => {
-              if (window.innerWidth < 1024) collapseSidebar();
-            }}
-          >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-700 via-indigo-600 to-indigo-500 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-purple-500/20 group-hover:scale-105 transition">
-              CF
-            </div>
-            <div>
-              <div className="font-bold text-sm tracking-tight text-slate-900 leading-tight">
-                Campaign<span className="text-purple-600">Flow</span>
-              </div>
-              <div className="text-[10px] text-slate-400 font-medium tracking-wide">
-                Workspace Dashboard
-              </div>
-            </div>
-          </Link>
-
+        <div className="h-16 px-5 border-b border-slate-200 flex items-center justify-between shrink-0 bg-white">
           <button
             type="button"
             onClick={collapseSidebar}
             title="Collapse Sidebar"
-            className="w-8 h-8 rounded-xl hover:bg-slate-200/70 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer"
+            className="flex items-center gap-2 group px-2 py-1.5 -ml-2 rounded-xl hover:bg-slate-100/80 transition cursor-pointer select-none text-left"
           >
-            <PanelLeftClose className="w-4 h-4" />
+            <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-purple-900 transition">
+              Campaign<span className="text-purple-600">Flow</span>
+            </span>
+            <PanelLeftClose className="w-4 h-4 text-purple-600 group-hover:text-purple-800 transition" />
           </button>
         </div>
 
