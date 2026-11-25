@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Plus,
   Calendar as CalendarIcon,
   Clock,
@@ -383,52 +384,48 @@ export function CalendarClient({
                   )}
                 </div>
 
-                <select
-                  value={formCampaignId}
-                  onChange={(e) => setFormCampaignId(e.target.value)}
-                  className={`w-full text-xs border rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    campaigns.length === 0
-                      ? "border-amber-300 bg-amber-50/50 text-amber-900"
-                      : "border-slate-200"
-                  }`}
-                  required
-                  disabled={campaigns.length === 0}
-                >
-                  {campaigns.length === 0 ? (
-                    <option value="" disabled selected>
-                      No campaigns available
+                {campaigns.length === 0 ? (
+                  <div className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 text-slate-500 flex items-center justify-between">
+                    <span>No campaigns available</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                ) : (
+                  <select
+                    value={formCampaignId}
+                    onChange={(e) => setFormCampaignId(e.target.value)}
+                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
+                    required
+                  >
+                    <option value="" disabled>
+                      Select a campaign...
                     </option>
-                  ) : (
-                    <>
-                      <option value="" disabled>
-                        Select a campaign...
+                    {campaigns.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
                       </option>
-                      {campaigns.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </>
-                  )}
-                </select>
+                    ))}
+                  </select>
+                )}
 
                 {campaigns.length === 0 && (
-                  <div className="mt-2.5 p-3.5 bg-amber-50/90 border border-amber-200/90 rounded-xl space-y-2">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold text-amber-900">
+                  <div className="mt-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                    <div className="flex items-start gap-2.5">
+                      <div className="p-1 rounded-md bg-indigo-50 text-indigo-600 shrink-0 mt-0.5">
+                        <AlertCircle className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-semibold text-slate-800">
                           No campaigns found
                         </p>
-                        <p className="text-[11px] text-amber-700 leading-relaxed">
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
                           Every activity must belong to a campaign. Please create a campaign first before scheduling activities.
                         </p>
                       </div>
                     </div>
-                    <div className="pt-1 border-t border-amber-200/60">
+                    <div className="pt-2 border-t border-slate-200/80">
                       <Link
                         href="/campaigns"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-xs transition"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition"
                       >
                         <Plus className="w-3.5 h-3.5" /> Go to Campaigns & Create One
                       </Link>
