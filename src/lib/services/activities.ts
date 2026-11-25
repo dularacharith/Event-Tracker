@@ -53,6 +53,10 @@ export interface CreateActivityInput {
   contentType: ContentType;
   scheduledAt?: Date | null;
   reviewDeadline?: Date | null;
+  recurrenceRule?: string | null;
+  recurrenceDay?: string | null;
+  recurrenceCount?: number;
+  parentActivityId?: string | null;
   ownerId?: string | null;
   reviewerId?: string | null;
   passCriteria?: string;
@@ -138,6 +142,81 @@ export async function validateSchedulingRules({
   }
 }
 
+export function generateRecurrenceDates({
+  startDate,
+  rule,
+  specificDay,
+  count = 5,
+}: {
+  startDate: Date;
+  rule: string;
+  specificDay?: string | null;
+  count?: number;
+}): Date[] {
+  const dates: Date[] = [];
+  const maxCount = Math.min(Math.max(count || 5, 1), 30);
+  const current = new Date(startDate.getTime());
+
+  if (rule === "daily") {
+    for (let i = 0; i < maxCount; i++) {
+      const d = new Date(current.getTime());
+      d.setDate(d.getDate() + i);
+      dates.push(d);
+    }
+  } else if (rule === "every_2_days") {
+    for (let i = 0; i < maxCount; i++) {
+      const d = new Date(current.getTime());
+      d.setDate(d.getDate() + i * 2);
+      dates.push(d);
+    }
+  } else if (rule === "every_5_days") {
+    for (let i = 0; i < maxCount; i++) {
+      const d = new Date(current.getTime());
+      d.setDate(d.getDate() + i * 5);
+      dates.push(d);
+    }
+  } else if (rule === "weekly") {
+    for (let i = 0; i < maxCount; i++) {
+      const d = new Date(current.getTime());
+      d.setDate(d.getDate() + i * 7);
+      dates.push(d);
+    }
+  } else if (rule === "weekends") {
+    const probe = new Date(current.getTime());
+    while (dates.length < maxCount) {
+      const day = probe.getDay(); // 0 is Sunday, 6 is Saturday
+      if (day === 0 || day === 6) {
+        dates.push(new Date(probe.getTime()));
+      }
+      probe.setDate(probe.getDate() + 1);
+    }
+  } else if (rule === "specific_day") {
+    const dayMap: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    const targetDay = specificDay ? dayMap[specificDay.toLowerCase()] ?? 1 : 1;
+    const probe = new Date(current.getTime());
+    while (probe.getDay() !== targetDay) {
+      probe.setDate(probe.getDate() + 1);
+    }
+    for (let i = 0; i < maxCount; i++) {
+      const d = new Date(probe.getTime());
+      d.setDate(d.getDate() + i * 7);
+      dates.push(d);
+    }
+  } else {
+    dates.push(new Date(current.getTime()));
+  }
+
+  return dates;
+}
+
 export async function createActivity(input: CreateActivityInput) {
   const title = input.title.trim();
   if (!title) {
@@ -166,6 +245,21 @@ export async function createActivity(input: CreateActivityInput) {
 
   await ensureChannelsTable();
 
+  const recurrenceDates =
+    input.recurrenceRule && input.recurrenceRule !== "none"
+      ? generateRecurrenceDates({
+          startDate: input.scheduledAt || new Date(),
+          rule: input.recurrenceRule,
+          specificDay: input.recurrenceDay,
+          count: input.recurrenceCount || 5,
+        })
+      : null;
+
+  const firstScheduledAt =
+    recurrenceDates && recurrenceDates.length > 0
+      ? recurrenceDates[0]
+      : input.scheduledAt || null;
+
   return await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(activities)
@@ -178,8 +272,11 @@ export async function createActivity(input: CreateActivityInput) {
         brief,
         socialPlatform: input.socialPlatform,
         contentType: input.contentType,
-        scheduledAt: input.scheduledAt || null,
+        scheduledAt: firstScheduledAt,
         reviewDeadline: input.reviewDeadline || null,
+        recurrenceRule: input.recurrenceRule || null,
+        recurrenceDay: input.recurrenceDay || null,
+        parentActivityId: input.parentActivityId || null,
         ownerId: input.ownerId || null,
         reviewerId: input.reviewerId || null,
         passCriteria: input.passCriteria?.trim() || "",
@@ -197,6 +294,54 @@ export async function createActivity(input: CreateActivityInput) {
       changedById: input.createdById,
       reason: "Activity created",
     });
+
+    // If recurrence was requested, create subsequent occurrences
+    if (recurrenceDates && recurrenceDates.length > 1) {
+      const deadlineOffset =
+        input.reviewDeadline && input.scheduledAt
+          ? input.reviewDeadline.getTime() - input.scheduledAt.getTime()
+          : null;
+
+      for (let i = 1; i < recurrenceDates.length; i++) {
+        const occScheduledAt = recurrenceDates[i];
+        const occReviewDeadline =
+          deadlineOffset !== null
+            ? new Date(occScheduledAt.getTime() + deadlineOffset)
+            : null;
+        const occId = `act-${crypto.randomUUID()}`;
+
+        await tx.insert(activities).values({
+          id: occId,
+          campaignId: input.campaignId,
+          channelId: input.channelId || null,
+          workspaceId: input.workspaceId,
+          title,
+          brief,
+          socialPlatform: input.socialPlatform,
+          contentType: input.contentType,
+          scheduledAt: occScheduledAt,
+          reviewDeadline: occReviewDeadline,
+          recurrenceRule: input.recurrenceRule || null,
+          recurrenceDay: input.recurrenceDay || null,
+          parentActivityId: activityId,
+          ownerId: input.ownerId || null,
+          reviewerId: input.reviewerId || null,
+          passCriteria: input.passCriteria?.trim() || "",
+          status,
+          currentAttemptNumber: 0,
+          createdById: input.createdById,
+        });
+
+        await tx.insert(activityStatusHistory).values({
+          id: `ash-${crypto.randomUUID()}`,
+          activityId: occId,
+          fromStatus: "none",
+          toStatus: status,
+          changedById: input.createdById,
+          reason: `Recurring activity created (${input.recurrenceRule} #${i + 1})`,
+        });
+      }
+    }
 
     return created;
   });
@@ -929,6 +1074,9 @@ export async function getActivityDetails(workspaceId: string, activityId: string
         campaignName: campaigns.name,
         channelId: activities.channelId,
         channelName: channels.name,
+        recurrenceRule: activities.recurrenceRule,
+        recurrenceDay: activities.recurrenceDay,
+        parentActivityId: activities.parentActivityId,
       })
       .from(activities)
       .leftJoin(campaigns, eq(activities.campaignId, campaigns.id))
@@ -965,6 +1113,9 @@ export async function getActivityDetails(workspaceId: string, activityId: string
         campaignName: campaigns.name,
         channelId: sql<string | null>`null`.as("channel_id"),
         channelName: sql<string | null>`null`.as("channel_name"),
+        recurrenceRule: activities.recurrenceRule,
+        recurrenceDay: activities.recurrenceDay,
+        parentActivityId: activities.parentActivityId,
       })
       .from(activities)
       .leftJoin(campaigns, eq(activities.campaignId, campaigns.id))
@@ -1163,6 +1314,9 @@ export async function listActivities({
         passCriteria: activities.passCriteria,
         createdAt: activities.createdAt,
         campaignName: campaigns.name,
+        recurrenceRule: activities.recurrenceRule,
+        recurrenceDay: activities.recurrenceDay,
+        parentActivityId: activities.parentActivityId,
         owner: {
           id: userTable.id,
           name: userTable.name,
@@ -1199,6 +1353,9 @@ export async function listActivities({
         passCriteria: activities.passCriteria,
         createdAt: activities.createdAt,
         campaignName: campaigns.name,
+        recurrenceRule: activities.recurrenceRule,
+        recurrenceDay: activities.recurrenceDay,
+        parentActivityId: activities.parentActivityId,
         owner: {
           id: userTable.id,
           name: userTable.name,

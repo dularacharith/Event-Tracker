@@ -28,6 +28,7 @@ import {
   ChevronUp,
   HelpCircle,
   Info,
+  Repeat,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
@@ -420,6 +421,31 @@ export function ActivityDetailClient({
             <span className="text-xs text-slate-500 capitalize bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
               {activity.contentType.replace("_", " ")}
             </span>
+            {activity.channelName && (
+              <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded">
+                #{activity.channelName}
+              </span>
+            )}
+            {activity.recurrenceRule && activity.recurrenceRule !== "none" && (
+              <span className="text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded flex items-center gap-1">
+                <Repeat className="w-3 h-3" />
+                <span>
+                  {activity.recurrenceRule === "daily"
+                    ? "Daily"
+                    : activity.recurrenceRule === "every_2_days"
+                    ? "Every 2 days"
+                    : activity.recurrenceRule === "every_5_days"
+                    ? "Every 5 days"
+                    : activity.recurrenceRule === "weekly"
+                    ? "Weekly"
+                    : activity.recurrenceRule === "weekends"
+                    ? "Weekends"
+                    : activity.recurrenceRule === "specific_day"
+                    ? `Every ${activity.recurrenceDay ? activity.recurrenceDay.charAt(0).toUpperCase() + activity.recurrenceDay.slice(1) : "week"}`
+                    : activity.recurrenceRule}
+                </span>
+              </span>
+            )}
           </div>
         </div>
 

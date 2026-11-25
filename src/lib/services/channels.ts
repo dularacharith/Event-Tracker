@@ -25,6 +25,15 @@ export async function ensureChannelsTable() {
       await db.execute(sql`
         ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "channel_id" text;
       `);
+      await db.execute(sql`
+        ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "recurrence_rule" text;
+      `);
+      await db.execute(sql`
+        ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "recurrence_day" text;
+      `);
+      await db.execute(sql`
+        ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "parent_activity_id" text;
+      `);
       tableEnsured = true;
     } catch (err) {
       console.error("ensureChannelsTable error:", err);

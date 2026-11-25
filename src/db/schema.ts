@@ -225,6 +225,9 @@ export const activities = pgTable("activities", {
   }).notNull(),
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
   reviewDeadline: timestamp("review_deadline", { withTimezone: true }),
+  recurrenceRule: text("recurrence_rule"),
+  recurrenceDay: text("recurrence_day"),
+  parentActivityId: text("parent_activity_id"),
   ownerId: text("owner_id").references(() => user.id, {
     onDelete: "set null",
   }),

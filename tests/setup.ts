@@ -9,14 +9,17 @@ export async function setupTestDatabase() {
   const pglite = new PGlite();
   const testDb = drizzle(pglite, { schema });
 
-  // Read and apply the generated migration SQL
-  const migrationSql = fs.readFileSync(
-    path.resolve(__dirname, "../drizzle/0000_worried_oracle.sql"),
-    "utf8"
-  );
+  // Read and apply all generated migration SQL files in sequence
+  const drizzleDir = path.resolve(__dirname, "../drizzle");
+  const sqlFiles = fs
+    .readdirSync(drizzleDir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
 
-  // Split on statement breakpoints or execute directly
-  await pglite.exec(migrationSql);
+  for (const file of sqlFiles) {
+    const migrationSql = fs.readFileSync(path.join(drizzleDir, file), "utf8");
+    await pglite.exec(migrationSql);
+  }
 
   // Wire up the global db pointer to the test database
   setTestDb(testDb);

@@ -15,6 +15,13 @@
       "when": 1795633773867,
       "tag": "0001_supreme_komodo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795634514511,
+      "tag": "0002_powerful_mongoose",
+      "breakpoints": true
     }
   ]
 }

@@ -29,6 +29,8 @@ import {
   MoreVertical,
   Radio,
   Hash,
+  Repeat,
+  RefreshCw,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
@@ -39,6 +41,9 @@ interface ActivityItem {
   campaignName?: string | null;
   channelId?: string | null;
   channelName?: string | null;
+  recurrenceRule?: string | null;
+  recurrenceDay?: string | null;
+  parentActivityId?: string | null;
   title: string;
   brief: string;
   socialPlatform: string;
@@ -57,6 +62,46 @@ interface ActivityItem {
     image?: string | null;
     avatarUrl?: string | null;
   } | null;
+}
+
+function formatRecurrenceLabel(rule?: string | null, day?: string | null) {
+  if (!rule || rule === "none") return "";
+  switch (rule) {
+    case "daily":
+      return "Daily";
+    case "every_2_days":
+      return "Every 2 days";
+    case "every_5_days":
+      return "Every 5 days";
+    case "weekly":
+      return "Weekly";
+    case "weekends":
+      return "Weekends (Sat & Sun)";
+    case "specific_day":
+      return day ? `Every ${day.charAt(0).toUpperCase() + day.slice(1)}` : "Weekly";
+    default:
+      return rule;
+  }
+}
+
+function formatRecurrenceBadge(rule?: string | null, day?: string | null) {
+  if (!rule || rule === "none") return "";
+  switch (rule) {
+    case "daily":
+      return "Daily";
+    case "every_2_days":
+      return "Every 2d";
+    case "every_5_days":
+      return "Every 5d";
+    case "weekly":
+      return "Weekly";
+    case "weekends":
+      return "Weekends";
+    case "specific_day":
+      return day ? day.slice(0, 3).toUpperCase() : "Weekly";
+    default:
+      return rule;
+  }
 }
 
 interface ActivitiesClientProps {
@@ -360,6 +405,9 @@ export function ActivitiesClient({
   const [newReviewerId, setNewReviewerId] = useState("");
   const [newCriteria, setNewCriteria] = useState("");
   const [newStatus, setNewStatus] = useState<"draft" | "scheduled">("draft");
+  const [newRecurrenceRule, setNewRecurrenceRule] = useState<string>("none");
+  const [newRecurrenceDay, setNewRecurrenceDay] = useState<string>("monday");
+  const [newRecurrenceCount, setNewRecurrenceCount] = useState<number>(5);
 
   // Filtering
   const filteredActivities = initialActivities.filter((act) => {
@@ -424,6 +472,14 @@ export function ActivitiesClient({
 
       if (newScheduledAt) body.scheduledAt = new Date(newScheduledAt).toISOString();
       if (newReviewDeadline) body.reviewDeadline = new Date(newReviewDeadline).toISOString();
+
+      if (newRecurrenceRule && newRecurrenceRule !== "none") {
+        body.recurrenceRule = newRecurrenceRule;
+        if (newRecurrenceRule === "specific_day") {
+          body.recurrenceDay = newRecurrenceDay;
+        }
+        body.recurrenceCount = newRecurrenceCount;
+      }
 
       const res = await fetch("/api/activities", {
         method: "POST",
@@ -981,6 +1037,15 @@ export function ActivitiesClient({
                                     {act.campaignName}
                                   </span>
                                 )}
+                                {act.recurrenceRule && act.recurrenceRule !== "none" && (
+                                  <span
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md border bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1"
+                                    title={`Recurring: ${formatRecurrenceLabel(act.recurrenceRule, act.recurrenceDay)}`}
+                                  >
+                                    <Repeat className="w-2.5 h-2.5" />
+                                    <span>{formatRecurrenceBadge(act.recurrenceRule, act.recurrenceDay)}</span>
+                                  </span>
+                                )}
                               </div>
 
                               {/* Bottom row: Priority indicator [∧], Date box [📅 Jul 15, 2025], Notes [≡], Owner Avatar */}
@@ -1312,6 +1377,15 @@ export function ActivitiesClient({
                               {act.campaignName && (
                                 <span className="text-xs text-indigo-600 font-medium">
                                   • {act.campaignName}
+                                </span>
+                              )}
+                              {act.recurrenceRule && act.recurrenceRule !== "none" && (
+                                <span
+                                  className="text-xs font-semibold px-2 py-0.5 rounded-md border bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1"
+                                  title={`Recurring: ${formatRecurrenceLabel(act.recurrenceRule, act.recurrenceDay)}`}
+                                >
+                                  <Repeat className="w-3 h-3" />
+                                  <span>{formatRecurrenceLabel(act.recurrenceRule, act.recurrenceDay)}</span>
                                 </span>
                               )}
                             </div>
@@ -1696,36 +1770,124 @@ export function ActivitiesClient({
                 </div>
               </div>
 
+              {/* Date & Recurrence Section */}
+              <div className="space-y-3 p-3.5 bg-slate-50/80 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Date & Recurrence</span>
+                  </div>
+                  {newRecurrenceRule !== "none" && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1">
+                      <Repeat className="w-2.5 h-2.5" />
+                      Recurring Event
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Scheduled Date & Time {newStatus === "scheduled" && <span className="text-rose-500">*</span>}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={newScheduledAt}
+                      onChange={(e) => setNewScheduledAt(e.target.value)}
+                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      required={newStatus === "scheduled"}
+                    />
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      {newRecurrenceRule !== "none" ? "Start date for recurring series" : "Optional for Draft, required for Scheduled"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Repeat Frequency
+                    </label>
+                    <select
+                      value={newRecurrenceRule}
+                      onChange={(e) => setNewRecurrenceRule(e.target.value)}
+                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="none">Does not repeat</option>
+                      <option value="daily">By day (Every day)</option>
+                      <option value="every_2_days">Every 2 days</option>
+                      <option value="every_5_days">Every 5 days</option>
+                      <option value="weekly">Every week (Weekly)</option>
+                      <option value="weekends">Only weekends (Sat & Sun)</option>
+                      <option value="specific_day">On a specific day of the week</option>
+                    </select>
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      Automatically generates recurring activities
+                    </span>
+                  </div>
+                </div>
+
+                {newRecurrenceRule !== "none" && (
+                  <div className="pt-2 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {newRecurrenceRule === "specific_day" && (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Select Day of Week
+                        </label>
+                        <select
+                          value={newRecurrenceDay}
+                          onChange={(e) => setNewRecurrenceDay(e.target.value)}
+                          className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value="monday">Every Monday</option>
+                          <option value="tuesday">Every Tuesday</option>
+                          <option value="wednesday">Every Wednesday</option>
+                          <option value="thursday">Every Thursday</option>
+                          <option value="friday">Every Friday</option>
+                          <option value="saturday">Every Saturday</option>
+                          <option value="sunday">Every Sunday</option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Occurrences to Generate
+                      </label>
+                      <select
+                        value={newRecurrenceCount}
+                        onChange={(e) => setNewRecurrenceCount(Number(e.target.value))}
+                        className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value={3}>3 occurrences</option>
+                        <option value={5}>5 occurrences</option>
+                        <option value={8}>8 occurrences</option>
+                        <option value={10}>10 occurrences</option>
+                        <option value={14}>14 occurrences</option>
+                        <option value={20}>20 occurrences</option>
+                      </select>
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        Creates {newRecurrenceCount} occurrences on schedule
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {newStatus === "scheduled" && (
                 <div className="space-y-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
                   <p className="text-[11px] font-semibold text-blue-800">
-                    Scheduling Requirements:
+                    Review & QA Requirements (for Scheduled status):
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Scheduled Time *
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={newScheduledAt}
-                        onChange={(e) => setNewScheduledAt(e.target.value)}
-                        className="w-full text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        required={newStatus === "scheduled"}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Review Deadline *
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={newReviewDeadline}
-                        onChange={(e) => setNewReviewDeadline(e.target.value)}
-                        className="w-full text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        required={newStatus === "scheduled"}
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Review Deadline *
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={newReviewDeadline}
+                      onChange={(e) => setNewReviewDeadline(e.target.value)}
+                      className="w-full text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      required={newStatus === "scheduled"}
+                    />
                   </div>
 
                   <div>

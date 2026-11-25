@@ -11,6 +11,7 @@ import {
   Clock,
   X,
   AlertCircle,
+  Repeat,
 } from "lucide-react";
 import { setPendingToast } from "@/components/Toast";
 import {
@@ -36,6 +37,9 @@ interface ActivityItem {
   contentType: string;
   channelId?: string | null;
   channelName?: string | null;
+  recurrenceRule?: string | null;
+  recurrenceDay?: string | null;
+  parentActivityId?: string | null;
   scheduledAt?: Date | string | null;
   reviewDeadline?: Date | string | null;
   status: string;
@@ -85,6 +89,9 @@ export function CalendarClient({
   const [formOwnerId, setFormOwnerId] = useState(currentUser.id);
   const [formReviewerId, setFormReviewerId] = useState("");
   const [formCriteria, setFormCriteria] = useState("");
+  const [formRecurrenceRule, setFormRecurrenceRule] = useState("none");
+  const [formRecurrenceDay, setFormRecurrenceDay] = useState("monday");
+  const [formRecurrenceCount, setFormRecurrenceCount] = useState(5);
 
   const userTz = currentUser.timezone || "UTC";
 
@@ -164,6 +171,9 @@ export function CalendarClient({
           contentType: formContentType,
           scheduledAt: scheduledDate.toISOString(),
           reviewDeadline: deadlineDate.toISOString(),
+          recurrenceRule: formRecurrenceRule !== "none" ? formRecurrenceRule : null,
+          recurrenceDay: formRecurrenceRule === "specific_day" ? formRecurrenceDay : null,
+          recurrenceCount: formRecurrenceCount,
           ownerId: formOwnerId,
           reviewerId: formReviewerId || null,
           passCriteria: formCriteria,
@@ -332,6 +342,9 @@ export function CalendarClient({
                         act.status
                       )}`}
                     >
+                      {act.recurrenceRule && act.recurrenceRule !== "none" && (
+                        <Repeat className="w-2.5 h-2.5 inline-block mr-1 opacity-80 shrink-0" />
+                      )}
                       <span className="uppercase text-[9px] mr-1 opacity-70">
                         {act.socialPlatform.substring(0, 2)}:
                       </span>
@@ -555,6 +568,82 @@ export function CalendarClient({
                     <option value="7">1 week after schedule</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Recurrence Options */}
+              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                    <Repeat className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Repeat / Recurrence</span>
+                  </div>
+                  {formRecurrenceRule !== "none" && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+                      Repeating
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Frequency
+                    </label>
+                    <select
+                      value={formRecurrenceRule}
+                      onChange={(e) => setFormRecurrenceRule(e.target.value)}
+                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="none">Does not repeat</option>
+                      <option value="daily">By day (Every day)</option>
+                      <option value="every_2_days">Every 2 days</option>
+                      <option value="every_5_days">Every 5 days</option>
+                      <option value="weekly">Every week (Weekly)</option>
+                      <option value="weekends">Only weekends (Sat & Sun)</option>
+                      <option value="specific_day">On a specific day of the week</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Occurrences
+                    </label>
+                    <select
+                      value={formRecurrenceCount}
+                      onChange={(e) => setFormRecurrenceCount(Number(e.target.value))}
+                      disabled={formRecurrenceRule === "none"}
+                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white disabled:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value={3}>3 occurrences</option>
+                      <option value={5}>5 occurrences</option>
+                      <option value={8}>8 occurrences</option>
+                      <option value={10}>10 occurrences</option>
+                      <option value={14}>14 occurrences</option>
+                      <option value={20}>20 occurrences</option>
+                    </select>
+                  </div>
+                </div>
+
+                {formRecurrenceRule === "specific_day" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Select Day of Week
+                    </label>
+                    <select
+                      value={formRecurrenceDay}
+                      onChange={(e) => setFormRecurrenceDay(e.target.value)}
+                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="monday">Every Monday</option>
+                      <option value="tuesday">Every Tuesday</option>
+                      <option value="wednesday">Every Wednesday</option>
+                      <option value="thursday">Every Thursday</option>
+                      <option value="friday">Every Friday</option>
+                      <option value="saturday">Every Saturday</option>
+                      <option value="sunday">Every Sunday</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
