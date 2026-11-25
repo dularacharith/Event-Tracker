@@ -30,13 +30,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, description, startDate, endDate } = body;
+    const { name, description, color, startDate, endDate } = body;
 
     const campaign = await createCampaign({
       workspaceId: member.workspaceId,
       createdById: user.id,
       name,
       description,
+      color,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
     });

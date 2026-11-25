@@ -155,9 +155,10 @@ export const campaigns = pgTable("campaigns", {
     .references(() => workspaces.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
-  status: text("status", { enum: ["active", "completed", "archived"] })
+  status: text("status")
     .default("active")
     .notNull(),
+  color: text("color"),
   startDate: timestamp("start_date", { withTimezone: true }),
   endDate: timestamp("end_date", { withTimezone: true }),
   createdById: text("created_by_id")

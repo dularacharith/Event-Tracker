@@ -3,11 +3,35 @@ import { campaigns, activities } from "@/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
 
+let tableEnsured = false;
+let ensurePromise: Promise<void> | null = null;
+
+export async function ensureCampaignsTable() {
+  if (tableEnsured) return;
+  if (ensurePromise) return ensurePromise;
+
+  ensurePromise = (async () => {
+    try {
+      await db.execute(sql`
+        ALTER TABLE "campaigns" ADD COLUMN IF NOT EXISTS "color" text;
+      `);
+      tableEnsured = true;
+    } catch (err) {
+      console.error("ensureCampaignsTable error:", err);
+    } finally {
+      ensurePromise = null;
+    }
+  })();
+
+  return ensurePromise;
+}
+
 export async function createCampaign({
   workspaceId,
   createdById,
   name,
   description,
+  color,
   startDate,
   endDate,
 }: {
@@ -15,9 +39,11 @@ export async function createCampaign({
   createdById: string;
   name: string;
   description?: string;
+  color?: string | null;
   startDate?: Date;
   endDate?: Date;
 }) {
+  await ensureCampaignsTable();
   const trimmedName = name.trim();
   if (!trimmedName) {
     throw new Error("Campaign name is required.");
@@ -30,6 +56,7 @@ export async function createCampaign({
       workspaceId,
       name: trimmedName,
       description: description?.trim() || null,
+      color: color?.trim() || null,
       startDate: startDate || null,
       endDate: endDate || null,
       status: "active",
@@ -41,12 +68,14 @@ export async function createCampaign({
 }
 
 export async function listCampaigns(workspaceId: string) {
+  await ensureCampaignsTable();
   const campaignList = await db
     .select({
       id: campaigns.id,
       name: campaigns.name,
       description: campaigns.description,
       status: campaigns.status,
+      color: campaigns.color,
       startDate: campaigns.startDate,
       endDate: campaigns.endDate,
       createdAt: campaigns.createdAt,
@@ -62,6 +91,7 @@ export async function listCampaigns(workspaceId: string) {
 }
 
 export async function getCampaignById(workspaceId: string, campaignId: string) {
+  await ensureCampaignsTable();
   const rows = await db
     .select()
     .from(campaigns)
@@ -79,6 +109,7 @@ export async function updateCampaign({
   name,
   description,
   status,
+  color,
   startDate,
   endDate,
 }: {
@@ -86,10 +117,12 @@ export async function updateCampaign({
   campaignId: string;
   name?: string;
   description?: string;
-  status?: "active" | "completed" | "archived";
+  status?: string;
+  color?: string | null;
   startDate?: Date | null;
   endDate?: Date | null;
 }) {
+  await ensureCampaignsTable();
   const updates: Partial<typeof campaigns.$inferInsert> = {
     updatedAt: new Date(),
   };
@@ -106,6 +139,10 @@ export async function updateCampaign({
 
   if (status !== undefined) {
     updates.status = status;
+  }
+
+  if (color !== undefined) {
+    updates.color = color;
   }
 
   if (startDate !== undefined) {
@@ -125,4 +162,16 @@ export async function updateCampaign({
     .returning();
 
   return updated;
+}
+
+export async function deleteCampaign(workspaceId: string, campaignId: string) {
+  await ensureCampaignsTable();
+  const [deleted] = await db
+    .delete(campaigns)
+    .where(
+      and(eq(campaigns.id, campaignId), eq(campaigns.workspaceId, workspaceId))
+    )
+    .returning();
+
+  return deleted;
 }
