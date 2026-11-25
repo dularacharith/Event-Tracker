@@ -896,7 +896,7 @@ export function ActivitiesClient({
               );
               return (
                 <React.Fragment key={col.id}>
-                  <div className="flex-1 min-w-[260px] max-w-[320px] shrink-0">
+                  <div className="flex-1 min-w-[230px] max-w-[360px] shrink-0">
                     <div
                       className={`rounded-2xl border ${col.border} ${col.bg} p-3.5 flex flex-col gap-3 shadow-2xs hover:shadow-xs transition`}
                     >
