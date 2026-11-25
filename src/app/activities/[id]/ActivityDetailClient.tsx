@@ -1073,8 +1073,8 @@ export function ActivityDetailClient({
 
       {/* Review Decision Modal (Assigned Reviewer Only) */}
       {verdictModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900">
+        <div className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[calc(100vh-5rem)]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900">
                 Record Review Decision
@@ -1173,8 +1173,8 @@ export function ActivityDetailClient({
 
       {/* Add Evidence Modal */}
       {evidenceModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900">
+        <div className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[calc(100vh-5rem)]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900">Attach Proof of Work</h3>
               <button
@@ -1285,8 +1285,8 @@ export function ActivityDetailClient({
 
       {/* Reschedule Modal */}
       {rescheduleModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900">
+        <div className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[calc(100vh-5rem)]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900">
                 Reschedule Failed Work
@@ -1386,8 +1386,8 @@ export function ActivityDetailClient({
 
       {/* Reassign Reviewer Modal (Admin Only) */}
       {reassignModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900">
+        <div className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[calc(100vh-5rem)]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900">
                 Reassign Reviewer
