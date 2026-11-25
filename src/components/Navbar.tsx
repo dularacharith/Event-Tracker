@@ -19,6 +19,7 @@ import {
   PanelLeft,
 } from "lucide-react";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useNavigationLoader } from "@/contexts/NavigationLoaderContext";
 import { UserAvatar } from "./UserAvatar";
 import { NotificationCenter } from "./NotificationCenter";
 import { signIn, signOut, useSession } from "@/lib/auth-client";
@@ -40,6 +41,7 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { isExpanded, toggleSidebar } = useSidebar();
+  const { loadingHref, startLoading } = useNavigationLoader();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -140,18 +142,36 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                     const isActive =
                       pathname === item.href ||
                       (item.href !== "/my-work" && pathname.startsWith(item.href));
+                    const isTabLoading =
+                      loadingHref === item.href ||
+                      (item.href !== "/my-work" && loadingHref?.startsWith(item.href));
+
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                          isActive
-                            ? "bg-indigo-50 text-indigo-700"
+                        onClick={() => {
+                          if (pathname !== item.href) {
+                            startLoading(item.href);
+                          }
+                        }}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer select-none ${
+                          isTabLoading
+                            ? "bg-purple-50 text-purple-700 ring-1 ring-purple-200/80 shadow-2xs font-semibold"
+                            : isActive
+                            ? "bg-indigo-50 text-indigo-700 font-semibold"
                             : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                         }`}
                       >
-                        <Icon className="w-4 h-4" />
-                        {item.label}
+                        {isTabLoading ? (
+                          <Loader2 className="w-4 h-4 text-purple-600 animate-spin shrink-0" />
+                        ) : (
+                          <Icon className="w-4 h-4 shrink-0" />
+                        )}
+                        <span>{item.label}</span>
+                        {isTabLoading && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping shrink-0" />
+                        )}
                       </Link>
                     );
                   })}
@@ -291,19 +311,34 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                 const isActive =
                   pathname === item.href ||
                   (item.href !== "/my-work" && pathname.startsWith(item.href));
+                const isTabLoading =
+                  loadingHref === item.href ||
+                  (item.href !== "/my-work" && loadingHref?.startsWith(item.href));
+
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
-                      isActive
-                        ? "bg-indigo-50 text-indigo-700"
+                    onClick={() => {
+                      if (pathname !== item.href) {
+                        startLoading(item.href);
+                      }
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${
+                      isTabLoading
+                        ? "bg-purple-50 text-purple-700 ring-1 ring-purple-200 font-semibold"
+                        : isActive
+                        ? "bg-indigo-50 text-indigo-700 font-semibold"
                         : "text-slate-600 hover:bg-slate-50"
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
+                    {isTabLoading ? (
+                      <Loader2 className="w-4 h-4 text-purple-600 animate-spin shrink-0" />
+                    ) : (
+                      <Icon className="w-4 h-4 shrink-0" />
+                    )}
+                    <span>{item.label}</span>
                   </Link>
                 );
               })}

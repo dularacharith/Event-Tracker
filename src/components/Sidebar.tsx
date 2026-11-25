@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useFilterContext } from "@/contexts/FilterContext";
+import { useNavigationLoader } from "@/contexts/NavigationLoaderContext";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import { UserAvatar } from "@/components/UserAvatar";
 
@@ -51,6 +52,7 @@ export function Sidebar({ currentUser, userRole }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { isExpanded, collapseSidebar, isFilterOpen, toggleFilter } = useSidebar();
+  const { loadingHref, startLoading } = useNavigationLoader();
   const {
     search,
     setSearch,
@@ -659,16 +661,24 @@ export function Sidebar({ currentUser, userRole }: SidebarProps) {
                 const isActive =
                   pathname === item.href ||
                   (item.href !== "/my-work" && pathname.startsWith(item.href));
+                const isLinkLoading =
+                  loadingHref === item.href ||
+                  (item.href !== "/my-work" && loadingHref?.startsWith(item.href));
 
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={() => {
+                      if (pathname !== item.href) {
+                        startLoading(item.href);
+                      }
                       if (window.innerWidth < 1024) collapseSidebar();
                     }}
                     className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition group ${
-                      isActive
+                      isLinkLoading
+                        ? "bg-purple-100/70 text-purple-800 border border-purple-300/80 shadow-2xs"
+                        : isActive
                         ? "bg-purple-50 text-purple-700 border border-purple-200/60 shadow-2xs"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
                     }`}
@@ -676,23 +686,33 @@ export function Sidebar({ currentUser, userRole }: SidebarProps) {
                     <div className="flex items-center gap-2.5">
                       <div
                         className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition ${
-                          isActive
+                          isLinkLoading
+                            ? "bg-purple-600 text-white"
+                            : isActive
                             ? "bg-purple-600 text-white"
                             : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-800"
                         }`}
                       >
-                        <Icon className="w-3.5 h-3.5" />
+                        {isLinkLoading ? (
+                          <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                        ) : (
+                          <Icon className="w-3.5 h-3.5" />
+                        )}
                       </div>
                       <span>{item.label}</span>
                     </div>
 
-                    <ChevronRight
-                      className={`w-3.5 h-3.5 transition shrink-0 ${
-                        isActive
-                          ? "text-purple-600"
-                          : "text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5"
-                      }`}
-                    />
+                    {isLinkLoading ? (
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping shrink-0 mr-1" />
+                    ) : (
+                      <ChevronRight
+                        className={`w-3.5 h-3.5 transition shrink-0 ${
+                          isActive
+                            ? "text-purple-600"
+                            : "text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5"
+                        }`}
+                      />
+                    )}
                   </Link>
                 );
               })}

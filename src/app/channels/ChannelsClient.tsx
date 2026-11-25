@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
 import {
   Radio,
@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Sparkles,
   Globe,
+  Loader2,
 } from "lucide-react";
 import { useToast, setPendingToast } from "@/components/Toast";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
@@ -118,6 +119,8 @@ export function ChannelsClient({
   // Filters
   const [search, setSearch] = useState("");
   const [filterPlatform, setFilterPlatform] = useState("");
+  const [isTabPending, startTabTransition] = useTransition();
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
 
   // Deletion state
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -286,32 +289,46 @@ export function ChannelsClient({
             Platforms:
           </span>
           <button
-            onClick={() => setFilterPlatform("")}
-            className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs whitespace-nowrap shrink-0 ${
+            onClick={() => {
+              setPendingTab("all");
+              startTabTransition(() => setFilterPlatform(""));
+            }}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer ${
               !filterPlatform
                 ? "bg-slate-800 text-white shadow-xs"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            All Platforms ({channelsList.length})
+            {isTabPending && pendingTab === "all" && (
+              <Loader2 className="w-3 h-3 text-white animate-spin" />
+            )}
+            <span>All Platforms ({channelsList.length})</span>
           </button>
           {ALL_PLATFORMS.map((p) => {
             const count = channelsList.filter(
               (c) => (c.platform || "other").toLowerCase() === p.id
             ).length;
             if (count === 0 && filterPlatform !== p.id) return null;
+            const isThisPending = isTabPending && pendingTab === p.id;
+
             return (
               <button
                 key={p.id}
-                onClick={() =>
-                  setFilterPlatform(filterPlatform === p.id ? "" : p.id)
-                }
-                className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1 whitespace-nowrap shrink-0 ${
+                onClick={() => {
+                  setPendingTab(p.id);
+                  startTabTransition(() =>
+                    setFilterPlatform(filterPlatform === p.id ? "" : p.id)
+                  );
+                }}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
                   filterPlatform === p.id
                     ? "bg-indigo-600 text-white shadow-xs"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
+                {isThisPending && (
+                  <Loader2 className="w-3 h-3 animate-spin text-purple-200" />
+                )}
                 <span>{p.label}</span>
                 <span className="text-[10px] opacity-75">({count})</span>
               </button>

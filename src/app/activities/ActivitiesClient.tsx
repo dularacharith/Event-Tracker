@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import {
   List,
@@ -33,6 +33,7 @@ import {
   RefreshCw,
   Pencil,
   Trash2,
+  Loader2,
   Eye,
   EyeOff,
   Share2,
@@ -275,6 +276,8 @@ export function ActivitiesClient({
   const { toast } = useToast();
   const confirm = useConfirm();
   const [viewMode, setViewMode] = useState<"list" | "board">("board");
+  const [isTabPending, startTabTransition] = useTransition();
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [howItWorksModalOpen, setHowItWorksModalOpen] = useState(false);
 
   // Flow Columns & Customization State
@@ -694,20 +697,40 @@ export function ActivitiesClient({
           {/* List vs Board Toggle */}
           <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold">
             <button
-              onClick={() => setViewMode("board")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+              onClick={() => {
+                if (viewMode !== "board") {
+                  setPendingTab("board");
+                  startTabTransition(() => setViewMode("board"));
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
                 viewMode === "board" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              <Kanban className="w-3.5 h-3.5" /> Board
+              {isTabPending && pendingTab === "board" ? (
+                <Loader2 className="w-3.5 h-3.5 text-purple-600 animate-spin" />
+              ) : (
+                <Kanban className="w-3.5 h-3.5" />
+              )}
+              <span>Board</span>
             </button>
             <button
-              onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+              onClick={() => {
+                if (viewMode !== "list") {
+                  setPendingTab("list");
+                  startTabTransition(() => setViewMode("list"));
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition cursor-pointer ${
                 viewMode === "list" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              <List className="w-3.5 h-3.5" /> List
+              {isTabPending && pendingTab === "list" ? (
+                <Loader2 className="w-3.5 h-3.5 text-purple-600 animate-spin" />
+              ) : (
+                <List className="w-3.5 h-3.5" />
+              )}
+              <span>List</span>
             </button>
           </div>
 
@@ -827,32 +850,47 @@ export function ActivitiesClient({
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-slate-400 font-semibold text-[11px] mr-1">Columns:</span>
               <button
-                onClick={() => setFilterStatus("")}
-                className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs whitespace-nowrap shrink-0 ${
+                onClick={() => {
+                  setPendingTab("all-columns");
+                  startTabTransition(() => setFilterStatus(""));
+                }}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer ${
                   !filterStatus
                     ? "bg-slate-800 text-white shadow-xs"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
-                All {visibleColumns.length} Columns
+                {isTabPending && pendingTab === "all-columns" && (
+                  <Loader2 className="w-3 h-3 text-white animate-spin" />
+                )}
+                <span>All {visibleColumns.length} Columns</span>
               </button>
               {visibleColumns.map((c) => {
                 const styles = getColumnStyles(c);
                 const count = filteredActivities.filter((a) => a.status === c.id).length;
+                const isThisPending = isTabPending && pendingTab === c.id;
+
                 return (
                   <button
                     key={c.id}
-                    onClick={() => setFilterStatus(filterStatus === c.id ? "" : c.id)}
-                    className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                    onClick={() => {
+                      setPendingTab(c.id);
+                      startTabTransition(() => setFilterStatus(filterStatus === c.id ? "" : c.id));
+                    }}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
                       filterStatus === c.id
                         ? "bg-indigo-600 text-white shadow-xs"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
-                    <span
-                      className={`w-2 h-2 rounded-full shrink-0 ${styles.dotClass}`}
-                      style={styles.dotStyle}
-                    />
+                    {isThisPending ? (
+                      <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                    ) : (
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${styles.dotClass}`}
+                        style={styles.dotStyle}
+                      />
+                    )}
                     <span>{c.label}</span>
                     <span className="text-[10px] opacity-75">({count})</span>
                   </button>
