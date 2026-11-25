@@ -1029,66 +1029,181 @@ export function ActivitiesClient({
           </div>
         </div>
       ) : (
-        /* View: Filterable List */
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="divide-y divide-slate-100">
-            {filteredActivities.length === 0 ? (
-              <div className="p-12 text-center text-sm text-slate-500">
-                No activities match your filters.
-              </div>
-            ) : (
-              filteredActivities.map((act) => (
+        /* View: Grouped List (displaying board columns as list groups) */
+        <div className="space-y-4">
+          {STATUS_COLUMNS.filter(
+            (col) => !filterStatus || filterStatus === col.id
+          ).map((col) => {
+            const colActivities = filteredActivities.filter(
+              (a) => a.status === col.id
+            );
+
+            return (
+              <div
+                key={col.id}
+                className={`bg-white rounded-2xl border ${col.border} shadow-2xs overflow-hidden`}
+              >
+                {/* Group Header */}
                 <div
-                  key={act.id}
-                  className="p-4 sm:p-5 hover:bg-slate-50 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                  className={`p-3 sm:px-4 flex items-center justify-between ${col.bg} border-b ${col.border}`}
                 >
-                  <div className="space-y-1.5 flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {getStatusBadge(act.status)}
-                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                        {act.socialPlatform}
-                      </span>
-                      <span className="text-xs text-slate-400 capitalize">
-                        {act.contentType.replace("_", " ")}
-                      </span>
-                      {act.campaignName && (
-                        <span className="text-xs text-indigo-600 font-medium">
-                          • {act.campaignName}
-                        </span>
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${col.badgeBg}`}
+                    >
+                      {col.step}
+                    </span>
+                    <span
+                      className={`font-bold text-xs uppercase tracking-wider ${col.headerText}`}
+                    >
+                      {col.label}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-2xs">
+                      {colActivities.length}
+                    </span>
+                  </div>
+
+                  {col.id === "draft" && (
+                    <button
+                      onClick={() => setCreateModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl transition shadow-2xs cursor-pointer"
+                      title="Create new activity"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>New Activity</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Group Items / Empty State */}
+                <div className="divide-y divide-slate-100">
+                  {colActivities.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-slate-400">
+                      {col.id === "draft" ? (
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                          <span>No activities in Draft.</span>
+                          <button
+                            onClick={() => setCreateModalOpen(true)}
+                            className="text-indigo-600 hover:text-indigo-800 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Create first draft
+                          </button>
+                        </div>
+                      ) : (
+                        <span>No activities in {col.label.toLowerCase()}</span>
                       )}
                     </div>
+                  ) : (
+                    colActivities.map((act) => {
+                      const owner = teammates.find((m) => m.userId === act.ownerId);
+                      return (
+                        <div
+                          key={act.id}
+                          className="p-3.5 sm:p-4 hover:bg-slate-50 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                        >
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {getStatusBadge(act.status)}
+                              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                {act.socialPlatform}
+                              </span>
+                              <span className="text-xs text-slate-400 capitalize">
+                                {act.contentType.replace("_", " ")}
+                              </span>
+                              {act.campaignName && (
+                                <span className="text-xs text-indigo-600 font-medium">
+                                  • {act.campaignName}
+                                </span>
+                              )}
+                            </div>
 
-                    <Link
-                      href={`/activities/${act.id}`}
-                      className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition block truncate"
-                    >
-                      {act.title}
-                    </Link>
+                            <Link
+                              href={`/activities/${act.id}`}
+                              className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition block truncate"
+                            >
+                              {act.title}
+                            </Link>
 
-                    <p className="text-xs text-slate-500 line-clamp-1">{act.brief}</p>
-                  </div>
+                            <p className="text-xs text-slate-500 line-clamp-1">{act.brief}</p>
 
-                  <div className="flex items-center gap-3 shrink-0">
-                    {act.status === "scheduled" && (
-                      <button
-                        onClick={() => handleStartProgress(act.id)}
-                        className="bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1"
-                      >
-                        <Play className="w-3.5 h-3.5" /> Start Work
-                      </button>
-                    )}
+                            <div className="flex items-center gap-4 text-[11px] text-slate-400 pt-0.5 flex-wrap">
+                              {owner && (
+                                <span className="flex items-center gap-1.5 text-slate-600">
+                                  <UserAvatar
+                                    name={owner.displayName || owner.name}
+                                    avatarUrl={owner.avatarUrl}
+                                    size="sm"
+                                  />
+                                  <span>{owner.displayName || owner.name}</span>
+                                </span>
+                              )}
+                              {act.scheduledAt && (
+                                <span className="flex items-center gap-1 text-slate-500">
+                                  <Clock className="w-3 h-3 text-slate-400" />
+                                  Sched: {new Date(act.scheduledAt).toLocaleDateString()}
+                                </span>
+                              )}
+                              {act.reviewDeadline && (
+                                <span className="flex items-center gap-1 text-slate-500">
+                                  <Calendar className="w-3 h-3 text-slate-400" />
+                                  Due: {new Date(act.reviewDeadline).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-                    <Link
-                      href={`/activities/${act.id}`}
-                      className="text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition flex items-center gap-1"
-                    >
-                      View <ExternalLink className="w-3 h-3" />
-                    </Link>
-                  </div>
+                          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                            {/* Quick Chain Move Dropdown */}
+                            {CHAIN_TRANSITIONS[act.status]?.length > 0 && (
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  if (e.target.value)
+                                    handleChainTransition(
+                                      act.id,
+                                      e.target.value
+                                    );
+                                }}
+                                className="text-xs font-medium bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none cursor-pointer"
+                              >
+                                <option value="" disabled>
+                                  Move along chain...
+                                </option>
+                                {CHAIN_TRANSITIONS[act.status].map((t) => (
+                                  <option
+                                    key={t.targetStatus}
+                                    value={t.targetStatus}
+                                  >
+                                    → {t.label}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+
+                            {act.status === "scheduled" && (
+                              <button
+                                onClick={() => handleStartProgress(act.id)}
+                                className="bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1 cursor-pointer"
+                              >
+                                <Play className="w-3.5 h-3.5" /> Start Work
+                              </button>
+                            )}
+
+                            <Link
+                              href={`/activities/${act.id}`}
+                              className="text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition flex items-center gap-1"
+                            >
+                              View <ExternalLink className="w-3 h-3" />
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
-              ))
-            )}
-          </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
