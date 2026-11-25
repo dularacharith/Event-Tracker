@@ -136,6 +136,7 @@ interface ActivitiesClientProps {
   channels?: any[];
   teammates: any[];
   initialOpenCreate?: boolean;
+  initialFilterChannel?: string;
 }
 
 const STATUS_COLUMNS = [
@@ -309,6 +310,7 @@ export function ActivitiesClient({
   channels = [],
   teammates,
   initialOpenCreate = false,
+  initialFilterChannel = "",
 }: ActivitiesClientProps) {
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<"list" | "board">("board");
@@ -334,7 +336,7 @@ export function ActivitiesClient({
   };
   const [search, setSearch] = useState("");
   const [filterCampaign, setFilterCampaign] = useState("");
-  const [filterChannel, setFilterChannel] = useState("");
+  const [filterChannel, setFilterChannel] = useState(initialFilterChannel);
   const [filterPlatform, setFilterPlatform] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterOwner, setFilterOwner] = useState("");

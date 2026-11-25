@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Loader2,
+  Radio,
 } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { NotificationCenter } from "./NotificationCenter";
@@ -50,6 +51,7 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
     { href: "/activities", label: "Activities", icon: Layers },
     { href: "/calendar", label: "Calendar", icon: Calendar },
     { href: "/campaigns", label: "Campaigns", icon: FolderGit2 },
+    { href: "/channels", label: "Channels", icon: Radio },
     { href: "/team", label: "Team", icon: Users },
   ];
 

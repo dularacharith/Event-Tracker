@@ -10,7 +10,7 @@ import { ActivitiesClient } from "./ActivitiesClient";
 export default async function ActivitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ new?: string }>;
+  searchParams: Promise<{ new?: string; channel?: string }>;
 }) {
   const { user, member } = await getCurrentAuth();
 
@@ -18,7 +18,7 @@ export default async function ActivitiesPage({
     redirect("/login");
   }
 
-  const { new: openNewModal } = await searchParams;
+  const { new: openNewModal, channel: initialChannelId } = await searchParams;
 
   const campaigns = await listCampaigns(member.workspaceId);
   const channels = await listChannels(member.workspaceId);
@@ -36,6 +36,7 @@ export default async function ActivitiesPage({
       channels={channels}
       teammates={teammates}
       initialOpenCreate={openNewModal === "true"}
+      initialFilterChannel={initialChannelId || ""}
     />
   );
 }

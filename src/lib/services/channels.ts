@@ -106,3 +106,39 @@ export async function listChannels(workspaceId: string) {
     return [];
   }
 }
+
+export async function deleteChannel(workspaceId: string, channelId: string) {
+  await ensureChannelsTable();
+  const [deleted] = await db
+    .delete(channels)
+    .where(and(eq(channels.id, channelId), eq(channels.workspaceId, workspaceId)))
+    .returning();
+  return deleted;
+}
+
+export async function updateChannel({
+  workspaceId,
+  channelId,
+  name,
+  platform,
+  description,
+}: {
+  workspaceId: string;
+  channelId: string;
+  name?: string;
+  platform?: string | null;
+  description?: string | null;
+}) {
+  await ensureChannelsTable();
+  const updateData: any = {};
+  if (name !== undefined) updateData.name = name.trim();
+  if (platform !== undefined) updateData.platform = platform?.trim() || null;
+  if (description !== undefined) updateData.description = description?.trim() || null;
+
+  const [updated] = await db
+    .update(channels)
+    .set(updateData)
+    .where(and(eq(channels.id, channelId), eq(channels.workspaceId, workspaceId)))
+    .returning();
+  return updated;
+}
