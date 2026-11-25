@@ -92,3 +92,44 @@ export async function PUT(
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { user, member } = await getCurrentAuth(req.headers);
+    if (!user || !member || member.status !== "active") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await context.params;
+
+    const [existing] = await db
+      .select()
+      .from(activities)
+      .where(
+        and(eq(activities.id, id), eq(activities.workspaceId, member.workspaceId))
+      )
+      .limit(1);
+
+    if (!existing) {
+      return NextResponse.json({ error: "Activity not found" }, { status: 404 });
+    }
+
+    if (
+      existing.ownerId !== user.id &&
+      existing.createdById !== user.id &&
+      member.role !== "admin"
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await db.delete(activities).where(eq(activities.id, id));
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 400 });
+  }
+}
+

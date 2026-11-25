@@ -31,9 +31,27 @@ import {
   Hash,
   Repeat,
   RefreshCw,
+  Pencil,
+  Trash2,
+  Eye,
+  EyeOff,
+  Share2,
+  Palette,
+  Settings2,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
+import {
+  FlowColumn,
+  DEFAULT_FLOW_COLUMNS,
+  loadFlowColumns,
+  saveFlowColumns,
+  resetFlowColumns,
+  getColumnStyles,
+  COLOR_THEMES,
+} from "@/lib/flowColumns";
+import { ColumnEditModal } from "@/components/activities/ColumnEditModal";
+import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
 
 interface ActivityItem {
   id: string;
@@ -139,78 +157,7 @@ interface ActivitiesClientProps {
   initialFilterChannel?: string;
 }
 
-const STATUS_COLUMNS = [
-  {
-    id: "draft",
-    step: "1",
-    label: "Draft",
-    bg: "bg-slate-50/80",
-    border: "border-slate-200",
-    badgeBg: "bg-slate-200 text-slate-700",
-    headerText: "text-slate-800",
-    dotColor: "bg-amber-500",
-  },
-  {
-    id: "scheduled",
-    step: "2",
-    label: "Scheduled",
-    bg: "bg-blue-50/40",
-    border: "border-blue-200",
-    badgeBg: "bg-blue-100 text-blue-700",
-    headerText: "text-blue-900",
-    dotColor: "bg-blue-500",
-  },
-  {
-    id: "in_progress",
-    step: "3",
-    label: "In Progress",
-    bg: "bg-amber-50/40",
-    border: "border-amber-200",
-    badgeBg: "bg-amber-100 text-amber-700",
-    headerText: "text-amber-900",
-    dotColor: "bg-purple-500",
-  },
-  {
-    id: "awaiting_review",
-    step: "4",
-    label: "Awaiting Review",
-    bg: "bg-purple-50/40",
-    border: "border-purple-200",
-    badgeBg: "bg-purple-100 text-purple-700",
-    headerText: "text-purple-900",
-    dotColor: "bg-violet-500",
-  },
-  {
-    id: "passed",
-    step: "5",
-    label: "Completed",
-    bg: "bg-emerald-50/40",
-    border: "border-emerald-200",
-    badgeBg: "bg-emerald-100 text-emerald-700",
-    headerText: "text-emerald-900",
-    dotColor: "bg-emerald-500",
-  },
-  {
-    id: "failed",
-    step: "6",
-    label: "Failed",
-    bg: "bg-rose-50/40",
-    border: "border-rose-200",
-    badgeBg: "bg-rose-100 text-rose-700",
-    headerText: "text-rose-900",
-    dotColor: "bg-rose-500",
-  },
-  {
-    id: "canceled",
-    step: "↶",
-    label: "Canceled",
-    bg: "bg-zinc-100/70",
-    border: "border-zinc-300",
-    badgeBg: "bg-zinc-200 text-zinc-700",
-    headerText: "text-zinc-800",
-    dotColor: "bg-zinc-400",
-  },
-];
+const STATUS_COLUMNS = DEFAULT_FLOW_COLUMNS;
 
 const getPlatformTagStyle = (platform: string) => {
   switch (platform?.toLowerCase()) {
@@ -334,6 +281,127 @@ export function ActivitiesClient({
       return next;
     });
   };
+
+  // Flow Columns & Customization State
+  const [flowColumns, setFlowColumns] = useState<FlowColumn[]>(DEFAULT_FLOW_COLUMNS);
+  const [editingColumn, setEditingColumn] = useState<FlowColumn | null>(null);
+  const [isEditingNewColumn, setIsEditingNewColumn] = useState(false);
+  const [isColumnEditModalOpen, setIsColumnEditModalOpen] = useState(false);
+  const [isVisualFlowModalOpen, setIsVisualFlowModalOpen] = useState(false);
+  const [activeKebabMenuColId, setActiveKebabMenuColId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loaded = loadFlowColumns(currentUser?.id);
+    if (loaded && loaded.length > 0) {
+      setFlowColumns(loaded);
+    }
+  }, [currentUser?.id]);
+
+  const updateColumns = (cols: FlowColumn[]) => {
+    setFlowColumns(cols);
+    saveFlowColumns(currentUser?.id, cols);
+  };
+
+  const handleResetFlow = () => {
+    const defaults = resetFlowColumns(currentUser?.id);
+    setFlowColumns(defaults);
+    toast.success("Flow reset", "Pipeline columns restored to default configuration.");
+  };
+
+  const handleHideColumn = (colId: string) => {
+    const updated = flowColumns.map((c) =>
+      c.id === colId ? { ...c, hidden: true } : c
+    );
+    updateColumns(updated);
+    if (filterStatus === colId) setFilterStatus("");
+    toast.success("Card hidden", "Card removed from the flow. Restore it anytime in Configure Flow.");
+  };
+
+  const handleDeleteColumn = (colId: string) => {
+    if (flowColumns.length <= 1) {
+      toast.error("Cannot delete", "At least one card must remain in the flow.");
+      return;
+    }
+    const target = flowColumns.find((c) => c.id === colId);
+    const count = initialActivities.filter((a) => a.status === colId).length;
+    if (
+      confirm(
+        count > 0
+          ? `"${target?.label || colId}" has ${count} activities. Removing it will remove the card from the flow. Continue?`
+          : `Delete "${target?.label || colId}" card from the flow?`
+      )
+    ) {
+      const updated = flowColumns.filter((c) => c.id !== colId);
+      updateColumns(updated);
+      if (filterStatus === colId) setFilterStatus("");
+      toast.success("Card deleted", `"${target?.label || colId}" has been deleted.`);
+    }
+  };
+
+  const handleQuickColorChange = (colId: string, themeId: string) => {
+    const updated = flowColumns.map((c) =>
+      c.id === colId ? { ...c, colorTheme: themeId, customHex: undefined, customDotHex: undefined } : c
+    );
+    updateColumns(updated);
+    setActiveKebabMenuColId(null);
+    toast.success("Color updated", "Background, bubble, and accent colors updated.");
+  };
+
+  const handleSaveColumn = (savedCol: FlowColumn) => {
+    if (isEditingNewColumn) {
+      const updated = [...flowColumns, savedCol];
+      updateColumns(updated);
+      toast.success("Card created", `"${savedCol.label}" has been added to the flow.`);
+    } else {
+      const updated = flowColumns.map((c) => (c.id === savedCol.id ? savedCol : c));
+      updateColumns(updated);
+      toast.success("Card updated", `"${savedCol.label}" updated successfully.`);
+    }
+  };
+
+  const visibleColumns = flowColumns.filter((c) => !c.hidden);
+  const hiddenColumns = flowColumns.filter((c) => c.hidden);
+
+  const [activeKebabActivityId, setActiveKebabActivityId] = useState<string | null>(null);
+
+  const handleEditActivityTitle = async (activityId: string, currentTitle: string) => {
+    const newTitle = prompt("Edit activity title:", currentTitle);
+    if (!newTitle || newTitle.trim() === currentTitle.trim()) return;
+
+    try {
+      const res = await fetch(`/api/activities/${activityId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle.trim() }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "Failed to update title");
+      }
+      toast.success("Title updated", "Activity title changed successfully.");
+      window.location.reload();
+    } catch (err: any) {
+      toast.error("Failed to update title", err.message);
+    }
+  };
+
+  const handleDeleteActivity = async (activityId: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/activities/${activityId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "Failed to delete activity");
+      }
+      toast.success("Activity deleted", `"${title}" has been deleted.`);
+      window.location.reload();
+    } catch (err: any) {
+      toast.error("Failed to delete", err.message);
+    }
+  };
   const [search, setSearch] = useState("");
   const [filterCampaign, setFilterCampaign] = useState("");
   const [filterChannel, setFilterChannel] = useState(initialFilterChannel);
@@ -449,6 +517,11 @@ export function ActivitiesClient({
     if (filterReviewer && act.reviewerId !== filterReviewer) return false;
     return true;
   });
+
+  const activitiesCountByStatus = filteredActivities.reduce((acc, act) => {
+    acc[act.status] = (acc[act.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   const handleStartProgress = async (activityId: string) => {
     try {
@@ -934,9 +1007,9 @@ export function ActivitiesClient({
             )}
           </div>
 
-          {/* Quick Column Jump Pills */}
+          {/* Quick Column Jump Pills & Visual Flow Controls */}
           <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs px-1">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-slate-400 font-semibold text-[11px] mr-1">Columns:</span>
               <button
                 onClick={() => setFilterStatus("")}
@@ -946,47 +1019,86 @@ export function ActivitiesClient({
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
-                All 7 Columns
+                All {visibleColumns.length} Columns
               </button>
-              {STATUS_COLUMNS.map((c) => (
+              {visibleColumns.map((c) => {
+                const styles = getColumnStyles(c);
+                const count = filteredActivities.filter((a) => a.status === c.id).length;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setFilterStatus(filterStatus === c.id ? "" : c.id)}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                      filterStatus === c.id
+                        ? "bg-indigo-600 text-white shadow-xs"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${styles.dotClass}`}
+                      style={styles.dotStyle}
+                    />
+                    <span>{c.label}</span>
+                    <span className="text-[10px] opacity-75">({count})</span>
+                  </button>
+                );
+              })}
+
+              {/* Hidden Columns Pill */}
+              {hiddenColumns.length > 0 && (
                 <button
-                  key={c.id}
-                  onClick={() => setFilterStatus(filterStatus === c.id ? "" : c.id)}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1 whitespace-nowrap shrink-0 ${
-                    filterStatus === c.id
-                      ? "bg-indigo-600 text-white shadow-xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
+                  onClick={() => setIsVisualFlowModalOpen(true)}
+                  className="px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 cursor-pointer"
+                  title="Click to view and restore hidden cards in the flow"
                 >
-                  <span>{c.label}</span>
-                  <span className="text-[10px] opacity-75">
-                    ({filteredActivities.filter((a) => a.status === c.id).length})
-                  </span>
+                  <EyeOff className="w-3 h-3 text-amber-600" />
+                  <span>{hiddenColumns.length} Hidden</span>
                 </button>
-              ))}
+              )}
+            </div>
+
+            {/* Configure Flow Button */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setIsVisualFlowModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-indigo-600 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+                title="Configure Visual Flow Pipeline"
+              >
+                <Share2 className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Configure Flow</span>
+              </button>
             </div>
           </div>
 
           {/* Linked Kanban Columns Track */}
           <div className="flex items-start overflow-x-auto pb-6 pt-1 px-1">
-            {STATUS_COLUMNS.filter(
+            {visibleColumns.filter(
               (col) => !filterStatus || filterStatus === col.id
             ).map((col, idx, arr) => {
               const colActivities = filteredActivities.filter(
                 (a) => a.status === col.id
               );
+              const colStyles = getColumnStyles(col);
+
               return (
                 <React.Fragment key={col.id}>
                   <div className="flex-1 min-w-[230px] max-w-[360px] shrink-0">
                     <div
-                      className={`rounded-2xl border ${col.border} ${col.bg} p-3.5 flex flex-col gap-3 shadow-2xs hover:shadow-xs transition`}
+                      className={`rounded-2xl border ${colStyles.borderClass} ${colStyles.bgClass} p-3.5 flex flex-col gap-3 shadow-2xs hover:shadow-xs transition`}
+                      style={colStyles.containerStyle}
                     >
                     {/* Column Header */}
-                    <div className="flex items-start justify-between pb-1 gap-2">
+                    <div className="flex items-start justify-between pb-1 gap-2 relative">
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${col.dotColor}`} />
-                          <span className="font-bold text-xs uppercase tracking-wider text-slate-800 whitespace-nowrap">
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${colStyles.dotClass}`}
+                            style={colStyles.dotStyle}
+                          />
+                          <span
+                            className={`font-bold text-xs uppercase tracking-wider ${colStyles.headerTextClass} whitespace-nowrap truncate`}
+                            style={colStyles.headerStyle}
+                          >
                             {col.label}
                           </span>
                         </div>
@@ -996,7 +1108,7 @@ export function ActivitiesClient({
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-slate-400 shrink-0 pt-0.5">
+                      <div className="flex items-center gap-1 text-slate-400 shrink-0 pt-0.5 relative">
                         <button
                           onClick={() => {
                             setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
@@ -1007,8 +1119,120 @@ export function ActivitiesClient({
                         >
                           <Plus className="w-3.5 h-3.5 text-slate-500" />
                         </button>
-                        <div className="p-0.5">
-                          <MoreVertical className="w-3.5 h-3.5 text-slate-400" />
+                        <div className="relative">
+                          <button
+                            onClick={() =>
+                              setActiveKebabMenuColId(
+                                activeKebabMenuColId === col.id ? null : col.id
+                              )
+                            }
+                            className={`p-1 hover:text-slate-700 hover:bg-white/80 rounded-md transition cursor-pointer ${
+                              activeKebabMenuColId === col.id ? "text-slate-900 bg-white shadow-2xs" : "text-slate-400"
+                            }`}
+                            title="Card options"
+                          >
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Kebab Dropdown Menu */}
+                          {activeKebabMenuColId === col.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-30"
+                                onClick={() => setActiveKebabMenuColId(null)}
+                              />
+                              <div className="absolute right-0 top-7 z-40 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 text-xs text-slate-700 animate-in fade-in zoom-in-95 duration-100">
+                                {/* Change Title & Color */}
+                                <button
+                                  onClick={() => {
+                                    setActiveKebabMenuColId(null);
+                                    setEditingColumn(col);
+                                    setIsEditingNewColumn(false);
+                                    setIsColumnEditModalOpen(true);
+                                  }}
+                                  className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-800 font-medium transition cursor-pointer"
+                                >
+                                  <Pencil className="w-3.5 h-3.5 text-indigo-500" />
+                                  <span>Edit Title & Colors</span>
+                                </button>
+
+                                {/* Quick Color Swatches */}
+                                <div className="px-3 py-2 border-t border-slate-100">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                                    Change Color Theme:
+                                  </span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {COLOR_THEMES.map((theme) => (
+                                      <button
+                                        key={theme.id}
+                                        onClick={() => {
+                                          handleQuickColorChange(col.id, theme.id);
+                                        }}
+                                        className={`w-4 h-4 rounded-full ${theme.dot} transition hover:scale-125 cursor-pointer ${
+                                          col.colorTheme === theme.id ? "ring-2 ring-slate-800 ring-offset-1" : ""
+                                        }`}
+                                        title={theme.name}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div className="border-t border-slate-100 my-1" />
+
+                                {/* Create New Card */}
+                                <button
+                                  onClick={() => {
+                                    setActiveKebabMenuColId(null);
+                                    setEditingColumn(null);
+                                    setIsEditingNewColumn(true);
+                                    setIsColumnEditModalOpen(true);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-800 font-medium transition cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5 text-emerald-500" />
+                                  <span>Create New Card</span>
+                                </button>
+
+                                {/* Hide Card */}
+                                <button
+                                  onClick={() => {
+                                    setActiveKebabMenuColId(null);
+                                    handleHideColumn(col.id);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-800 font-medium transition cursor-pointer"
+                                >
+                                  <EyeOff className="w-3.5 h-3.5 text-amber-500" />
+                                  <span>Hide Card from Flow</span>
+                                </button>
+
+                                {/* Configure Flow */}
+                                <button
+                                  onClick={() => {
+                                    setActiveKebabMenuColId(null);
+                                    setIsVisualFlowModalOpen(true);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-800 font-medium transition cursor-pointer"
+                                >
+                                  <Share2 className="w-3.5 h-3.5 text-indigo-500" />
+                                  <span>Configure Flow...</span>
+                                </button>
+
+                                <div className="border-t border-slate-100 my-1" />
+
+                                {/* Delete Card */}
+                                <button
+                                  onClick={() => {
+                                    setActiveKebabMenuColId(null);
+                                    handleDeleteColumn(col.id);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-rose-50 text-rose-600 font-medium transition cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Delete Card</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1029,13 +1253,66 @@ export function ActivitiesClient({
                               key={act.id}
                               className="bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-xs hover:shadow transition flex flex-col gap-2.5"
                             >
-                              {/* Title at top */}
-                              <Link
-                                href={`/activities/${act.id}`}
-                                className="font-bold text-xs text-slate-900 hover:text-indigo-600 transition block line-clamp-2 leading-snug"
-                              >
-                                {act.title}
-                              </Link>
+                              {/* Title at top with quick action menu */}
+                              <div className="flex items-start justify-between gap-1.5 relative">
+                                <Link
+                                  href={`/activities/${act.id}`}
+                                  className="font-bold text-xs text-slate-900 hover:text-indigo-600 transition block line-clamp-2 leading-snug flex-1"
+                                >
+                                  {act.title}
+                                </Link>
+                                <div className="relative shrink-0">
+                                  <button
+                                    onClick={() =>
+                                      setActiveKebabActivityId(
+                                        activeKebabActivityId === act.id ? null : act.id
+                                      )
+                                    }
+                                    className="p-0.5 text-slate-300 hover:text-slate-600 rounded transition cursor-pointer"
+                                    title="Activity options"
+                                  >
+                                    <MoreVertical className="w-3.5 h-3.5" />
+                                  </button>
+                                  {activeKebabActivityId === act.id && (
+                                    <>
+                                      <div
+                                        className="fixed inset-0 z-30"
+                                        onClick={() => setActiveKebabActivityId(null)}
+                                      />
+                                      <div className="absolute right-0 top-5 z-40 w-44 bg-white rounded-xl shadow-lg border border-slate-200 py-1 text-xs">
+                                        <button
+                                          onClick={() => {
+                                            setActiveKebabActivityId(null);
+                                            handleEditActivityTitle(act.id, act.title);
+                                          }}
+                                          className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-700 cursor-pointer font-medium"
+                                        >
+                                          <Pencil className="w-3 h-3 text-indigo-500" />
+                                          <span>Rename Title</span>
+                                        </button>
+                                        <Link
+                                          href={`/activities/${act.id}`}
+                                          className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-700 font-medium"
+                                        >
+                                          <ExternalLink className="w-3 h-3 text-slate-400" />
+                                          <span>View Details</span>
+                                        </Link>
+                                        <div className="border-t border-slate-100 my-0.5" />
+                                        <button
+                                          onClick={() => {
+                                            setActiveKebabActivityId(null);
+                                            handleDeleteActivity(act.id, act.title);
+                                          }}
+                                          className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-rose-50 text-rose-600 cursor-pointer font-medium"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                          <span>Delete Activity</span>
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
 
                               {/* Tags row: Platform, Content Type, Channel, Campaign */}
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1307,35 +1584,61 @@ export function ActivitiesClient({
                 </React.Fragment>
               );
             })}
+
+            {/* "+ Add New Card" Column at the end of the track */}
+            {!filterStatus && (
+              <div className="min-w-[200px] shrink-0 self-stretch flex">
+                <button
+                  onClick={() => {
+                    setEditingColumn(null);
+                    setIsEditingNewColumn(true);
+                    setIsColumnEditModalOpen(true);
+                  }}
+                  className="w-full h-full min-h-[300px] border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center gap-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/20 transition p-4 cursor-pointer group bg-white/40"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-slate-100 group-hover:bg-indigo-100 text-slate-500 group-hover:text-indigo-600 flex items-center justify-center transition shadow-2xs">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <span className="font-bold text-xs">Add New Card</span>
+                  <span className="text-[10px] text-slate-400 text-center leading-relaxed">
+                    Insert another stage into your activity pipeline flow
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : (
         /* View: Grouped List (displaying board columns as list groups) */
         <div className="space-y-4">
-          {STATUS_COLUMNS.filter(
+          {visibleColumns.filter(
             (col) => !filterStatus || filterStatus === col.id
           ).map((col) => {
             const colActivities = filteredActivities.filter(
               (a) => a.status === col.id
             );
+            const colStyles = getColumnStyles(col);
 
             return (
               <div
                 key={col.id}
-                className={`bg-white rounded-2xl border ${col.border} shadow-2xs overflow-hidden`}
+                className={`bg-white rounded-2xl border ${colStyles.borderClass} shadow-2xs overflow-hidden`}
               >
                 {/* Group Header */}
                 <div
-                  className={`p-3 sm:px-4 flex items-center justify-between ${col.bg} border-b ${col.border}`}
+                  className={`p-3 sm:px-4 flex items-center justify-between ${colStyles.bgClass} border-b ${colStyles.borderClass}`}
+                  style={colStyles.containerStyle}
                 >
                   <div className="flex items-center gap-2.5">
                     <span
-                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${col.badgeBg}`}
+                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${colStyles.badgeBgClass}`}
+                      style={colStyles.badgeStyle}
                     >
                       {col.step}
                     </span>
                     <span
-                      className={`font-bold text-xs uppercase tracking-wider ${col.headerText}`}
+                      className={`font-bold text-xs uppercase tracking-wider ${colStyles.headerTextClass}`}
+                      style={colStyles.headerStyle}
                     >
                       {col.label}
                     </span>
@@ -1999,6 +2302,38 @@ export function ActivitiesClient({
           </div>
         </div>
       )}
+
+      {/* Column Edit / Create Modal */}
+      <ColumnEditModal
+        isOpen={isColumnEditModalOpen}
+        onClose={() => setIsColumnEditModalOpen(false)}
+        column={editingColumn}
+        isNew={isEditingNewColumn}
+        existingColumns={flowColumns}
+        onSave={handleSaveColumn}
+        onDelete={handleDeleteColumn}
+        onHide={handleHideColumn}
+      />
+
+      {/* Visual Pipeline Architecture & Flow Modal (Inspired by Reference) */}
+      <VisualFlowModal
+        isOpen={isVisualFlowModalOpen}
+        onClose={() => setIsVisualFlowModalOpen(false)}
+        columns={flowColumns}
+        onUpdateColumns={updateColumns}
+        onOpenEditColumn={(col) => {
+          setEditingColumn(col);
+          setIsEditingNewColumn(false);
+          setIsColumnEditModalOpen(true);
+        }}
+        onOpenCreateColumn={() => {
+          setEditingColumn(null);
+          setIsEditingNewColumn(true);
+          setIsColumnEditModalOpen(true);
+        }}
+        onResetToDefault={handleResetFlow}
+        activitiesCountByStatus={activitiesCountByStatus}
+      />
     </div>
   );
 }
