@@ -82,6 +82,7 @@ import {
 import { ColumnEditModal } from "@/components/activities/ColumnEditModal";
 import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
 import { ConnectorEditModal } from "@/components/activities/ConnectorEditModal";
+import { FieldStageSelectModal } from "@/components/activities/FieldStageSelectModal";
 import { HowItWorksModal } from "@/components/activities/HowItWorksModal";
 import { MoveActivityModal } from "@/components/activities/MoveActivityModal";
 import { ActivityDetailsModal } from "@/components/activities/ActivityDetailsModal";
@@ -354,6 +355,11 @@ export function ActivitiesClient({
   const [isColumnEditModalOpen, setIsColumnEditModalOpen] = useState(false);
   const [isVisualFlowModalOpen, setIsVisualFlowModalOpen] = useState(false);
   const [editingConnectorField, setEditingConnectorField] = useState<{ field: PipelineField; fIdx: number } | null>(null);
+  const [fieldStageSelectTarget, setFieldStageSelectTarget] = useState<{
+    sourceField: PipelineField;
+    fIdx: number;
+    nextField: PipelineField;
+  } | null>(null);
   const [activeKebabMenuColId, setActiveKebabMenuColId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -1953,13 +1959,22 @@ export function ActivitiesClient({
                       <div className="hidden xl:flex flex-col items-center justify-center shrink-0 px-1 select-none self-center">
                         <button
                           type="button"
-                          onClick={() => setEditingConnectorField({ field, fIdx })}
+                          onClick={() => {
+                            const nextF = pipelineFields[fIdx + 1];
+                            if (nextF) {
+                              setFieldStageSelectTarget({
+                                sourceField: field,
+                                fIdx,
+                                nextField: nextF,
+                              });
+                            }
+                          }}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border-2 shadow-2xs text-xs font-bold transition group cursor-pointer hover:shadow-xs hover:scale-105 active:scale-95"
                           style={{
                             borderColor: connStyles.border,
                             color: connStyles.text,
                           }}
-                          title="Click to customize connector button"
+                          title={`Click to select destination stage in ${pipelineFields[fIdx + 1]?.name || "next field"}`}
                         >
                           {showIcon && IconComp && (
                             <IconComp
@@ -2797,6 +2812,32 @@ export function ActivitiesClient({
         onHide={handleHideColumn}
       />
 
+      {/* Field-to-Field Next Stage Selection Modal */}
+      {fieldStageSelectTarget && (
+        <FieldStageSelectModal
+          isOpen={Boolean(fieldStageSelectTarget)}
+          onClose={() => setFieldStageSelectTarget(null)}
+          sourceField={fieldStageSelectTarget.sourceField}
+          fIdx={fieldStageSelectTarget.fIdx}
+          nextField={fieldStageSelectTarget.nextField}
+          allFields={pipelineFields}
+          flowColumns={flowColumns}
+          activities={filteredActivities as any}
+          onTransitionActivity={handleChainTransition}
+          onCreateActivityInStage={(targetStageId) => {
+            setNewStatus(targetStageId);
+            setCreateModalOpen(true);
+            setFieldStageSelectTarget(null);
+          }}
+          onOpenConnectorEdit={() => {
+            const target = fieldStageSelectTarget;
+            setFieldStageSelectTarget(null);
+            setEditingConnectorField({ field: target.sourceField, fIdx: target.fIdx });
+          }}
+          onSavePipelineFields={updateFields}
+        />
+      )}
+
       {/* Transition Connector Edit Modal */}
       {editingConnectorField && (
         <ConnectorEditModal
@@ -2805,6 +2846,7 @@ export function ActivitiesClient({
           field={editingConnectorField.field}
           fIdx={editingConnectorField.fIdx}
           allFields={pipelineFields}
+          flowColumns={flowColumns}
           onSave={handleSaveConnector}
         />
       )}

@@ -149,6 +149,7 @@ export interface FieldConnectorConfig {
   icon?: string;
   hidden?: boolean;
   displayMode?: "both" | "icon_only" | "text_only";
+  targetStageId?: string;
 }
 
 export interface PipelineField {
@@ -272,6 +273,7 @@ export function getResolvedFieldConnector(
     icon,
     hidden,
     displayMode,
+    targetStageId: c.targetStageId || "",
   };
 }
 

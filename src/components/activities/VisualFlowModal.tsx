@@ -2331,6 +2331,7 @@ export function VisualFlowModal({
           field={editingConnector.field}
           fIdx={editingConnector.fIdx}
           allFields={pipelineFields}
+          flowColumns={workingColumns}
           onSave={handleSaveConnector}
         />
       )}

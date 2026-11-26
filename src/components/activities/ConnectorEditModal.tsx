@@ -5,11 +5,13 @@ import { createPortal } from "react-dom";
 import { X, Check, EyeOff, RotateCcw, Sparkles } from "lucide-react";
 import {
   PipelineField,
+  FlowColumn,
   COLOR_THEMES,
   PRESET_CONNECTOR_SYMBOLS,
   getConnectorSymbolComponent,
   getResolvedFieldConnector,
   getConnectorStyles,
+  getColumnFieldId,
 } from "@/lib/flowColumns";
 
 interface ConnectorEditModalProps {
@@ -18,6 +20,7 @@ interface ConnectorEditModalProps {
   field: PipelineField | null;
   fIdx: number;
   allFields: PipelineField[];
+  flowColumns?: FlowColumn[];
   onSave: (updatedField: PipelineField) => void;
 }
 
@@ -27,6 +30,7 @@ export function ConnectorEditModal({
   field,
   fIdx,
   allFields,
+  flowColumns,
   onSave,
 }: ConnectorEditModalProps) {
   const [mounted, setMounted] = useState(false);
@@ -36,6 +40,7 @@ export function ConnectorEditModal({
   const [icon, setIcon] = useState("ArrowRight");
   const [hidden, setHidden] = useState(false);
   const [displayMode, setDisplayMode] = useState<"both" | "icon_only" | "text_only">("both");
+  const [targetStageId, setTargetStageId] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -49,6 +54,7 @@ export function ConnectorEditModal({
       setIcon(resolved.icon);
       setHidden(resolved.hidden);
       setDisplayMode(resolved.displayMode);
+      setTargetStageId(resolved.targetStageId || "");
     }
   }, [isOpen, field, fIdx, allFields]);
 
@@ -75,6 +81,7 @@ export function ConnectorEditModal({
     setIcon("ArrowRight");
     setHidden(false);
     setDisplayMode("both");
+    setTargetStageId("");
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -87,6 +94,7 @@ export function ConnectorEditModal({
         icon,
         hidden,
         displayMode,
+        targetStageId: targetStageId || undefined,
       },
     };
     onSave(updatedField);
@@ -276,6 +284,34 @@ export function ConnectorEditModal({
                 })}
               </div>
             </div>
+
+            {/* Default Destination Stage in Next Field */}
+            {flowColumns && nextField && (() => {
+              const nextStages = flowColumns.filter(
+                (col) => getColumnFieldId(col, allFields) === nextField.id && !col.hidden
+              );
+              if (nextStages.length === 0) return null;
+
+              return (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Default Destination Stage ({nextField.name})
+                  </label>
+                  <select
+                    value={targetStageId}
+                    onChange={(e) => setTargetStageId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:outline-hidden focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  >
+                    <option value="">Ask each time / First Stage ({nextStages[0]?.label})</option>
+                    {nextStages.map((st) => (
+                      <option key={st.id} value={st.id}>
+                        {st.label} ({st.step && st.step !== "→" ? `Step ${st.step}` : "Stage"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })()}
 
             {/* Visibility Toggle ("Hide if want") */}
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
