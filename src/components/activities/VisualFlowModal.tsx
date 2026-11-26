@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useMemo,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -79,6 +86,13 @@ interface VisualFlowModalProps {
   workspaceId?: string;
 }
 
+interface WirePath {
+  id: string;
+  d: string;
+  color: string;
+  isDash: boolean;
+}
+
 export function VisualFlowModal({
   isOpen,
   onClose,
@@ -128,6 +142,8 @@ export function VisualFlowModal({
   const [selectedColId, setSelectedColId] = useState<string>("in_progress");
   const [searchQuery, setSearchQuery] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [wires, setWires] = useState<WirePath[]>([]);
   const [activeTool, setActiveTool] = useState<"pan" | "select">("select");
   const [zoomLevel, setZoomLevel] = useState<number>(75);
   const [isLivePreview, setIsLivePreview] = useState(false);
@@ -263,6 +279,127 @@ export function VisualFlowModal({
       workingColumns[0]
     );
   }, [workingColumns, selectedColId]);
+
+  // Dynamic multi-stage connection wires calculation
+  const updateWires = useCallback(() => {
+    if (!boardRef.current) return;
+    const boardEl = boardRef.current;
+    const boardRect = boardEl.getBoundingClientRect();
+    const scale = zoomLevel / 100;
+    if (!scale || scale <= 0 || boardRect.width === 0) return;
+
+    const newWires: WirePath[] = [];
+
+    pipelineFields.forEach((field, fIdx) => {
+      if (fIdx >= pipelineFields.length - 1) return;
+      const nextField = pipelineFields[fIdx + 1];
+      if (!nextField) return;
+
+      const pillEl = boardEl.querySelector(`[data-connector-btn="${fIdx}"]`) as HTMLElement | null;
+      if (!pillEl) return;
+      const pillRect = pillEl.getBoundingClientRect();
+      const pillLeftX = (pillRect.left - boardRect.left) / scale;
+      const pillRightX = (pillRect.right - boardRect.left) / scale;
+      const pillCenterY = (pillRect.top + pillRect.height / 2 - boardRect.top) / scale;
+
+      // Visible source stages in Field A (canvas only, not hidden)
+      const colsA = workingColumns.filter(
+        (c) => getColumnFieldId(c, pipelineFields) === field.id && !c.inLibrary && !c.hidden
+      );
+
+      // Visible target stages in Field B (canvas only, not hidden)
+      const colsB = workingColumns.filter(
+        (c) => getColumnFieldId(c, pipelineFields) === nextField.id && !c.inLibrary && !c.hidden
+      );
+
+      // 1. Output wire from each visible stage in Field A into connector pill
+      colsA.forEach((col) => {
+        const portEl = boardEl.querySelector(`[data-port-output="${col.id}"]`) as HTMLElement | null;
+        if (!portEl) return;
+        const portRect = portEl.getBoundingClientRect();
+        const startX = (portRect.left + portRect.width / 2 - boardRect.left) / scale;
+        const startY = (portRect.top + portRect.height / 2 - boardRect.top) / scale;
+
+        const dx = Math.max(24, pillLeftX - startX);
+        const cp1X = startX + dx * 0.5;
+        const cp1Y = startY;
+        const cp2X = pillLeftX - dx * 0.5;
+        const cp2Y = pillCenterY;
+        const d = `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${pillLeftX} ${pillCenterY}`;
+
+        const colStyles = getColumnStyles(col);
+        const color = colStyles.dotHex || colStyles.accentHex;
+
+        newWires.push({
+          id: `wire-out-${col.id}-${fIdx}`,
+          d,
+          color,
+          isDash: isLivePreview,
+        });
+      });
+
+      // 2. Input wire from connector pill into each visible stage in Field B
+      colsB.forEach((col) => {
+        const portEl = boardEl.querySelector(`[data-port-input="${col.id}"]`) as HTMLElement | null;
+        if (!portEl) return;
+        const portRect = portEl.getBoundingClientRect();
+        const endX = (portRect.left + portRect.width / 2 - boardRect.left) / scale;
+        const endY = (portRect.top + portRect.height / 2 - boardRect.top) / scale;
+
+        const dx = Math.max(24, endX - pillRightX);
+        const cp1X = pillRightX + dx * 0.5;
+        const cp1Y = pillCenterY;
+        const cp2X = endX - dx * 0.5;
+        const cp2Y = endY;
+        const d = `M ${pillRightX} ${pillCenterY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`;
+
+        const colStyles = getColumnStyles(col);
+        const color = colStyles.dotHex || colStyles.accentHex;
+
+        newWires.push({
+          id: `wire-in-${fIdx}-${col.id}`,
+          d,
+          color,
+          isDash: isLivePreview,
+        });
+      });
+    });
+
+    setWires(newWires);
+  }, [workingColumns, pipelineFields, zoomLevel, isLivePreview]);
+
+  useLayoutEffect(() => {
+    updateWires();
+    const t1 = setTimeout(updateWires, 20);
+    const t2 = setTimeout(updateWires, 100);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [updateWires]);
+
+  useEffect(() => {
+    if (!boardRef.current || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      updateWires();
+    });
+    ro.observe(boardRef.current);
+    const children = boardRef.current.children;
+    for (let i = 0; i < children.length; i++) {
+      ro.observe(children[i]);
+    }
+    return () => ro.disconnect();
+  }, [updateWires]);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateWires);
+    return () => window.removeEventListener("resize", updateWires);
+  }, [updateWires]);
+
+  useEffect(() => {
+    const timer = setTimeout(updateWires, 160);
+    return () => clearTimeout(timer);
+  }, [isLibraryOpen, isInspectorOpen, isExpanded, updateWires]);
 
   const handleSavePipeline = () => {
     setIsSaving(true);
@@ -1230,13 +1367,33 @@ export function VisualFlowModal({
               >
                 {/* Scalable & Pannable Graph Stage Board */}
                 <div
-                  className="flex items-center justify-center gap-3 sm:gap-4 select-none"
+                  ref={boardRef}
+                  className="flex items-center justify-center gap-3 sm:gap-4 select-none relative"
                   style={{
                     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel / 100})`,
                     transformOrigin: "center center",
                     transition: isPanning ? "none" : "transform 0.15s ease-out",
                   }}
                 >
+                  {/* Dynamic Multi-Stage Connection Wires */}
+                  <svg
+                    className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-0"
+                    style={{ minWidth: "100%", minHeight: "100%" }}
+                  >
+                    {wires.map((w) => (
+                      <path
+                        key={w.id}
+                        d={w.d}
+                        fill="none"
+                        stroke={w.color}
+                        strokeWidth="2.5"
+                        strokeDasharray={w.isDash ? "6 6" : "none"}
+                        className={w.isDash ? "animate-pulse" : "transition-all duration-150"}
+                        strokeLinecap="round"
+                      />
+                    ))}
+                  </svg>
+
                   {pipelineFields.map((field, fIdx) => {
                     const fieldCols = workingColumns.filter(
                       (c) => getColumnFieldId(c, pipelineFields) === field.id && !c.inLibrary
@@ -1280,13 +1437,6 @@ export function VisualFlowModal({
                             borderColor: isDragOver ? undefined : styles.borderColor,
                           }}
                         >
-                          {/* Left Input Port */}
-                          {!isFirst && (
-                            <div
-                              className="w-3 h-3 rounded-full border-2 border-white shadow-sm absolute -left-1.5 top-1/2 -translate-y-1/2 z-10"
-                              style={{ backgroundColor: styles.portBg }}
-                            />
-                          )}
 
                           {/* Container Header */}
                           <div
@@ -1414,6 +1564,24 @@ export function VisualFlowModal({
                                       : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
                                   }`}
                                 >
+                                  {/* Left Input Port Dot on Card (if not first field) */}
+                                  {!isFirst && !col.hidden && (
+                                    <div
+                                      data-port-input={col.id}
+                                      className="w-2.5 h-2.5 rounded-full border-2 border-white shadow-xs absolute -left-1.25 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
+                                      style={{ backgroundColor: colStyles.dotHex || colStyles.accentHex }}
+                                    />
+                                  )}
+
+                                  {/* Right Output Port Dot on Card (if not last field) */}
+                                  {!isLast && !col.hidden && (
+                                    <div
+                                      data-port-output={col.id}
+                                      className="w-2.5 h-2.5 rounded-full border-2 border-white shadow-xs absolute -right-1.25 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
+                                      style={{ backgroundColor: colStyles.dotHex || colStyles.accentHex }}
+                                    />
+                                  )}
+
                                   {/* High-Fidelity Glow Drop Line Indicator */}
                                   {dragOverColId === col.id && draggedStageId !== col.id && (
                                     <div
@@ -1529,104 +1697,11 @@ export function VisualFlowModal({
                             </button>
                           </div>
 
-                          {/* Right Output Connector Port */}
-                          {!isLast && (
-                            <div
-                              className="w-3 h-3 rounded-full border-2 border-white shadow-sm absolute -right-1.5 top-1/2 -translate-y-1/2 z-10"
-                              style={{ backgroundColor: styles.portBg }}
-                            />
-                          )}
                         </div>
 
-                        {/* Connector Wires & Transition Pill between fields */}
+                        {/* Connector Transition Pill between fields */}
                         {!isLast && nextField && (
-                          <div className="w-28 sm:w-32 h-36 relative shrink-0 flex items-center justify-center">
-                            <svg className="w-full h-full overflow-visible" viewBox="0 0 100 160">
-                              {isFirst && fieldCols.length >= 2 ? (
-                                <>
-                                  <path
-                                    d="M 0 50 C 25 50, 25 80, 50 80"
-                                    fill="none"
-                                    stroke={styles.wireStroke}
-                                    strokeWidth="2.5"
-                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
-                                    className={isLivePreview ? "animate-pulse" : ""}
-                                  />
-                                  <path
-                                    d="M 0 110 C 25 110, 25 80, 50 80"
-                                    fill="none"
-                                    stroke={styles.wireStroke}
-                                    strokeWidth="2.5"
-                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
-                                    className={isLivePreview ? "animate-pulse" : ""}
-                                  />
-                                  <path
-                                    d="M 50 80 L 100 80"
-                                    fill="none"
-                                    stroke={styles.wireStroke}
-                                    strokeWidth="2.5"
-                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
-                                    className={isLivePreview ? "animate-pulse" : ""}
-                                  />
-                                </>
-                              ) : (nextField.id === "outcomes" || nextField.type === "outcome") &&
-                                workingColumns.filter(
-                                  (c) => getColumnFieldId(c, pipelineFields) === nextField.id && !c.inLibrary
-                                ).length >= 3 ? (
-                                <>
-                                  <path
-                                    d="M 0 80 L 50 80"
-                                    fill="none"
-                                    stroke={styles.wireStroke}
-                                    strokeWidth="2.5"
-                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
-                                    className={isLivePreview ? "animate-pulse" : ""}
-                                  />
-                                  <path
-                                    d="M 50 80 C 75 80, 75 30, 100 30"
-                                    fill="none"
-                                    stroke="#a855f7"
-                                    strokeWidth="2.5"
-                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
-                                    className={isLivePreview ? "animate-pulse" : ""}
-                                  />
-                                  <path
-                                    d="M 50 80 C 75 80, 75 65, 100 65"
-                                    fill="none"
-                                    stroke="#10b981"
-                                    strokeWidth="2.5"
-                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
-                                    className={isLivePreview ? "animate-pulse" : ""}
-                                  />
-                                  <path
-                                    d="M 50 80 C 75 80, 75 95, 100 95"
-                                    fill="none"
-                                    stroke="#f43f5e"
-                                    strokeWidth="2.5"
-                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
-                                    className={isLivePreview ? "animate-pulse" : ""}
-                                  />
-                                  <path
-                                    d="M 50 80 C 75 80, 75 130, 100 130"
-                                    fill="none"
-                                    stroke="#64748b"
-                                    strokeWidth="2.5"
-                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
-                                    className={isLivePreview ? "animate-pulse" : ""}
-                                  />
-                                </>
-                              ) : (
-                                <path
-                                  d="M 0 80 L 100 80"
-                                  fill="none"
-                                  stroke={styles.wireStroke}
-                                  strokeWidth="2.5"
-                                  strokeDasharray={isLivePreview ? "6 6" : "none"}
-                                  className={isLivePreview ? "animate-pulse" : ""}
-                                />
-                              )}
-                            </svg>
-
+                          <div className="w-24 sm:w-28 h-36 relative shrink-0 flex items-center justify-center z-10 pointer-events-auto">
                             {(() => {
                               const conn = getResolvedFieldConnector(field, fIdx, pipelineFields);
                               const connStyles = getConnectorStyles(conn.colorTheme);
@@ -1636,9 +1711,10 @@ export function VisualFlowModal({
 
                               return (
                                 <button
+                                  data-connector-btn={fIdx}
                                   type="button"
                                   onClick={() => setEditingConnector({ field, fIdx })}
-                                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs z-10 select-none whitespace-nowrap transition cursor-pointer flex items-center gap-1 hover:scale-105 active:scale-95 group ${
+                                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs z-20 select-none whitespace-nowrap transition cursor-pointer flex items-center gap-1 hover:scale-105 active:scale-95 group ${
                                     conn.hidden
                                       ? "opacity-50 hover:opacity-100 border-dashed bg-slate-100/90 text-slate-500"
                                       : "hover:shadow-sm"
