@@ -1590,27 +1590,36 @@ export function VisualFlowModal({
                           <button
                             type="button"
                             onClick={() => toggleHide(selectedCol.id)}
-                            className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-between transition cursor-pointer shadow-2xs ${
+                            className={`w-full h-9 px-3 rounded-xl border text-xs font-semibold flex items-center justify-between transition cursor-pointer shadow-2xs select-none ${
                               selectedCol.hidden
-                                ? "bg-rose-50 border-rose-300 text-rose-700 ring-2 ring-rose-400/20"
-                                : "bg-emerald-50 border-emerald-200 text-emerald-800"
+                                ? "bg-rose-50 hover:bg-rose-100/70 border-rose-300 text-rose-700 ring-2 ring-rose-400/20"
+                                : "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-200 text-emerald-800"
                             }`}
+                            title={selectedCol.hidden ? "Click to show on board" : "Click to hide from board"}
                           >
-                            <span className="flex items-center gap-1.5 font-bold">
+                            <span className="flex items-center gap-2 font-bold whitespace-nowrap">
                               {selectedCol.hidden ? (
                                 <>
-                                  <EyeOff className="w-3.5 h-3.5 text-rose-600" />
+                                  <EyeOff className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                                   <span>Hidden from Board</span>
                                 </>
                               ) : (
                                 <>
-                                  <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                                  <Eye className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                   <span>Visible on Board</span>
                                 </>
                               )}
                             </span>
-                            <span className="text-[10px] font-bold underline opacity-80">
-                              {selectedCol.hidden ? "Click to Show" : "Click to Hide"}
+                            <span
+                              className={`w-7 h-4 rounded-full p-0.5 transition-colors shrink-0 flex items-center ${
+                                selectedCol.hidden ? "bg-slate-300" : "bg-emerald-500"
+                              }`}
+                            >
+                              <span
+                                className={`w-3 h-3 rounded-full bg-white shadow-xs transform transition-transform duration-200 block ${
+                                  selectedCol.hidden ? "translate-x-0" : "translate-x-3"
+                                }`}
+                              />
                             </span>
                           </button>
                         </div>
