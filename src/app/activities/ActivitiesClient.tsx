@@ -67,6 +67,7 @@ import { ColumnEditModal } from "@/components/activities/ColumnEditModal";
 import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
 import { HowItWorksModal } from "@/components/activities/HowItWorksModal";
 import { MoveActivityModal } from "@/components/activities/MoveActivityModal";
+import { ActivityDetailsModal } from "@/components/activities/ActivityDetailsModal";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { usePrompt } from "@/components/ui/PromptModal";
@@ -405,6 +406,7 @@ export function ActivitiesClient({
 
   const [activeKebabActivityId, setActiveKebabActivityId] = useState<string | null>(null);
   const [movingActivity, setMovingActivity] = useState<ActivityItem | null>(null);
+  const [selectedActivityForDetails, setSelectedActivityForDetails] = useState<ActivityItem | null>(null);
 
   const handleEditActivityTitle = async (activityId: string, currentTitle: string) => {
     const newTitle = await prompt({
@@ -1288,16 +1290,20 @@ export function ActivitiesClient({
                                       </button>
                                     )}
 
-                                    <Link
-                                      href={`/activities/${act.id}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition text-left"
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveKebabActivityId(null);
+                                        setSelectedActivityForDetails(act);
+                                      }}
+                                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition text-left cursor-pointer"
                                     >
                                       <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
                                         <ExternalLink className="w-3 h-3" />
                                       </div>
                                       <span>View Details</span>
-                                    </Link>
+                                    </button>
 
                                     <div className="border-t border-slate-100 my-1" />
 
@@ -1340,13 +1346,14 @@ export function ActivitiesClient({
                                     >
                                       <ChevronDown className="w-3.5 h-3.5" />
                                     </button>
-                                    <Link
-                                      href={`/activities/${act.id}`}
-                                      className="font-bold text-xs text-slate-800 hover:text-purple-600 transition truncate block"
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedActivityForDetails(act)}
+                                      className="font-bold text-xs text-slate-800 hover:text-purple-600 transition truncate block text-left cursor-pointer"
                                       title={act.title}
                                     >
                                       {act.title}
-                                    </Link>
+                                    </button>
                                   </div>
 
                                   <div className="flex items-center gap-1.5 shrink-0">
@@ -1428,12 +1435,14 @@ export function ActivitiesClient({
                                   >
                                     <ChevronUp className="w-3.5 h-3.5" />
                                   </button>
-                                  <Link
-                                    href={`/activities/${act.id}`}
-                                    className="font-bold text-xs text-slate-900 hover:text-indigo-600 transition block line-clamp-2 leading-snug flex-1"
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedActivityForDetails(act)}
+                                    className="font-bold text-xs text-slate-900 hover:text-purple-600 transition block line-clamp-2 leading-snug flex-1 text-left cursor-pointer"
+                                    title={act.title}
                                   >
                                     {act.title}
-                                  </Link>
+                                  </button>
                                 </div>
                                 {kebabMenu}
                               </div>
@@ -1520,13 +1529,14 @@ export function ActivitiesClient({
                                   </div>
 
                                   {/* Notes / Details [≡] Button */}
-                                  <Link
-                                    href={`/activities/${act.id}`}
-                                    className="w-6 h-6 rounded-md flex items-center justify-center border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 transition"
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedActivityForDetails(act)}
+                                    className="w-6 h-6 rounded-md flex items-center justify-center border border-slate-200 bg-white hover:bg-purple-50 text-slate-500 hover:text-purple-600 transition cursor-pointer"
                                     title="View activity details and brief"
                                   >
                                     <AlignLeft className="w-3 h-3" />
-                                  </Link>
+                                  </button>
                                 </div>
 
                                 {/* Owner avatar */}
@@ -1583,12 +1593,13 @@ export function ActivitiesClient({
                                   )}
 
                                   {act.status === "awaiting_review" && (
-                                    <Link
-                                      href={`/activities/${act.id}`}
-                                      className="flex-1 flex items-center justify-center gap-1 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold py-1 px-2 rounded-lg transition"
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedActivityForDetails(act)}
+                                      className="flex-1 flex items-center justify-center gap-1 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-semibold py-1 px-2 rounded-lg transition cursor-pointer"
                                     >
                                       Review <ArrowRight className="w-3 h-3" />
-                                    </Link>
+                                    </button>
                                   )}
 
                                   {act.status === "failed" && (
@@ -1617,20 +1628,22 @@ export function ActivitiesClient({
                                   )}
 
                                   {act.status === "passed" && (
-                                    <Link
-                                      href={`/activities/${act.id}`}
-                                      className="flex-1 text-center text-[11px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 py-1 px-2 rounded-lg transition"
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedActivityForDetails(act)}
+                                      className="flex-1 text-center text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 py-1 px-2 rounded-lg transition cursor-pointer"
                                     >
                                       Completed ✓
-                                    </Link>
+                                    </button>
                                   )}
 
-                                  <Link
-                                    href={`/activities/${act.id}`}
-                                    className="text-center text-[11px] font-medium text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 py-1 px-2 rounded-lg transition shrink-0"
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedActivityForDetails(act)}
+                                    className="text-center text-[11px] font-medium text-slate-600 hover:text-purple-700 bg-slate-50 hover:bg-purple-50 border border-slate-200/80 hover:border-purple-200 py-1 px-2.5 rounded-lg transition shrink-0 cursor-pointer"
                                   >
                                     Details
-                                  </Link>
+                                  </button>
                                 </div>
 
                                 {/* "Move to" Action Button */}
@@ -1873,12 +1886,13 @@ export function ActivitiesClient({
                               )}
                             </div>
 
-                            <Link
-                              href={`/activities/${act.id}`}
-                              className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition block truncate"
+                            <button
+                              type="button"
+                              onClick={() => setSelectedActivityForDetails(act)}
+                              className="font-bold text-slate-900 text-sm hover:text-purple-600 transition block truncate text-left cursor-pointer"
                             >
                               {act.title}
-                            </Link>
+                            </button>
 
                             <p className="text-xs text-slate-500 line-clamp-1">{act.brief}</p>
 
@@ -1930,12 +1944,14 @@ export function ActivitiesClient({
                               </button>
                             )}
 
-                            <Link
-                              href={`/activities/${act.id}`}
-                              className="text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition flex items-center gap-1"
+                            <button
+                              type="button"
+                              onClick={() => setSelectedActivityForDetails(act)}
+                              className="text-xs font-medium text-slate-600 hover:text-purple-700 bg-slate-100 hover:bg-purple-50 border border-slate-200/80 hover:border-purple-200 px-3 py-1.5 rounded-xl transition flex items-center gap-1 cursor-pointer"
                             >
-                              View <ExternalLink className="w-3 h-3" />
-                            </Link>
+                              <span>Details</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
                           </div>
                         </div>
                       );
@@ -2488,6 +2504,17 @@ export function ActivitiesClient({
         activity={movingActivity}
         flowColumns={flowColumns}
         onConfirmMove={handleChainTransition}
+      />
+
+      {/* Activity Quick Details Modal */}
+      <ActivityDetailsModal
+        isOpen={!!selectedActivityForDetails}
+        onClose={() => setSelectedActivityForDetails(null)}
+        activity={selectedActivityForDetails}
+        flowColumns={flowColumns}
+        onMoveTo={(act) => setMovingActivity(act as ActivityItem)}
+        onEditTitle={(id, currentTitle) => handleEditActivityTitle(id, currentTitle)}
+        onStatusChange={handleChainTransition}
       />
     </div>
   );
