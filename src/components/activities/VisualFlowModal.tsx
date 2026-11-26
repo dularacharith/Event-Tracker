@@ -1421,7 +1421,7 @@ export function VisualFlowModal({
                         stroke={w.color}
                         strokeWidth="2.5"
                         strokeDasharray={w.isDash ? "6 6" : "none"}
-                        className={w.isDash ? "animate-pulse" : "transition-all duration-150"}
+                        className={w.isDash ? "animate-pulse" : ""}
                         strokeLinecap="round"
                       />
                     ))}
@@ -1460,7 +1460,7 @@ export function VisualFlowModal({
                             }
                             setDragOverSection(null);
                           }}
-                          className={`w-52 sm:w-60 rounded-2xl p-3 flex flex-col gap-2 shadow-xs relative transition shrink-0 border-2 ${
+                          className={`w-52 sm:w-60 rounded-2xl p-3 flex flex-col gap-2 shadow-xs relative transition-colors shrink-0 border-2 ${
                             isDragOver
                               ? "border-purple-500 ring-4 ring-purple-500/20"
                               : ""
@@ -1585,7 +1585,7 @@ export function VisualFlowModal({
                                     setDraggedStageId(null);
                                   }}
                                   onClick={() => setSelectedColId(col.id)}
-                                  className={`rounded-xl p-2.5 border transition-all duration-150 cursor-pointer flex items-center justify-between shadow-2xs relative select-none group ${
+                                  className={`rounded-xl p-2.5 border transition-colors duration-150 cursor-pointer flex items-center justify-between shadow-2xs relative select-none group ${
                                     draggedStageId === col.id
                                       ? "opacity-30 scale-[0.98] border-dashed border-purple-400 bg-purple-50/50 shadow-none ring-0"
                                       : dragOverColId === col.id
