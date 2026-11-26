@@ -45,6 +45,7 @@ import {
   DEFAULT_PIPELINE_FIELDS,
   loadPipelineFields,
   savePipelineFields,
+  saveFlowColumns,
   getColumnFieldId,
   getFieldStyles,
   COLOR_THEMES,
@@ -65,6 +66,7 @@ interface VisualFlowModalProps {
   activitiesCountByStatus: Record<string, number>;
   pipelineFields?: PipelineField[];
   onUpdateFields?: (fields: PipelineField[]) => void;
+  workspaceId?: string;
 }
 
 export function VisualFlowModal({
@@ -78,6 +80,7 @@ export function VisualFlowModal({
   activitiesCountByStatus,
   pipelineFields: initialPipelineFields,
   onUpdateFields,
+  workspaceId,
 }: VisualFlowModalProps) {
   const confirm = useConfirm();
   const { toast } = useToast();
@@ -151,6 +154,8 @@ export function VisualFlowModal({
   const [draggedStageId, setDraggedStageId] = useState<string | null>(null);
   const [dragOverColId, setDragOverColId] = useState<string | null>(null);
   const [dragOverSection, setDragOverSection] = useState<string | null>(null);
+  const [dragOverDropzoneSection, setDragOverDropzoneSection] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<"above" | "below">("below");
 
   // Canvas Pan (Hand Tool) State
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -177,20 +182,7 @@ export function VisualFlowModal({
     setIsDirty(false);
   }, [columns]);
 
-  // Debounced Auto-Save: Automatically commit changes 1.8s after last edit
-  useEffect(() => {
-    if (!isDirty || !isOpen) return;
-
-    const autoSaveTimer = setTimeout(() => {
-      onUpdateColumns(workingColumns);
-      setSavedColumns(workingColumns);
-      savePipelineFields(undefined, pipelineFields);
-      if (onUpdateFields) onUpdateFields(pipelineFields);
-      setIsDirty(false);
-    }, 1800);
-
-    return () => clearTimeout(autoSaveTimer);
-  }, [workingColumns, pipelineFields, isDirty, isOpen, onUpdateColumns, onUpdateFields]);
+  // Live synchronization: changes are committed immediately to overview and storage
 
   // Selected column object
   const selectedCol = useMemo(() => {
@@ -207,7 +199,7 @@ export function VisualFlowModal({
     onUpdateColumns(sorted);
     setSavedColumns(sorted);
     setWorkingColumns(sorted);
-    savePipelineFields(undefined, pipelineFields);
+    savePipelineFields(workspaceId, pipelineFields);
     if (onUpdateFields) onUpdateFields(pipelineFields);
     setIsDirty(false);
     setTimeout(() => {
@@ -217,11 +209,7 @@ export function VisualFlowModal({
   };
 
   const handleRequestClose = () => {
-    if (isDirty) {
-      setShowUnsavedPrompt(true);
-    } else {
-      onClose();
-    }
+    onClose();
   };
 
   const handleSaveAndClose = () => {
@@ -229,7 +217,7 @@ export function VisualFlowModal({
     onUpdateColumns(sorted);
     setSavedColumns(sorted);
     setWorkingColumns(sorted);
-    savePipelineFields(undefined, pipelineFields);
+    savePipelineFields(workspaceId, pipelineFields);
     if (onUpdateFields) onUpdateFields(pipelineFields);
     setIsDirty(false);
     setShowUnsavedPrompt(false);
@@ -265,11 +253,17 @@ export function VisualFlowModal({
 
   if (!isOpen || !mounted) return null;
 
-  const pushHistory = (newCols: FlowColumn[]) => {
+  const pushHistory = (newCols: FlowColumn[], fields: PipelineField[] = pipelineFields) => {
     setHistory((prev) => [...prev, workingColumns]);
     setFuture([]);
-    setWorkingColumns(newCols);
-    setIsDirty(true);
+    const sorted = sortColumnsByPipeline(newCols, fields);
+    setWorkingColumns(sorted);
+    setSavedColumns(sorted);
+    onUpdateColumns(sorted);
+    saveFlowColumns(workspaceId, sorted);
+    savePipelineFields(workspaceId, fields);
+    if (onUpdateFields) onUpdateFields(fields);
+    setIsDirty(false);
   };
 
   const handleUndo = () => {
@@ -277,8 +271,11 @@ export function VisualFlowModal({
     const prev = history[history.length - 1];
     setFuture((f) => [workingColumns, ...f]);
     setHistory((h) => h.slice(0, -1));
-    setWorkingColumns(prev);
-    setIsDirty(true);
+    const sorted = sortColumnsByPipeline(prev, pipelineFields);
+    setWorkingColumns(sorted);
+    setSavedColumns(sorted);
+    onUpdateColumns(sorted);
+    saveFlowColumns(workspaceId, sorted);
     toast.info("Action undone", "Restored previous flow configuration.");
   };
 
@@ -287,8 +284,11 @@ export function VisualFlowModal({
     const next = future[0];
     setHistory((h) => [...h, workingColumns]);
     setFuture((f) => f.slice(1));
-    setWorkingColumns(next);
-    setIsDirty(true);
+    const sorted = sortColumnsByPipeline(next, pipelineFields);
+    setWorkingColumns(sorted);
+    setSavedColumns(sorted);
+    onUpdateColumns(sorted);
+    saveFlowColumns(workspaceId, sorted);
     toast.info("Action redone", "Reapplied flow configuration.");
   };
 
@@ -297,6 +297,13 @@ export function VisualFlowModal({
       c.id === colId ? { ...c, hidden: !c.hidden } : c
     );
     pushHistory(updated);
+    const target = updated.find((c) => c.id === colId);
+    toast.success(
+      target?.hidden ? "Stage hidden" : "Stage visible",
+      target?.hidden
+        ? `"${target.label}" is now hidden from the board.`
+        : `"${target?.label}" is now visible on the board.`
+    );
   };
 
   const handleRename = (colId: string, newLabel: string) => {
@@ -355,8 +362,12 @@ export function VisualFlowModal({
     }
   };
 
-  // Reordering via Drag and Drop
-  const handleDropOnCard = (sourceId: string, targetId: string) => {
+  // Reordering via Drag and Drop with precise above/below detection
+  const handleDropOnCard = (
+    sourceId: string,
+    targetId: string,
+    position: "above" | "below" = "below"
+  ) => {
     if (sourceId === targetId) return;
     const sourceIdx = workingColumns.findIndex((c) => c.id === sourceId);
     const targetIdx = workingColumns.findIndex((c) => c.id === targetId);
@@ -366,11 +377,24 @@ export function VisualFlowModal({
     const newCols = [...workingColumns];
     const [moved] = newCols.splice(sourceIdx, 1);
     const updatedMoved = { ...moved, field: targetFieldId };
-    newCols.splice(targetIdx, 0, updatedMoved);
+
+    // Find new index of target in newCols after removing source
+    let newTargetIdx = newCols.findIndex((c) => c.id === targetId);
+    if (newTargetIdx === -1) {
+      newCols.push(updatedMoved);
+    } else {
+      const insertionIdx = position === "below" ? newTargetIdx + 1 : newTargetIdx;
+      newCols.splice(insertionIdx, 0, updatedMoved);
+    }
+
     pushHistory(newCols);
-    toast.success("Stage reordered", `Moved "${moved.label}"`);
+    toast.success(
+      "Stage reordered",
+      `Moved "${moved.label}" ${position === "above" ? "above" : "below"} ${workingColumns[targetIdx].label}`
+    );
     setDraggedStageId(null);
     setDragOverColId(null);
+    setDropPosition("below");
   };
 
   const handleDropToSection = (targetSectionId: string) => {
@@ -379,21 +403,22 @@ export function VisualFlowModal({
     if (sourceIdx === -1) return;
 
     const newCols = [...workingColumns];
-    const moved = { ...newCols[sourceIdx], field: targetSectionId };
-    newCols.splice(sourceIdx, 1);
+    const [moved] = newCols.splice(sourceIdx, 1);
+    const updatedMoved = { ...moved, field: targetSectionId };
 
-    // Find insertion index in newCols for this field
-    let targetIndex = -1;
+    // Find last index of this section in newCols
+    let lastSectionIdx = -1;
     for (let i = newCols.length - 1; i >= 0; i--) {
       if (getColumnFieldId(newCols[i], pipelineFields) === targetSectionId) {
-        targetIndex = i + 1;
+        lastSectionIdx = i;
         break;
       }
     }
-    if (targetIndex === -1) {
-      newCols.push(moved);
+
+    if (lastSectionIdx !== -1) {
+      newCols.splice(lastSectionIdx + 1, 0, updatedMoved);
     } else {
-      newCols.splice(targetIndex, 0, moved);
+      newCols.push(updatedMoved);
     }
 
     pushHistory(newCols);
@@ -404,6 +429,8 @@ export function VisualFlowModal({
     );
     setDraggedStageId(null);
     setDragOverSection(null);
+    setDragOverColId(null);
+    setDragOverDropzoneSection(null);
   };
 
   const handleAssignStageField = (colId: string, fieldId: string) => {
@@ -435,9 +462,7 @@ export function VisualFlowModal({
       updated.push(newField);
     }
     setPipelineFields(updated);
-    savePipelineFields(undefined, updated);
-    if (onUpdateFields) onUpdateFields(updated);
-    setIsDirty(true);
+    pushHistory(workingColumns, updated);
     setIsAddFieldModalOpen(false);
     setNewFieldName("");
     toast.success("Field added", `Added "${newField.name}" to pipeline`);
@@ -458,9 +483,7 @@ export function VisualFlowModal({
         : f
     );
     setPipelineFields(updated);
-    savePipelineFields(undefined, updated);
-    if (onUpdateFields) onUpdateFields(updated);
-    setIsDirty(true);
+    pushHistory(workingColumns, updated);
     setIsEditFieldModalOpen(false);
     toast.success("Field updated", `Updated "${editFieldName.trim()}"`);
   };
@@ -480,12 +503,8 @@ export function VisualFlowModal({
       getColumnFieldId(c, pipelineFields) === fieldId ? { ...c, field: "outcomes" } : c
     );
     const updatedFields = pipelineFields.filter((f) => f.id !== fieldId);
-    setWorkingColumns(updatedCols);
-    pushHistory(updatedCols);
     setPipelineFields(updatedFields);
-    savePipelineFields(undefined, updatedFields);
-    if (onUpdateFields) onUpdateFields(updatedFields);
-    setIsDirty(true);
+    pushHistory(updatedCols, updatedFields);
     setIsEditFieldModalOpen(false);
     toast.success("Field deleted", `Removed "${field.name}"`);
   };
@@ -1027,10 +1046,17 @@ export function VisualFlowModal({
                             e.preventDefault();
                             setDragOverSection(field.id);
                           }}
-                          onDragLeave={() => setDragOverSection(null)}
+                          onDragLeave={(e) => {
+                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                              setDragOverSection(null);
+                            }
+                          }}
                           onDrop={(e) => {
                             e.preventDefault();
-                            handleDropToSection(field.id);
+                            if (draggedStageId) {
+                              handleDropToSection(field.id);
+                            }
+                            setDragOverSection(null);
                           }}
                           className={`w-52 sm:w-60 rounded-2xl p-3 flex flex-col gap-2 shadow-xs relative transition shrink-0 border-2 ${
                             isDragOver
@@ -1129,29 +1155,65 @@ export function VisualFlowModal({
                                   draggable
                                   onDragStart={(e) => {
                                     e.dataTransfer.setData("text/plain", col.id);
+                                    e.dataTransfer.effectAllowed = "move";
                                     setDraggedStageId(col.id);
                                   }}
-                                  onDragEnd={() => setDraggedStageId(null)}
+                                  onDragEnd={() => {
+                                    setDraggedStageId(null);
+                                    setDragOverColId(null);
+                                    setDragOverSection(null);
+                                    setDragOverDropzoneSection(null);
+                                  }}
                                   onDragOver={(e) => {
                                     e.preventDefault();
-                                    setDragOverColId(col.id);
+                                    e.stopPropagation();
+                                    if (draggedStageId && draggedStageId !== col.id) {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      const isTop = e.clientY < rect.top + rect.height / 2;
+                                      const pos = isTop ? "above" : "below";
+                                      setDragOverColId(col.id);
+                                      setDropPosition(pos);
+                                    }
                                   }}
-                                  onDragLeave={() => setDragOverColId(null)}
+                                  onDragLeave={(e) => {
+                                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                      setDragOverColId((prev) => (prev === col.id ? null : prev));
+                                    }
+                                  }}
                                   onDrop={(e) => {
                                     e.preventDefault();
-                                    if (draggedStageId) handleDropOnCard(draggedStageId, col.id);
+                                    e.stopPropagation();
+                                    if (draggedStageId && draggedStageId !== col.id) {
+                                      handleDropOnCard(draggedStageId, col.id, dropPosition);
+                                    }
+                                    setDragOverColId(null);
+                                    setDraggedStageId(null);
                                   }}
                                   onClick={() => setSelectedColId(col.id)}
-                                  className={`rounded-xl p-2.5 border transition cursor-pointer flex items-center justify-between shadow-2xs ${
-                                    dragOverColId === col.id
-                                      ? "border-purple-500 ring-2 ring-purple-500/40 bg-purple-50"
+                                  className={`rounded-xl p-2.5 border transition-all duration-150 cursor-pointer flex items-center justify-between shadow-2xs relative select-none ${
+                                    draggedStageId === col.id
+                                      ? "opacity-30 scale-[0.98] border-dashed border-purple-400 bg-purple-50/50 shadow-none ring-0"
+                                      : dragOverColId === col.id
+                                      ? "border-purple-500 ring-2 ring-purple-500/40 bg-purple-50/80 shadow-xs"
                                       : isSelected
                                       ? "bg-purple-50/80 border-purple-500 ring-2 ring-purple-500/20 shadow-xs"
                                       : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
                                   } ${col.hidden ? "opacity-50 border-dashed" : ""}`}
                                 >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <GripVertical className="w-3 h-3 text-slate-300 hover:text-slate-500 shrink-0" />
+                                  {/* High-Fidelity Glow Drop Line Indicator */}
+                                  {dragOverColId === col.id && draggedStageId !== col.id && (
+                                    <div
+                                      className={`absolute inset-x-2 h-1 rounded-full bg-purple-600 shadow-md shadow-purple-500/50 z-30 pointer-events-none transition-all ${
+                                        dropPosition === "above" ? "-top-1" : "-bottom-1"
+                                      }`}
+                                    >
+                                      <div className="absolute -left-1 -top-0.5 w-2 h-2 rounded-full bg-purple-600 shadow-xs ring-2 ring-white" />
+                                      <div className="absolute -right-1 -top-0.5 w-2 h-2 rounded-full bg-purple-600 shadow-xs ring-2 ring-white" />
+                                    </div>
+                                  )}
+
+                                  <div className={`flex items-center gap-2 min-w-0 ${draggedStageId ? "pointer-events-none" : ""}`}>
+                                    <GripVertical className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 shrink-0 cursor-grab" />
                                     <span
                                       className={`w-2 h-2 rounded-full shrink-0 ${colStyles.dotClass}`}
                                       style={colStyles.dotStyle}
@@ -1166,14 +1228,14 @@ export function VisualFlowModal({
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center gap-1 text-slate-400 shrink-0">
+                                  <div className={`flex items-center gap-1 text-slate-400 shrink-0 ${draggedStageId ? "pointer-events-none" : ""}`}>
                                     <button
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         toggleHide(col.id);
                                       }}
-                                      className="p-0.5 hover:text-slate-700 rounded transition cursor-pointer"
+                                      className="p-1 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
                                       title={col.hidden ? "Show in flow" : "Hide from flow"}
                                     >
                                       {col.hidden ? (
@@ -1188,7 +1250,7 @@ export function VisualFlowModal({
                                         e.stopPropagation();
                                         onOpenEditColumn(col);
                                       }}
-                                      className="p-0.5 hover:text-slate-700 rounded transition cursor-pointer"
+                                      className="p-1 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
                                       title="Edit stage settings"
                                     >
                                       <Settings className="w-3.5 h-3.5" />
@@ -1202,7 +1264,29 @@ export function VisualFlowModal({
                             <button
                               type="button"
                               onClick={() => onOpenCreateColumn(field.id)}
-                              className="w-full py-2 rounded-xl border border-dashed border-slate-300 hover:border-purple-500 bg-white hover:bg-purple-50/50 text-slate-600 hover:text-purple-700 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDragOverDropzoneSection(field.id);
+                              }}
+                              onDragLeave={(e) => {
+                                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                  setDragOverDropzoneSection((prev) => (prev === field.id ? null : prev));
+                                }
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (draggedStageId) {
+                                  handleDropToSection(field.id);
+                                }
+                                setDragOverDropzoneSection(null);
+                              }}
+                              className={`w-full py-2.5 rounded-xl border border-dashed transition-all duration-150 text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs ${
+                                dragOverDropzoneSection === field.id
+                                  ? "border-purple-600 bg-purple-100 text-purple-700 ring-2 ring-purple-500/40 scale-[1.01]"
+                                  : "border-slate-300 hover:border-purple-500 bg-white hover:bg-purple-50/50 text-slate-600 hover:text-purple-700"
+                              }`}
                             >
                               <Plus className="w-3.5 h-3.5" />
                               <span>Insert stage here (Drop)</span>

@@ -2706,6 +2706,7 @@ export function ActivitiesClient({
         onUpdateColumns={updateColumns}
         pipelineFields={pipelineFields}
         onUpdateFields={updateFields}
+        workspaceId={currentUser?.id}
         onOpenEditColumn={(col) => {
           setEditingColumn(col);
           setIsEditingNewColumn(false);
