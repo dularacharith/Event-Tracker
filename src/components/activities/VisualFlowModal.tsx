@@ -1125,7 +1125,7 @@ export function VisualFlowModal({
                                       className={`w-2 h-2 rounded-full shrink-0 ${cStyles.dotClass}`}
                                       style={cStyles.dotStyle}
                                     />
-                                    <span className={`text-xs font-semibold truncate ${c.hidden ? "line-through text-slate-400" : ""}`}>
+                                    <span className={`text-xs font-semibold truncate ${c.hidden ? "text-slate-500" : ""}`}>
                                       {c.label}
                                     </span>
                                   </div>
@@ -1602,14 +1602,9 @@ export function VisualFlowModal({
                                     />
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-1.5">
-                                        <span className={`font-bold text-xs uppercase tracking-wider block truncate ${col.hidden ? "text-slate-500 line-through decoration-rose-400" : "text-slate-900"}`}>
+                                        <span className={`font-bold text-xs uppercase tracking-wider block truncate ${col.hidden ? "text-slate-500" : "text-slate-900"}`}>
                                           {col.label}
                                         </span>
-                                        {col.hidden && (
-                                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 shrink-0">
-                                            Hidden
-                                          </span>
-                                        )}
                                       </div>
                                       <span className="text-[10px] text-slate-500 font-medium">
                                         {count} {count === 1 ? "task" : "tasks"}
