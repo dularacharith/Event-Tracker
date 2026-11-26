@@ -334,7 +334,6 @@ export function VisualFlowModal({
     const sorted = sortColumnsByPipeline(prev, pipelineFields);
     setWorkingColumns(sorted);
     setIsDirty(true);
-    toast.info("Action undone", "Restored previous flow configuration.");
   };
 
   const handleRedo = () => {
@@ -345,7 +344,6 @@ export function VisualFlowModal({
     const sorted = sortColumnsByPipeline(next, pipelineFields);
     setWorkingColumns(sorted);
     setIsDirty(true);
-    toast.info("Action redone", "Reapplied flow configuration.");
   };
 
   const toggleHide = (colId: string) => {
@@ -353,13 +351,6 @@ export function VisualFlowModal({
       c.id === colId ? { ...c, hidden: !c.hidden } : c
     );
     pushHistory(updated);
-    const target = updated.find((c) => c.id === colId);
-    toast.success(
-      target?.hidden ? "Stage marked hidden" : "Stage marked visible",
-      target?.hidden
-        ? `"${target.label}" is marked hidden. Click "Save Pipeline" to apply.`
-        : `"${target?.label}" is marked visible. Click "Save Pipeline" to apply.`
-    );
   };
 
   const handleRename = (colId: string, newLabel: string) => {
@@ -414,7 +405,6 @@ export function VisualFlowModal({
       if (selectedColId === colId && remaining.length > 0) {
         setSelectedColId(remaining[0].id);
       }
-      toast.success("Stage deleted", `"${target?.label}" has been removed.`);
     }
   };
 
@@ -444,10 +434,6 @@ export function VisualFlowModal({
     }
 
     pushHistory(newCols);
-    toast.success(
-      "Stage reordered",
-      `Moved "${moved.label}" ${position === "above" ? "above" : "below"} ${workingColumns[targetIdx].label}`
-    );
     setDraggedStageId(null);
     setDragOverColId(null);
     setDropPosition("below");
@@ -478,11 +464,6 @@ export function VisualFlowModal({
     }
 
     pushHistory(newCols);
-    const targetField = pipelineFields.find((f) => f.id === targetSectionId);
-    toast.success(
-      "Stage moved",
-      `Placed "${moved.label}" into ${targetField?.name || targetSectionId}`
-    );
     setDraggedStageId(null);
     setDragOverSection(null);
     setDragOverColId(null);
@@ -494,8 +475,6 @@ export function VisualFlowModal({
       c.id === colId ? { ...c, field: fieldId } : c
     );
     pushHistory(updated);
-    const targetField = pipelineFields.find((f) => f.id === fieldId);
-    toast.success("Stage updated", `Moved to ${targetField?.name || fieldId}`);
   };
 
   const handleCreateField = () => {
@@ -522,7 +501,6 @@ export function VisualFlowModal({
     pushHistory(workingColumns, updated);
     setIsAddFieldModalOpen(false);
     setNewFieldName("");
-    toast.success("Field added", `Added "${newField.name}" to pipeline`);
   };
 
   const handleOpenEditField = (field: PipelineField) => {
@@ -559,7 +537,6 @@ export function VisualFlowModal({
     setPipelineFields(updated);
     pushHistory(workingColumns, updated);
     setIsEditFieldModalOpen(false);
-    toast.success("Field updated", `Updated "${editFieldName.trim()}"`);
   };
 
   const handleSaveConnector = (updatedField: PipelineField) => {
@@ -568,10 +545,6 @@ export function VisualFlowModal({
     );
     setPipelineFields(updated);
     pushHistory(workingColumns, updated);
-    toast.success(
-      "Button updated",
-      `Saved connector button settings.`
-    );
   };
 
   const handleDeleteField = async (fieldId: string) => {
@@ -592,7 +565,6 @@ export function VisualFlowModal({
     setPipelineFields(updatedFields);
     pushHistory(updatedCols, updatedFields);
     setIsEditFieldModalOpen(false);
-    toast.success("Field deleted", `Removed "${field.name}"`);
   };
 
   // Canvas Pan Hand Tool Handlers
@@ -697,15 +669,7 @@ export function VisualFlowModal({
               {/* Live Preview Toggle */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsLivePreview(!isLivePreview);
-                  toast.info(
-                    isLivePreview ? "Preview Paused" : "Live Simulation Active",
-                    isLivePreview
-                      ? "Normal editing mode restored."
-                      : "Simulating live activity flow along pipeline wires."
-                  );
-                }}
+                onClick={() => setIsLivePreview(!isLivePreview)}
                 className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs ${
                   isLivePreview
                     ? "bg-purple-100 border-purple-300 text-purple-800 shadow-sm"
@@ -740,15 +704,7 @@ export function VisualFlowModal({
               {/* Expand / Minimize Full View Toggle Button */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsExpanded((prev) => !prev);
-                  toast.info(
-                    !isExpanded ? "Expanded to Full View" : "Restored Normal View",
-                    !isExpanded
-                      ? "Flow builder taking whole screen space below header."
-                      : "Flow builder returned to standard window view."
-                  );
-                }}
+                onClick={() => setIsExpanded((prev) => !prev)}
                 className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs ${
                   isExpanded
                     ? "bg-purple-50 hover:bg-purple-100/70 border-purple-300 text-purple-800 shadow-sm"
@@ -1808,7 +1764,6 @@ export function VisualFlowModal({
                       });
                       if (ok) {
                         onResetToDefault();
-                        toast.info("Pipeline Reset", "Default 7 workflow stages restored.");
                       }
                     }}
                     className="w-full py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
