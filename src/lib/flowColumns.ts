@@ -307,3 +307,65 @@ export function resetFlowColumns(workspaceId?: string): FlowColumn[] {
   }
   return DEFAULT_FLOW_COLUMNS;
 }
+
+export function getCampaignTagStyle(status?: string | null, customColor?: string | null) {
+  if (customColor) {
+    return {
+      badgeClass: "bg-white text-slate-800 border-slate-300",
+      dotClass: "",
+      dotStyle: { backgroundColor: customColor },
+      style: { borderColor: customColor },
+    };
+  }
+
+  const s = (status || "").toLowerCase().replace(/_/g, " ").trim();
+  switch (s) {
+    case "hold":
+    case "on hold":
+    case "paused":
+      return {
+        badgeClass: "bg-amber-50 text-amber-800 border-amber-200",
+        dotClass: "bg-amber-500",
+        style: undefined,
+        dotStyle: undefined,
+      };
+    case "completed":
+      return {
+        badgeClass: "bg-blue-50 text-blue-800 border-blue-200",
+        dotClass: "bg-blue-500",
+        style: undefined,
+        dotStyle: undefined,
+      };
+    case "canceled":
+    case "cancelled":
+      return {
+        badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
+        dotClass: "bg-slate-400",
+        style: undefined,
+        dotStyle: undefined,
+      };
+    case "failed":
+      return {
+        badgeClass: "bg-rose-50 text-rose-800 border-rose-200",
+        dotClass: "bg-rose-500",
+        style: undefined,
+        dotStyle: undefined,
+      };
+    case "archived":
+      return {
+        badgeClass: "bg-purple-50 text-purple-800 border-purple-200",
+        dotClass: "bg-purple-500",
+        style: undefined,
+        dotStyle: undefined,
+      };
+    case "active":
+    default:
+      return {
+        badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200",
+        dotClass: "bg-emerald-500",
+        style: undefined,
+        dotStyle: undefined,
+      };
+  }
+}
+

@@ -22,7 +22,7 @@ import {
   User as UserIcon,
   Loader2,
 } from "lucide-react";
-import { FlowColumn, getColumnStyles } from "@/lib/flowColumns";
+import { FlowColumn, getColumnStyles, getCampaignTagStyle } from "@/lib/flowColumns";
 import { PlatformIcon } from "@/components/icons/PlatformIcons";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast } from "@/components/Toast";
@@ -31,6 +31,8 @@ export interface ActivityDetailData {
   id: string;
   campaignId: string;
   campaignName?: string | null;
+  campaignStatus?: string | null;
+  campaignColor?: string | null;
   channelId?: string | null;
   channelName?: string | null;
   recurrenceRule?: string | null;
@@ -227,11 +229,25 @@ export function ActivityDetailsModal({
                 </span>
 
                 {/* Campaign */}
-                {currentData.campaignName && (
-                  <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md truncate max-w-[140px]">
-                    {currentData.campaignName}
-                  </span>
-                )}
+                {currentData.campaignName && (() => {
+                  const campStyle = getCampaignTagStyle(
+                    currentData.campaignStatus,
+                    currentData.campaignColor
+                  );
+                  return (
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border truncate max-w-[150px] flex items-center gap-1.5 ${campStyle.badgeClass}`}
+                      style={campStyle.style}
+                      title={`Campaign: ${currentData.campaignName}${currentData.campaignStatus ? ` (${currentData.campaignStatus.replace(/_/g, " ").toUpperCase()})` : ""}`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${campStyle.dotClass}`}
+                        style={campStyle.dotStyle}
+                      />
+                      <span className="truncate">{currentData.campaignName}</span>
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </div>
