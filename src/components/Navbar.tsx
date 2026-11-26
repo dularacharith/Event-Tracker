@@ -23,6 +23,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { useNavigationLoader } from "@/contexts/NavigationLoaderContext";
 import { UserAvatar } from "./UserAvatar";
 import { NotificationCenter } from "./NotificationCenter";
+import { BrandLogoIcon } from "@/components/BrandLogo";
 import { signIn, signOut, useSession } from "@/lib/auth-client";
 
 interface NavbarProps {
@@ -115,6 +116,7 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
             <div className="flex items-center gap-6">
               {isLoginPage ? (
                 <div className="flex items-center gap-2.5 px-2.5 py-1.5 -ml-2 select-none shrink-0">
+                  <BrandLogoIcon className="w-7 h-7" size={28} />
                   <span className="font-extrabold text-xl tracking-tight text-slate-900">
                     Campaign<span className="text-purple-600">Flow</span>
                   </span>
@@ -126,10 +128,11 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                   title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
                   className="flex items-center gap-2.5 group px-2.5 py-1.5 -ml-2 rounded-xl hover:bg-slate-100/80 transition cursor-pointer select-none text-left shrink-0"
                 >
+                  <BrandLogoIcon className="w-7 h-7 group-hover:scale-105 transition-transform duration-200" size={28} />
                   <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-purple-900 transition">
                     Campaign<span className="text-purple-600">Flow</span>
                   </span>
-                  <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
+                  <div className="relative w-4 h-4 flex items-center justify-center shrink-0 ml-0.5">
                     <PanelLeft
                       className={`w-4 h-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] absolute inset-0 ${
                         isExpanded

@@ -22,7 +22,11 @@ export const metadata: Metadata = {
   title: "CampaignFlow — Private Social Campaign Tracker",
   description: "Campaign activity scheduling and review tracker for social media teams",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/icon.png", sizes: "32x32", type: "image/png" },
+      { url: "/images/logo-icon.png", type: "image/png" },
+    ],
+    apple: "/icon-192.png",
   },
 };
 
