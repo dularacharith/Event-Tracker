@@ -34,9 +34,16 @@ import {
   Save,
   AlertTriangle,
   Loader2,
+  FolderPlus,
 } from "lucide-react";
 import {
   FlowColumn,
+  PipelineField,
+  DEFAULT_PIPELINE_FIELDS,
+  loadPipelineFields,
+  savePipelineFields,
+  getColumnFieldId,
+  getFieldStyles,
   COLOR_THEMES,
   getColumnStyles,
 } from "@/lib/flowColumns";
@@ -49,9 +56,11 @@ interface VisualFlowModalProps {
   columns: FlowColumn[];
   onUpdateColumns: (cols: FlowColumn[]) => void;
   onOpenEditColumn: (col: FlowColumn) => void;
-  onOpenCreateColumn: () => void;
+  onOpenCreateColumn: (defaultField?: string) => void;
   onResetToDefault: () => void;
   activitiesCountByStatus: Record<string, number>;
+  pipelineFields?: PipelineField[];
+  onUpdateFields?: (fields: PipelineField[]) => void;
 }
 
 export function VisualFlowModal({
@@ -63,9 +72,35 @@ export function VisualFlowModal({
   onOpenCreateColumn,
   onResetToDefault,
   activitiesCountByStatus,
+  pipelineFields: initialPipelineFields,
+  onUpdateFields,
 }: VisualFlowModalProps) {
   const confirm = useConfirm();
   const { toast } = useToast();
+
+  // Pipeline Fields state (Inputs, Execution, Outcomes + Custom Fields)
+  const [pipelineFields, setPipelineFields] = useState<PipelineField[]>(() => {
+    return initialPipelineFields && initialPipelineFields.length > 0
+      ? initialPipelineFields
+      : loadPipelineFields();
+  });
+
+  useEffect(() => {
+    if (initialPipelineFields && initialPipelineFields.length > 0) {
+      setPipelineFields(initialPipelineFields);
+    }
+  }, [initialPipelineFields]);
+
+  // Add / Edit Field Modals
+  const [isAddFieldModalOpen, setIsAddFieldModalOpen] = useState(false);
+  const [newFieldName, setNewFieldName] = useState("");
+  const [newFieldType, setNewFieldType] = useState<"input" | "execution" | "outcome" | "custom">("execution");
+  const [newFieldColor, setNewFieldColor] = useState("purple");
+
+  const [editingField, setEditingField] = useState<PipelineField | null>(null);
+  const [editFieldName, setEditFieldName] = useState("");
+  const [editFieldColor, setEditFieldColor] = useState("purple");
+  const [isEditFieldModalOpen, setIsEditFieldModalOpen] = useState(false);
 
   // Selected stage for the Stage Inspector
   const [selectedColId, setSelectedColId] = useState<string>("in_progress");
@@ -116,11 +151,13 @@ export function VisualFlowModal({
     const autoSaveTimer = setTimeout(() => {
       onUpdateColumns(workingColumns);
       setSavedColumns(workingColumns);
+      savePipelineFields(undefined, pipelineFields);
+      if (onUpdateFields) onUpdateFields(pipelineFields);
       setIsDirty(false);
     }, 1800);
 
     return () => clearTimeout(autoSaveTimer);
-  }, [workingColumns, isDirty, isOpen, onUpdateColumns]);
+  }, [workingColumns, pipelineFields, isDirty, isOpen, onUpdateColumns, onUpdateFields]);
 
   // Selected column object
   const selectedCol = useMemo(() => {
@@ -135,6 +172,8 @@ export function VisualFlowModal({
     setIsSaving(true);
     onUpdateColumns(workingColumns);
     setSavedColumns(workingColumns);
+    savePipelineFields(undefined, pipelineFields);
+    if (onUpdateFields) onUpdateFields(pipelineFields);
     setIsDirty(false);
     setTimeout(() => {
       setIsSaving(false);
@@ -153,6 +192,8 @@ export function VisualFlowModal({
   const handleSaveAndClose = () => {
     onUpdateColumns(workingColumns);
     setSavedColumns(workingColumns);
+    savePipelineFields(undefined, pipelineFields);
+    if (onUpdateFields) onUpdateFields(pipelineFields);
     setIsDirty(false);
     setShowUnsavedPrompt(false);
     toast.success("Pipeline Saved", "Workflow configuration saved.");
@@ -284,35 +325,132 @@ export function VisualFlowModal({
     const targetIdx = workingColumns.findIndex((c) => c.id === targetId);
     if (sourceIdx === -1 || targetIdx === -1) return;
 
+    const targetFieldId = getColumnFieldId(workingColumns[targetIdx], pipelineFields);
     const newCols = [...workingColumns];
     const [moved] = newCols.splice(sourceIdx, 1);
-    newCols.splice(targetIdx, 0, moved);
+    const updatedMoved = { ...moved, field: targetFieldId };
+    newCols.splice(targetIdx, 0, updatedMoved);
     pushHistory(newCols);
     toast.success("Stage reordered", `Moved "${moved.label}"`);
     setDraggedStageId(null);
     setDragOverColId(null);
   };
 
-  const handleDropToSection = (targetSection: "inputs" | "execution" | "outcomes") => {
+  const handleDropToSection = (targetSectionId: string) => {
     if (!draggedStageId) return;
     const sourceIdx = workingColumns.findIndex((c) => c.id === draggedStageId);
     if (sourceIdx === -1) return;
 
     const newCols = [...workingColumns];
-    const [moved] = newCols.splice(sourceIdx, 1);
+    const moved = { ...newCols[sourceIdx], field: targetSectionId };
+    newCols.splice(sourceIdx, 1);
 
-    if (targetSection === "inputs") {
-      newCols.splice(1, 0, moved);
-    } else if (targetSection === "execution") {
-      newCols.splice(2, 0, moved);
-    } else {
+    // Find insertion index in newCols for this field
+    let targetIndex = -1;
+    for (let i = newCols.length - 1; i >= 0; i--) {
+      if (getColumnFieldId(newCols[i], pipelineFields) === targetSectionId) {
+        targetIndex = i + 1;
+        break;
+      }
+    }
+    if (targetIndex === -1) {
       newCols.push(moved);
+    } else {
+      newCols.splice(targetIndex, 0, moved);
     }
 
     pushHistory(newCols);
-    toast.success("Stage moved", `Placed "${moved.label}" into ${targetSection}`);
+    const targetField = pipelineFields.find((f) => f.id === targetSectionId);
+    toast.success(
+      "Stage moved",
+      `Placed "${moved.label}" into ${targetField?.name || targetSectionId}`
+    );
     setDraggedStageId(null);
     setDragOverSection(null);
+  };
+
+  const handleAssignStageField = (colId: string, fieldId: string) => {
+    const updated = workingColumns.map((c) =>
+      c.id === colId ? { ...c, field: fieldId } : c
+    );
+    pushHistory(updated);
+    const targetField = pipelineFields.find((f) => f.id === fieldId);
+    toast.success("Stage updated", `Moved to ${targetField?.name || fieldId}`);
+  };
+
+  const handleCreateField = () => {
+    if (!newFieldName.trim()) return;
+    const newField: PipelineField = {
+      id: `field_${Date.now()}`,
+      name: newFieldName.trim(),
+      type: newFieldType,
+      colorTheme: newFieldColor,
+      isCustom: true,
+      description: "Custom workflow pipeline stage section.",
+    };
+    const outcomesIdx = pipelineFields.findIndex(
+      (f) => f.id === "outcomes" || f.type === "outcome"
+    );
+    const updated = [...pipelineFields];
+    if (outcomesIdx !== -1) {
+      updated.splice(outcomesIdx, 0, newField);
+    } else {
+      updated.push(newField);
+    }
+    setPipelineFields(updated);
+    savePipelineFields(undefined, updated);
+    if (onUpdateFields) onUpdateFields(updated);
+    setIsDirty(true);
+    setIsAddFieldModalOpen(false);
+    setNewFieldName("");
+    toast.success("Field added", `Added "${newField.name}" to pipeline`);
+  };
+
+  const handleOpenEditField = (field: PipelineField) => {
+    setEditingField(field);
+    setEditFieldName(field.name);
+    setEditFieldColor(field.colorTheme || "purple");
+    setIsEditFieldModalOpen(true);
+  };
+
+  const handleSaveEditField = () => {
+    if (!editingField || !editFieldName.trim()) return;
+    const updated = pipelineFields.map((f) =>
+      f.id === editingField.id
+        ? { ...f, name: editFieldName.trim(), colorTheme: editFieldColor }
+        : f
+    );
+    setPipelineFields(updated);
+    savePipelineFields(undefined, updated);
+    if (onUpdateFields) onUpdateFields(updated);
+    setIsDirty(true);
+    setIsEditFieldModalOpen(false);
+    toast.success("Field updated", `Updated "${editFieldName.trim()}"`);
+  };
+
+  const handleDeleteField = async (fieldId: string) => {
+    const field = pipelineFields.find((f) => f.id === fieldId);
+    if (!field) return;
+    const ok = await confirm({
+      title: `Delete Field: ${field.name}?`,
+      description: `Any stages currently in this field will be safely reassigned to Outcomes.`,
+      confirmLabel: "Delete Field",
+      confirmVariant: "rose",
+    });
+    if (!ok) return;
+
+    const updatedCols = workingColumns.map((c) =>
+      getColumnFieldId(c, pipelineFields) === fieldId ? { ...c, field: "outcomes" } : c
+    );
+    const updatedFields = pipelineFields.filter((f) => f.id !== fieldId);
+    setWorkingColumns(updatedCols);
+    pushHistory(updatedCols);
+    setPipelineFields(updatedFields);
+    savePipelineFields(undefined, updatedFields);
+    if (onUpdateFields) onUpdateFields(updatedFields);
+    setIsDirty(true);
+    setIsEditFieldModalOpen(false);
+    toast.success("Field deleted", `Removed "${field.name}"`);
   };
 
   // Canvas Pan Hand Tool Handlers
@@ -485,7 +623,7 @@ export function VisualFlowModal({
                   {/* Add New Stage Button */}
                   <button
                     type="button"
-                    onClick={onOpenCreateColumn}
+                    onClick={() => onOpenCreateColumn()}
                     className="w-full mt-2 py-1.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm shadow-purple-500/25 transition cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -507,136 +645,86 @@ export function VisualFlowModal({
 
                 {/* Categorized Draggable Stage Items */}
                 <div className="p-3 flex-1 overflow-y-auto space-y-3.5">
-                  {/* Inputs Group */}
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                      Inputs
-                    </span>
-                    <div className="space-y-1.5">
-                      {filteredLibraryColumns
-                        .filter((c) => c.id === "draft" || c.id === "scheduled")
-                        .map((c) => (
-                          <div
-                            key={c.id}
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData("text/plain", c.id);
-                              setDraggedStageId(c.id);
-                            }}
-                            onDragEnd={() => setDraggedStageId(null)}
-                            onClick={() => setSelectedColId(c.id)}
-                            className={`p-2 rounded-xl bg-white border transition flex items-center justify-between cursor-grab active:cursor-grabbing shadow-2xs ${
-                              selectedColId === c.id
-                                ? "border-purple-500 text-purple-950 ring-2 ring-purple-500/20 shadow-xs bg-purple-50/40"
-                                : "border-slate-200/90 hover:border-slate-300 text-slate-700"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <GripVertical className="w-3.5 h-3.5 text-slate-400" />
-                              <span
-                                className={`w-2 h-2 rounded-full ${
-                                  c.id === "draft" ? "bg-blue-500" : "bg-sky-500"
+                  {pipelineFields.map((field) => {
+                    const fieldCols = filteredLibraryColumns.filter(
+                      (c) => getColumnFieldId(c, pipelineFields) === field.id
+                    );
+
+                    return (
+                      <div key={field.id}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block truncate">
+                            {field.name}
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-400">
+                            {fieldCols.length}
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {fieldCols.map((c) => {
+                            const cStyles = getColumnStyles(c);
+                            return (
+                              <div
+                                key={c.id}
+                                draggable
+                                onDragStart={(e) => {
+                                  e.dataTransfer.setData("text/plain", c.id);
+                                  setDraggedStageId(c.id);
+                                }}
+                                onDragEnd={() => setDraggedStageId(null)}
+                                onClick={() => setSelectedColId(c.id)}
+                                className={`p-2 rounded-xl bg-white border transition flex items-center justify-between cursor-grab active:cursor-grabbing shadow-2xs ${
+                                  selectedColId === c.id
+                                    ? "border-purple-500 text-purple-950 ring-2 ring-purple-500/20 shadow-xs bg-purple-50/40"
+                                    : "border-slate-200/90 hover:border-slate-300 text-slate-700"
                                 }`}
-                              />
-                              <span className="text-xs font-semibold">{c.label}</span>
-                            </div>
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700">
-                              input
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Execution Group */}
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                      Execution
-                    </span>
-                    <div className="space-y-1.5">
-                      {filteredLibraryColumns
-                        .filter((c) => c.id === "in_progress")
-                        .map((c) => (
-                          <div
-                            key={c.id}
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData("text/plain", c.id);
-                              setDraggedStageId(c.id);
-                            }}
-                            onDragEnd={() => setDraggedStageId(null)}
-                            onClick={() => setSelectedColId(c.id)}
-                            className={`p-2 rounded-xl bg-white border transition flex items-center justify-between cursor-grab active:cursor-grabbing shadow-2xs ${
-                              selectedColId === c.id
-                                ? "border-amber-500 text-amber-950 ring-2 ring-amber-500/20 shadow-xs bg-amber-50/40"
-                                : "border-slate-200/90 hover:border-slate-300 text-slate-700"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <GripVertical className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="w-2 h-2 rounded-full bg-amber-500" />
-                              <span className="text-xs font-semibold">{c.label}</span>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Outcomes Group */}
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                      Outcomes
-                    </span>
-                    <div className="space-y-1.5">
-                      {filteredLibraryColumns
-                        .filter(
-                          (c) =>
-                            c.id !== "draft" &&
-                            c.id !== "scheduled" &&
-                            c.id !== "in_progress"
-                        )
-                        .map((c) => {
-                          const styles = getColumnStyles(c);
-                          return (
-                            <div
-                              key={c.id}
-                              draggable
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData("text/plain", c.id);
-                                setDraggedStageId(c.id);
-                              }}
-                              onDragEnd={() => setDraggedStageId(null)}
-                              onClick={() => setSelectedColId(c.id)}
-                              className={`p-2 rounded-xl bg-white border transition flex items-center justify-between cursor-grab active:cursor-grabbing shadow-2xs ${
-                                selectedColId === c.id
-                                ? "border-purple-500 text-purple-950 ring-2 ring-purple-500/20 shadow-xs bg-purple-50/40"
-                                : "border-slate-200/90 hover:border-slate-300 text-slate-700"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <GripVertical className="w-3.5 h-3.5 text-slate-400" />
-                                <span
-                                  className={`w-2 h-2 rounded-full shrink-0 ${styles.dotClass}`}
-                                  style={styles.dotStyle}
-                                />
-                                <span className="text-xs font-semibold">{c.label}</span>
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <GripVertical className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span
+                                    className={`w-2 h-2 rounded-full shrink-0 ${cStyles.dotClass}`}
+                                    style={cStyles.dotStyle}
+                                  />
+                                  <span className="text-xs font-semibold truncate">{c.label}</span>
+                                </div>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600 shrink-0">
+                                  {field.type}
+                                </span>
                               </div>
+                            );
+                          })}
+                          {fieldCols.length === 0 && (
+                            <div className="text-[10px] text-slate-400 italic p-1.5 text-center">
+                              No stages in this field
                             </div>
-                          );
-                        })}
-                    </div>
-                  </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Bottom Custom Stage Button */}
-                <div className="p-3 border-t border-slate-200/80 bg-slate-50/50 shrink-0">
+                <div className="p-3 border-t border-slate-200/80 bg-slate-50/50 shrink-0 space-y-1.5">
                   <button
                     type="button"
-                    onClick={onOpenCreateColumn}
-                    className="w-full py-2 px-3 rounded-xl border border-dashed border-slate-300 hover:border-purple-500 bg-white hover:bg-purple-50/40 text-slate-600 hover:text-purple-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+                    onClick={() => onOpenCreateColumn()}
+                    className="w-full py-1.5 px-3 rounded-xl border border-dashed border-slate-300 hover:border-purple-500 bg-white hover:bg-purple-50/40 text-slate-600 hover:text-purple-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Custom Stage</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewFieldName("");
+                      setNewFieldColor("purple");
+                      setIsAddFieldModalOpen(true);
+                    }}
+                    className="w-full py-1.5 px-3 rounded-xl border border-purple-200 hover:border-purple-300 bg-purple-50 hover:bg-purple-100/70 text-purple-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+                  >
+                    <FolderPlus className="w-3.5 h-3.5 text-purple-600" />
+                    <span>+ Add Pipeline Field</span>
                   </button>
                 </div>
               </div>
@@ -701,11 +789,25 @@ export function VisualFlowModal({
                   {/* Add Stage */}
                   <button
                     type="button"
-                    onClick={onOpenCreateColumn}
+                    onClick={() => onOpenCreateColumn()}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1 transition cursor-pointer shrink-0 whitespace-nowrap"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Stage</span>
+                  </button>
+
+                  {/* Add Field */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewFieldName("");
+                      setNewFieldColor("purple");
+                      setIsAddFieldModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-purple-700 hover:text-purple-900 hover:bg-purple-50 flex items-center gap-1 transition cursor-pointer shrink-0 whitespace-nowrap"
+                  >
+                    <FolderPlus className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Add Field</span>
                   </button>
 
                   {/* Connect Nodes Toggle */}
@@ -818,459 +920,307 @@ export function VisualFlowModal({
                     transition: isPanning ? "none" : "transform 0.15s ease-out",
                   }}
                 >
-                  {/* 1. INPUTS & INITIATION CONTAINER (Compact & Perfectly Scaled) */}
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDragOverSection("inputs");
-                    }}
-                    onDragLeave={() => setDragOverSection(null)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      handleDropToSection("inputs");
-                    }}
-                    className={`w-60 bg-blue-50/60 border-2 ${
-                      dragOverSection === "inputs"
-                        ? "border-blue-500 ring-4 ring-blue-500/20"
-                        : "border-blue-200/90 hover:border-blue-300"
-                    } rounded-2xl p-3.5 flex flex-col gap-2.5 shadow-xs relative transition shrink-0`}
-                  >
-                    {/* Container Header */}
-                    <div className="flex items-center justify-between pb-1 border-b border-blue-200/60">
-                      <div className="flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5 text-blue-600" />
-                        <span className="font-bold text-[11px] uppercase tracking-wider text-blue-900">
-                          INPUTS &amp; INITIATION
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-blue-700/80 font-medium">
-                        {inputColumns.length} stages
-                      </span>
-                    </div>
+                  {pipelineFields.map((field, fIdx) => {
+                    const fieldCols = workingColumns.filter(
+                      (c) => getColumnFieldId(c, pipelineFields) === field.id
+                    );
+                    const isFirst = fIdx === 0;
+                    const isLast = fIdx === pipelineFields.length - 1;
+                    const isExecution = field.id === "execution" || field.type === "execution";
+                    const isInput = field.id === "inputs" || field.type === "input";
+                    const isOutcome = field.id === "outcomes" || field.type === "outcome";
+                    const styles = getFieldStyles(field);
+                    const isDragOver = dragOverSection === field.id;
+                    const nextField = !isLast ? pipelineFields[fIdx + 1] : null;
 
-                    {/* Stage Cards Inside Inputs */}
-                    <div className="space-y-2">
-                      {inputColumns.map((col) => {
-                        const count = activitiesCountByStatus[col.id] || 0;
-                        const isSelected = selectedColId === col.id;
-                        return (
-                          <div
-                            key={col.id}
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData("text/plain", col.id);
-                              setDraggedStageId(col.id);
-                            }}
-                            onDragEnd={() => setDraggedStageId(null)}
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              setDragOverColId(col.id);
-                            }}
-                            onDragLeave={() => setDragOverColId(null)}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              if (draggedStageId) handleDropOnCard(draggedStageId, col.id);
-                            }}
-                            onClick={() => setSelectedColId(col.id)}
-                            className={`rounded-xl p-2.5 border transition cursor-pointer flex items-center justify-between shadow-2xs ${
-                              dragOverColId === col.id
-                                ? "border-purple-500 ring-2 ring-purple-500/40 bg-purple-50"
-                                : isSelected
-                                ? "bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/20 shadow-xs"
-                                : "bg-white border-blue-200/80 hover:border-blue-300 hover:bg-blue-50/30"
-                            } ${col.hidden ? "opacity-50 border-dashed" : ""}`}
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <GripVertical className="w-3 h-3 text-slate-300 hover:text-slate-500" />
-                              <span
-                                className={`w-2 h-2 rounded-full shrink-0 ${
-                                  col.id === "draft" ? "bg-blue-500" : "bg-sky-500"
-                                }`}
-                              />
-                              <div className="min-w-0">
-                                <span className="font-bold text-xs uppercase tracking-wider text-slate-900 block truncate">
-                                  {col.label}
-                                </span>
-                                <span className="text-[10px] text-slate-500 font-medium">
-                                  {count} {count === 1 ? "task" : "tasks"}
-                                </span>
-                              </div>
-                            </div>
+                    const transitionPillText = isFirst
+                      ? "Start"
+                      : nextField && (nextField.id === "outcomes" || nextField.type === "outcome")
+                      ? "Verify"
+                      : isExecution
+                      ? "Verify"
+                      : "Process";
 
-                            <div className="flex items-center gap-1 text-slate-400">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleHide(col.id);
-                                }}
-                                className="p-0.5 hover:text-slate-700 rounded transition"
-                                title={col.hidden ? "Show in flow" : "Hide from flow"}
-                              >
-                                {col.hidden ? (
-                                  <EyeOff className="w-3.5 h-3.5 text-rose-500" />
-                                ) : (
-                                  <Eye className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onOpenEditColumn(col);
-                                }}
-                                className="p-0.5 hover:text-slate-700 rounded transition"
-                                title="Edit stage settings"
-                              >
-                                <Settings className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Dropzone Button */}
-                      <button
-                        type="button"
-                        onClick={onOpenCreateColumn}
-                        className="w-full py-2 rounded-xl border border-dashed border-blue-300 hover:border-blue-500 bg-white hover:bg-blue-50/60 text-blue-700 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Insert stage here (Drop)</span>
-                      </button>
-                    </div>
-
-                    {/* Right Output Connector Port */}
-                    <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-sm absolute -right-1.5 top-1/2 -translate-y-1/2 z-10" />
-                  </div>
-
-                  {/* SVG Curve Wires to Transition Pill "Start" */}
-                  <div className="w-14 h-36 relative shrink-0 flex items-center justify-center">
-                    <svg className="w-full h-full overflow-visible" viewBox="0 0 56 144">
-                      {/* Upper curve (from Draft) */}
-                      <path
-                        d="M 0 44 C 28 44, 28 72, 56 72"
-                        fill="none"
-                        stroke="#3b82f6"
-                        strokeWidth="2.5"
-                        strokeDasharray={isLivePreview ? "6 6" : "none"}
-                        className={isLivePreview ? "animate-pulse" : ""}
-                      />
-                      {/* Lower curve (from Scheduled) */}
-                      <path
-                        d="M 0 100 C 28 100, 28 72, 56 72"
-                        fill="none"
-                        stroke="#0ea5e9"
-                        strokeWidth="2.5"
-                        strokeDasharray={isLivePreview ? "6 6" : "none"}
-                        className={isLivePreview ? "animate-pulse" : ""}
-                      />
-                    </svg>
-
-                    {/* Transition Node "Start" Pill */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-blue-300 text-blue-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs z-10 select-none">
-                      Start
-                    </div>
-                  </div>
-
-                  {/* 2. CENTRAL ACTIVE EXECUTION HUB (Compact, Tasking, Question Mark on Header, NO Quality Contracts Card) */}
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDragOverSection("execution");
-                    }}
-                    onDragLeave={() => setDragOverSection(null)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      handleDropToSection("execution");
-                    }}
-                    className={`w-64 bg-amber-50/60 border-2 ${
-                      dragOverSection === "execution"
-                        ? "border-amber-500 ring-4 ring-amber-500/20"
-                        : "border-amber-300/90 hover:border-amber-400"
-                    } rounded-2xl p-3.5 flex flex-col gap-2.5 shadow-xs relative transition shrink-0`}
-                  >
-                    {/* Left Input Port */}
-                    <div className="w-3 h-3 rounded-full bg-amber-500 border-2 border-white shadow-sm absolute -left-1.5 top-1/2 -translate-y-1/2 z-10" />
-
-                    {/* Container Header with Question Mark Tooltip Trigger */}
-                    <div className="flex items-center justify-between pb-1 border-b border-amber-200/60">
-                      <div className="flex items-center gap-1.5">
-                        <Play className="w-3.5 h-3.5 text-amber-600 fill-amber-600" />
-                        <span className="font-bold text-[11px] uppercase tracking-wider text-amber-950">
-                          ACTIVE EXECUTION HUB
-                        </span>
-
-                        {/* Question mark hover notification */}
-                        <div className="relative group">
-                          <button
-                            type="button"
-                            onClick={() => setShowQualityInfo(!showQualityInfo)}
-                            className="w-4 h-4 rounded-full bg-amber-200/90 hover:bg-amber-300 text-amber-900 flex items-center justify-center text-[10px] font-extrabold cursor-pointer transition shadow-2xs"
-                            title="Quality Contracts & Pass Criteria Info"
-                          >
-                            ?
-                          </button>
-
-                          {/* Hover Notification Card */}
-                          <div className="hidden group-hover:block absolute left-1/2 -translate-x-1/2 top-6 w-64 bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-xl shadow-xl z-30 text-xs border border-slate-700 pointer-events-none animate-in fade-in">
-                            <div className="font-bold flex items-center gap-1.5 text-amber-300 mb-1">
-                              <ShieldCheck className="w-3.5 h-3.5" />
-                              <span>Quality Contracts &amp; Pass Criteria</span>
-                            </div>
-                            <p className="text-[11px] text-slate-300 leading-relaxed">
-                              Enforces reviewer sign-off, checklist criteria, and proof evidence before activities can complete.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <span className="text-[10px] text-amber-800/80 font-medium">
-                        {executionColumns.length} stages
-                      </span>
-                    </div>
-
-                    {/* Main Tasking Stage Card */}
-                    {executionColumns.slice(0, 1).map((col) => {
-                      const count = activitiesCountByStatus[col.id] || 0;
-                      const isSelected = selectedColId === col.id;
-                      return (
+                    return (
+                      <React.Fragment key={field.id}>
+                        {/* Container for this Field */}
                         <div
-                          key={col.id}
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData("text/plain", col.id);
-                            setDraggedStageId(col.id);
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setDragOverSection(field.id);
                           }}
-                          onDragEnd={() => setDraggedStageId(null)}
-                          onClick={() => setSelectedColId(col.id)}
-                          className={`rounded-xl p-3 border transition cursor-pointer flex flex-col gap-2 shadow-2xs ${
-                            isSelected
-                              ? "bg-amber-50/80 border-amber-500 ring-2 ring-amber-500/20 shadow-xs"
-                              : "bg-white border-amber-200 hover:border-amber-400"
+                          onDragLeave={() => setDragOverSection(null)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            handleDropToSection(field.id);
+                          }}
+                          className={`w-64 sm:w-72 rounded-2xl p-3.5 flex flex-col gap-2.5 shadow-xs relative transition shrink-0 border-2 ${
+                            isDragOver
+                              ? "border-purple-500 ring-4 ring-purple-500/20"
+                              : ""
                           }`}
+                          style={{
+                            backgroundColor: styles.containerBg,
+                            borderColor: isDragOver ? undefined : styles.borderColor,
+                          }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-amber-500" />
-                              <span className="font-extrabold text-xs uppercase tracking-wider text-amber-950">
-                                {col.label}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleHide(col.id);
-                              }}
-                              className="text-slate-400 hover:text-slate-700"
-                            >
-                              {col.hidden ? (
-                                <EyeOff className="w-3.5 h-3.5 text-rose-500" />
-                              ) : (
-                                <Eye className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                          </div>
+                          {/* Left Input Port */}
+                          {!isFirst && (
+                            <div
+                              className="w-3 h-3 rounded-full border-2 border-white shadow-sm absolute -left-1.5 top-1/2 -translate-y-1/2 z-10"
+                              style={{ backgroundColor: styles.portBg }}
+                            />
+                          )}
 
-                          <p className="text-[11px] text-slate-600 leading-snug">
-                            Content creation, recording, editing, and task authoring in real time.
-                          </p>
-
-                          <div className="pt-2 border-t border-amber-100 flex items-center justify-between">
-                            <span className="text-[11px] font-semibold text-amber-900 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md">
-                              {count} in progress
-                            </span>
-                            <span className="text-[10px] text-slate-500 font-medium">Core Engine</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Dropzone Inside Active Execution Hub */}
-                    <div
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setDragOverSection("execution");
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        handleDropToSection("execution");
-                      }}
-                      className="border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/60 hover:bg-emerald-50 text-emerald-800 py-2.5 px-3 rounded-xl text-center text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer select-none shadow-2xs"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Drop here to insert stage</span>
-                    </div>
-
-                    {/* Right Output Connector Port */}
-                    <div className="w-3 h-3 rounded-full bg-purple-500 border-2 border-white shadow-sm absolute -right-1.5 top-1/2 -translate-y-1/2 z-10" />
-                  </div>
-
-                  {/* SVG Curve Wires to Transition Pill "Verify" */}
-                  <div className="w-14 h-44 relative shrink-0 flex items-center justify-center">
-                    <svg className="w-full h-full overflow-visible" viewBox="0 0 56 176">
-                      {/* Lines fanning out to the 4 outcomes */}
-                      {/* To Awaiting Review */}
-                      <path
-                        d="M 0 88 C 28 88, 28 28, 56 28"
-                        fill="none"
-                        stroke="#a855f7"
-                        strokeWidth="2.5"
-                        strokeDasharray={isLivePreview ? "6 6" : "none"}
-                        className={isLivePreview ? "animate-pulse" : ""}
-                      />
-                      {/* To Completed */}
-                      <path
-                        d="M 0 88 C 28 88, 28 68, 56 68"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="2.5"
-                        strokeDasharray={isLivePreview ? "6 6" : "none"}
-                        className={isLivePreview ? "animate-pulse" : ""}
-                      />
-                      {/* To Failed */}
-                      <path
-                        d="M 0 88 C 28 88, 28 108, 56 108"
-                        fill="none"
-                        stroke="#f43f5e"
-                        strokeWidth="2.5"
-                        strokeDasharray={isLivePreview ? "6 6" : "none"}
-                        className={isLivePreview ? "animate-pulse" : ""}
-                      />
-                      {/* To Canceled */}
-                      <path
-                        d="M 0 88 C 28 88, 28 148, 56 148"
-                        fill="none"
-                        stroke="#64748b"
-                        strokeWidth="2.5"
-                        strokeDasharray={isLivePreview ? "6 6" : "none"}
-                        className={isLivePreview ? "animate-pulse" : ""}
-                      />
-                    </svg>
-
-                    {/* Transition Node "Verify" Pill */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-purple-300 text-purple-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs z-10 select-none">
-                      Verify
-                    </div>
-                  </div>
-
-                  {/* 3. OUTCOMES & DESTINATIONS CONTAINER (Compact, 4 Stages) */}
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDragOverSection("outcomes");
-                    }}
-                    onDragLeave={() => setDragOverSection(null)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      handleDropToSection("outcomes");
-                    }}
-                    className={`w-72 bg-emerald-50/40 border-2 ${
-                      dragOverSection === "outcomes"
-                        ? "border-emerald-500 ring-4 ring-emerald-500/20"
-                        : "border-emerald-200/90 hover:border-emerald-300"
-                    } rounded-2xl p-3.5 flex flex-col gap-2 shadow-xs relative transition shrink-0`}
-                  >
-                    {/* Left Input Port */}
-                    <div className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-sm absolute -left-1.5 top-1/2 -translate-y-1/2 z-10" />
-
-                    {/* Container Header */}
-                    <div className="flex items-center justify-between pb-1 border-b border-emerald-200/60">
-                      <div className="flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="font-bold text-[11px] uppercase tracking-wider text-emerald-950">
-                          OUTCOMES &amp; DESTINATIONS
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-emerald-800/80 font-medium">
-                        {outcomeColumns.length} stages
-                      </span>
-                    </div>
-
-                    {/* Stage Cards Inside Outcomes */}
-                    <div className="space-y-1.5">
-                      {outcomeColumns.map((col) => {
-                        const count = activitiesCountByStatus[col.id] || 0;
-                        const isSelected = selectedColId === col.id;
-                        const styles = getColumnStyles(col);
-
-                        return (
+                          {/* Container Header */}
                           <div
-                            key={col.id}
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData("text/plain", col.id);
-                              setDraggedStageId(col.id);
-                            }}
-                            onDragEnd={() => setDraggedStageId(null)}
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              setDragOverColId(col.id);
-                            }}
-                            onDragLeave={() => setDragOverColId(null)}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              if (draggedStageId) handleDropOnCard(draggedStageId, col.id);
-                            }}
-                            onClick={() => setSelectedColId(col.id)}
-                            className={`rounded-xl p-2 border transition cursor-pointer flex items-center justify-between shadow-2xs ${
-                              dragOverColId === col.id
-                                ? "border-purple-500 ring-2 ring-purple-500/40 bg-purple-50"
-                                : isSelected
-                                ? "bg-purple-50 border-purple-500 ring-2 ring-purple-500/20 shadow-xs"
-                                : "bg-white border-slate-200 hover:border-slate-300"
-                            } ${col.hidden ? "opacity-50 border-dashed" : ""}`}
+                            className="flex items-center justify-between pb-1 border-b"
+                            style={{ borderColor: styles.borderColor }}
                           >
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <GripVertical className="w-3 h-3 text-slate-300 hover:text-slate-500 shrink-0" />
+                              {isInput ? (
+                                <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: styles.hex }} />
+                              ) : isExecution ? (
+                                <Play className="w-3.5 h-3.5 shrink-0" style={{ color: styles.hex, fill: styles.hex }} />
+                              ) : isOutcome ? (
+                                <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: styles.hex }} />
+                              ) : (
+                                <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: styles.hex }} />
+                              )}
                               <span
-                                className={`w-2 h-2 rounded-full shrink-0 ${styles.dotClass}`}
-                                style={styles.dotStyle}
-                              />
-                              <span
-                                className="font-bold text-[11px] sm:text-xs uppercase tracking-tight text-slate-800 whitespace-nowrap"
-                                title={col.label}
+                                className="font-bold text-[11px] uppercase tracking-wider truncate"
+                                style={{ color: styles.headerText }}
                               >
-                                {col.label}
+                                {field.name}
                               </span>
+
+                              {/* Question mark hover notification if execution */}
+                              {isExecution && (
+                                <div className="relative group">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowQualityInfo(!showQualityInfo)}
+                                    className="w-4 h-4 rounded-full bg-amber-200/90 hover:bg-amber-300 text-amber-900 flex items-center justify-center text-[10px] font-extrabold cursor-pointer transition shadow-2xs"
+                                    title="Quality Contracts & Pass Criteria Info"
+                                  >
+                                    ?
+                                  </button>
+                                  <div className="hidden group-hover:block absolute left-1/2 -translate-x-1/2 top-6 w-64 bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-xl shadow-xl z-30 text-xs border border-slate-700 pointer-events-none animate-in fade-in">
+                                    <div className="font-bold flex items-center gap-1.5 text-amber-300 mb-1">
+                                      <ShieldCheck className="w-3.5 h-3.5" />
+                                      <span>Quality Contracts &amp; Pass Criteria</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                                      Enforces reviewer sign-off, checklist criteria, and proof evidence before activities can complete.
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
-                                {count}
+                              <span
+                                className="text-[10px] font-bold px-1.5 py-0.2 rounded-full"
+                                style={{ backgroundColor: styles.badgeBg, color: styles.headerText }}
+                              >
+                                {fieldCols.length} {fieldCols.length === 1 ? "stage" : "stages"}
                               </span>
+
+                              {/* Settings / Edit button for this field */}
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleHide(col.id);
-                                }}
-                                className="text-slate-400 hover:text-slate-700 cursor-pointer"
-                                title={col.hidden ? "Show in flow" : "Hide from flow"}
+                                onClick={() => handleOpenEditField(field)}
+                                className="p-1 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer"
+                                title="Configure field"
                               >
-                                {col.hidden ? (
-                                  <EyeOff className="w-3.5 h-3.5 text-rose-500" />
-                                ) : (
-                                  <Eye className="w-3.5 h-3.5" />
-                                )}
+                                <Settings className="w-3 h-3" />
                               </button>
                             </div>
                           </div>
-                        );
-                      })}
 
-                      {/* Dropzone Button */}
-                      <button
-                        type="button"
-                        onClick={onOpenCreateColumn}
-                        className="w-full py-2 rounded-xl border border-dashed border-emerald-300 hover:border-emerald-500 bg-white hover:bg-emerald-50 text-emerald-700 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Drop stage here to add outcome</span>
-                      </button>
-                    </div>
-                  </div>
+                          {/* Stage Cards Inside this Field */}
+                          <div className="space-y-2">
+                            {fieldCols.map((col) => {
+                              const count = activitiesCountByStatus[col.id] || 0;
+                              const isSelected = selectedColId === col.id;
+                              const colStyles = getColumnStyles(col);
+
+                              return (
+                                <div
+                                  key={col.id}
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.setData("text/plain", col.id);
+                                    setDraggedStageId(col.id);
+                                  }}
+                                  onDragEnd={() => setDraggedStageId(null)}
+                                  onDragOver={(e) => {
+                                    e.preventDefault();
+                                    setDragOverColId(col.id);
+                                  }}
+                                  onDragLeave={() => setDragOverColId(null)}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    if (draggedStageId) handleDropOnCard(draggedStageId, col.id);
+                                  }}
+                                  onClick={() => setSelectedColId(col.id)}
+                                  className={`rounded-xl p-2.5 border transition cursor-pointer flex items-center justify-between shadow-2xs ${
+                                    dragOverColId === col.id
+                                      ? "border-purple-500 ring-2 ring-purple-500/40 bg-purple-50"
+                                      : isSelected
+                                      ? "bg-purple-50/80 border-purple-500 ring-2 ring-purple-500/20 shadow-xs"
+                                      : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
+                                  } ${col.hidden ? "opacity-50 border-dashed" : ""}`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <GripVertical className="w-3 h-3 text-slate-300 hover:text-slate-500 shrink-0" />
+                                    <span
+                                      className={`w-2 h-2 rounded-full shrink-0 ${colStyles.dotClass}`}
+                                      style={colStyles.dotStyle}
+                                    />
+                                    <div className="min-w-0">
+                                      <span className="font-bold text-xs uppercase tracking-wider text-slate-900 block truncate">
+                                        {col.label}
+                                      </span>
+                                      <span className="text-[10px] text-slate-500 font-medium">
+                                        {count} {count === 1 ? "task" : "tasks"}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1 text-slate-400 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleHide(col.id);
+                                      }}
+                                      className="p-0.5 hover:text-slate-700 rounded transition cursor-pointer"
+                                      title={col.hidden ? "Show in flow" : "Hide from flow"}
+                                    >
+                                      {col.hidden ? (
+                                        <EyeOff className="w-3.5 h-3.5 text-rose-500" />
+                                      ) : (
+                                        <Eye className="w-3.5 h-3.5" />
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onOpenEditColumn(col);
+                                      }}
+                                      className="p-0.5 hover:text-slate-700 rounded transition cursor-pointer"
+                                      title="Edit stage settings"
+                                    >
+                                      <Settings className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+
+                            {/* Dropzone Button */}
+                            <button
+                              type="button"
+                              onClick={() => onOpenCreateColumn(field.id)}
+                              className="w-full py-2 rounded-xl border border-dashed border-slate-300 hover:border-purple-500 bg-white hover:bg-purple-50/50 text-slate-600 hover:text-purple-700 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Insert stage here (Drop)</span>
+                            </button>
+                          </div>
+
+                          {/* Right Output Connector Port */}
+                          {!isLast && (
+                            <div
+                              className="w-3 h-3 rounded-full border-2 border-white shadow-sm absolute -right-1.5 top-1/2 -translate-y-1/2 z-10"
+                              style={{ backgroundColor: styles.portBg }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Connector Wires & Transition Pill between fields */}
+                        {!isLast && nextField && (
+                          <div className="w-14 h-40 relative shrink-0 flex items-center justify-center">
+                            <svg className="w-full h-full overflow-visible" viewBox="0 0 56 160">
+                              {isFirst && fieldCols.length >= 2 ? (
+                                <>
+                                  <path
+                                    d="M 0 50 C 28 50, 28 80, 56 80"
+                                    fill="none"
+                                    stroke={styles.wireStroke}
+                                    strokeWidth="2.5"
+                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
+                                    className={isLivePreview ? "animate-pulse" : ""}
+                                  />
+                                  <path
+                                    d="M 0 110 C 28 110, 28 80, 56 80"
+                                    fill="none"
+                                    stroke={styles.wireStroke}
+                                    strokeWidth="2.5"
+                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
+                                    className={isLivePreview ? "animate-pulse" : ""}
+                                  />
+                                </>
+                              ) : (nextField.id === "outcomes" || nextField.type === "outcome") &&
+                                workingColumns.filter(
+                                  (c) => getColumnFieldId(c, pipelineFields) === nextField.id
+                                ).length >= 3 ? (
+                                <>
+                                  <path
+                                    d="M 0 80 C 28 80, 28 30, 56 30"
+                                    fill="none"
+                                    stroke="#a855f7"
+                                    strokeWidth="2.5"
+                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
+                                    className={isLivePreview ? "animate-pulse" : ""}
+                                  />
+                                  <path
+                                    d="M 0 80 C 28 80, 28 65, 56 65"
+                                    fill="none"
+                                    stroke="#10b981"
+                                    strokeWidth="2.5"
+                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
+                                    className={isLivePreview ? "animate-pulse" : ""}
+                                  />
+                                  <path
+                                    d="M 0 80 C 28 80, 28 95, 56 95"
+                                    fill="none"
+                                    stroke="#f43f5e"
+                                    strokeWidth="2.5"
+                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
+                                    className={isLivePreview ? "animate-pulse" : ""}
+                                  />
+                                  <path
+                                    d="M 0 80 C 28 80, 28 130, 56 130"
+                                    fill="none"
+                                    stroke="#64748b"
+                                    strokeWidth="2.5"
+                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
+                                    className={isLivePreview ? "animate-pulse" : ""}
+                                  />
+                                </>
+                              ) : (
+                                <path
+                                  d="M 0 80 C 28 80, 28 80, 56 80"
+                                  fill="none"
+                                  stroke={styles.wireStroke}
+                                  strokeWidth="2.5"
+                                  strokeDasharray={isLivePreview ? "6 6" : "none"}
+                                  className={isLivePreview ? "animate-pulse" : ""}
+                                />
+                              )}
+                            </svg>
+
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-purple-300 text-purple-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs z-10 select-none whitespace-nowrap">
+                              {transitionPillText}
+                            </div>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1316,6 +1266,42 @@ export function VisualFlowModal({
                             className="w-full bg-white border border-slate-200/90 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 rounded-xl px-2.5 py-1 text-xs text-slate-900 focus:outline-none font-semibold transition shadow-2xs"
                             placeholder="Stage name"
                           />
+                        </div>
+
+                        {/* Pipeline Field / Section Property */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                            Pipeline Field / Section
+                          </label>
+                          <select
+                            value={selectedCol.field || getColumnFieldId(selectedCol, pipelineFields)}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "__add_new__") {
+                                setNewFieldName("");
+                                setNewFieldColor("purple");
+                                setIsAddFieldModalOpen(true);
+                                return;
+                              }
+                              handleAssignStageField(selectedCol.id, val);
+                            }}
+                            className="w-full bg-white border border-slate-200/90 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none font-semibold transition shadow-2xs cursor-pointer"
+                          >
+                            {pipelineFields.map((f) => (
+                              <option key={f.id} value={f.id}>
+                                {f.name} (
+                                {f.type === "input"
+                                  ? "Input"
+                                  : f.type === "execution"
+                                  ? "Execution"
+                                  : f.type === "outcome"
+                                  ? "Outcome"
+                                  : "Custom"}
+                                )
+                              </option>
+                            ))}
+                            <option value="__add_new__">+ Add New Field...</option>
+                          </select>
                         </div>
 
                         {/* Visibility Field */}
@@ -1632,6 +1618,218 @@ export function VisualFlowModal({
                 className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl text-xs transition shadow-sm cursor-pointer"
               >
                 Got It, Thanks!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD PIPELINE FIELD MODAL */}
+      {isAddFieldModalOpen && (
+        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-6 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                  <FolderPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Add Pipeline Field</h3>
+                  <p className="text-[11px] text-slate-500">Create a new section in your workflow</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddFieldModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Field Name *
+                </label>
+                <input
+                  type="text"
+                  value={newFieldName}
+                  onChange={(e) => setNewFieldName(e.target.value)}
+                  placeholder="e.g. Quality Assurance, Staging, Client Review"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Field Role
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: "execution", label: "Execution" },
+                    { id: "outcome", label: "Outcome" },
+                    { id: "input", label: "Input" },
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setNewFieldType(t.id as any)}
+                      className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                        newFieldType === t.id
+                          ? "bg-purple-50 border-purple-400 text-purple-900 shadow-2xs ring-2 ring-purple-500/20"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-white"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Color Theme
+                </label>
+                <div className="grid grid-cols-5 gap-2">
+                  {["purple", "indigo", "teal", "orange", "rose"].map((cId) => {
+                    const t = COLOR_THEMES.find((theme) => theme.id === cId);
+                    if (!t) return null;
+                    return (
+                      <button
+                        key={cId}
+                        type="button"
+                        onClick={() => setNewFieldColor(cId)}
+                        className={`h-8 rounded-xl border flex items-center justify-center transition cursor-pointer ${
+                          newFieldColor === cId
+                            ? "ring-2 ring-purple-600 scale-105 border-slate-800 shadow-xs"
+                            : "border-black/10 hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: t.hex }}
+                      >
+                        {newFieldColor === cId && <Check className="w-3.5 h-3.5 text-white" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-5 border-t border-slate-100 mt-5">
+              <button
+                type="button"
+                onClick={() => setIsAddFieldModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateField}
+                disabled={!newFieldName.trim()}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                Create Field
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT PIPELINE FIELD MODAL */}
+      {isEditFieldModalOpen && editingField && (
+        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-6 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                  <Settings className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Configure Field: {editingField.name}</h3>
+                  <p className="text-[11px] text-slate-500">Edit title, appearance, or manage field</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditFieldModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Field Name *
+                </label>
+                <input
+                  type="text"
+                  value={editFieldName}
+                  onChange={(e) => setEditFieldName(e.target.value)}
+                  placeholder="Field Name"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Color Theme
+                </label>
+                <div className="grid grid-cols-5 gap-2">
+                  {["sky", "amber", "emerald", "purple", "rose"].map((cId) => {
+                    const t = COLOR_THEMES.find((theme) => theme.id === cId);
+                    if (!t) return null;
+                    return (
+                      <button
+                        key={cId}
+                        type="button"
+                        onClick={() => setEditFieldColor(cId)}
+                        className={`h-8 rounded-xl border flex items-center justify-center transition cursor-pointer ${
+                          editFieldColor === cId
+                            ? "ring-2 ring-purple-600 scale-105 border-slate-800 shadow-xs"
+                            : "border-black/10 hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: t.hex }}
+                      >
+                        {editFieldColor === cId && <Check className="w-3.5 h-3.5 text-white" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {editingField.isCustom && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteField(editingField.id)}
+                    className="w-full py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Field</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-5 border-t border-slate-100 mt-5">
+              <button
+                type="button"
+                onClick={() => setIsEditFieldModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEditField}
+                disabled={!editFieldName.trim()}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                Save Changes
               </button>
             </div>
           </div>

@@ -9,9 +9,18 @@ import {
   Sparkles,
   Eye,
   Trash2,
+  FileText,
+  Play,
+  Layers,
+  FolderPlus,
 } from "lucide-react";
 import {
   FlowColumn,
+  PipelineField,
+  DEFAULT_PIPELINE_FIELDS,
+  loadPipelineFields,
+  savePipelineFields,
+  getColumnFieldId,
   COLOR_THEMES,
   ColorTheme,
   getColumnStyles,
@@ -26,9 +35,11 @@ interface ColumnEditModalProps {
   column?: FlowColumn | null;
   isNew?: boolean;
   existingColumns: FlowColumn[];
-  onSave: (col: FlowColumn) => void;
+  pipelineFields?: PipelineField[];
+  onSave: (col: FlowColumn, newField?: PipelineField) => void;
   onDelete?: (colId: string) => void;
   onHide?: (colId: string) => void;
+  defaultField?: string;
 }
 
 export function ColumnEditModal({
@@ -37,9 +48,11 @@ export function ColumnEditModal({
   column,
   isNew = false,
   existingColumns,
+  pipelineFields,
   onSave,
   onDelete,
   onHide,
+  defaultField,
 }: ColumnEditModalProps) {
   const confirm = useConfirm();
   const [label, setLabel] = useState("");
@@ -48,25 +61,77 @@ export function ColumnEditModal({
   const [useCustomHex, setUseCustomHex] = useState(false);
   const [statusMapping, setStatusMapping] = useState("draft");
 
+  // Pipeline Field state (Input, Execution, Outcome, or custom field)
+  const [fields, setFields] = useState<PipelineField[]>(() => {
+    return pipelineFields && pipelineFields.length > 0
+      ? pipelineFields
+      : loadPipelineFields();
+  });
+  const [selectedFieldId, setSelectedFieldId] = useState<string>("inputs");
+  const [isAddingNewField, setIsAddingNewField] = useState(false);
+  const [newFieldName, setNewFieldName] = useState("");
+  const [newFieldColor, setNewFieldColor] = useState("purple");
+  const [newFieldCreated, setNewFieldCreated] = useState<PipelineField | null>(null);
+
   useEffect(() => {
     if (isOpen) {
+      const currentFields =
+        pipelineFields && pipelineFields.length > 0
+          ? pipelineFields
+          : loadPipelineFields();
+      setFields(currentFields);
+      setIsAddingNewField(false);
+      setNewFieldName("");
+      setNewFieldColor("purple");
+      setNewFieldCreated(null);
+
       if (column) {
         setLabel(column.label);
         setColorTheme(column.colorTheme || "amber");
         setCustomHex(column.customHex || "");
         setUseCustomHex(Boolean(column.customHex));
         setStatusMapping(column.statusMapping || column.id);
+        setSelectedFieldId(column.field || getColumnFieldId(column, currentFields));
       } else {
         setLabel("");
         setColorTheme("amber");
         setCustomHex("");
         setUseCustomHex(false);
-        setStatusMapping("draft");
+        const initialField = defaultField || "inputs";
+        setSelectedFieldId(initialField);
+        if (initialField === "inputs") setStatusMapping("draft");
+        else if (initialField === "execution") setStatusMapping("in_progress");
+        else setStatusMapping("awaiting_review");
       }
     }
-  }, [isOpen, column]);
+  }, [isOpen, column, defaultField, pipelineFields]);
 
   if (!isOpen) return null;
+
+  const handleCreateCustomField = () => {
+    if (!newFieldName.trim()) return;
+    const customFieldId = `custom_field_${Date.now()}`;
+    const newField: PipelineField = {
+      id: customFieldId,
+      name: newFieldName.trim(),
+      type: "custom",
+      colorTheme: newFieldColor,
+      isCustom: true,
+      description: "Custom workflow pipeline stage section.",
+    };
+    const updated = [...fields, newField];
+    setFields(updated);
+    savePipelineFields(undefined, updated);
+    setSelectedFieldId(customFieldId);
+    setNewFieldCreated(newField);
+    setIsAddingNewField(false);
+    setNewFieldName("");
+  };
+
+  const selectedField =
+    fields.find((f) => f.id === selectedFieldId) ||
+    fields[0] ||
+    DEFAULT_PIPELINE_FIELDS[0];
 
   // Build a draft column to feed into preview
   const draftColumn: FlowColumn = {
@@ -78,6 +143,7 @@ export function ColumnEditModal({
     hidden: column?.hidden || false,
     isCustom: column?.isCustom ?? isNew,
     statusMapping: statusMapping || "draft",
+    field: selectedFieldId,
   };
 
   const previewStyles = getColumnStyles(draftColumn);
@@ -86,7 +152,7 @@ export function ColumnEditModal({
     e.preventDefault();
     if (!label.trim()) return;
 
-    onSave(draftColumn);
+    onSave(draftColumn, newFieldCreated || undefined);
     onClose();
   };
 
@@ -131,6 +197,157 @@ export function ColumnEditModal({
               required
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
             />
+          </div>
+
+          {/* Pipeline Field Selection (Inputs, Execution, Outcomes, or Custom Field) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Pipeline Field / Section *
+              </label>
+              <span className="text-[11px] text-slate-400">
+                Which stage group this card belongs to
+              </span>
+            </div>
+
+            {/* Field selector tiles */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {fields.map((f) => {
+                const isSelected = !isAddingNewField && selectedFieldId === f.id;
+                const isInput = f.type === "input" || f.id === "inputs";
+                const isExecution = f.type === "execution" || f.id === "execution";
+                const isOutcome = f.type === "outcome" || f.id === "outcomes";
+
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedFieldId(f.id);
+                      setIsAddingNewField(false);
+                      if (isInput) setStatusMapping("draft");
+                      else if (isExecution) setStatusMapping("in_progress");
+                      else if (isOutcome) setStatusMapping("awaiting_review");
+                    }}
+                    className={`flex flex-col p-2.5 rounded-xl border text-left transition cursor-pointer relative ${
+                      isSelected
+                        ? isInput
+                          ? "border-blue-400 bg-blue-50/80 ring-2 ring-blue-500/25 shadow-xs"
+                          : isExecution
+                          ? "border-amber-400 bg-amber-50/80 ring-2 ring-amber-500/25 shadow-xs"
+                          : isOutcome
+                          ? "border-emerald-400 bg-emerald-50/80 ring-2 ring-emerald-500/25 shadow-xs"
+                          : "border-purple-400 bg-purple-50/80 ring-2 ring-purple-500/25 shadow-xs"
+                        : "border-slate-200/90 bg-slate-50 hover:bg-white hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1 w-full mb-1">
+                      <div className="flex items-center gap-1.5">
+                        {isInput ? (
+                          <FileText className="w-3.5 h-3.5 text-blue-600" />
+                        ) : isExecution ? (
+                          <Play className="w-3.5 h-3.5 text-amber-600 fill-amber-600" />
+                        ) : isOutcome ? (
+                          <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                        )}
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          {isInput
+                            ? "Input"
+                            : isExecution
+                            ? "Execution"
+                            : isOutcome
+                            ? "Outcome"
+                            : "Custom"}
+                        </span>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                      )}
+                    </div>
+                    <span className="font-bold text-xs text-slate-900 truncate">
+                      {f.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Add Custom Field Toggle & Sub-form */}
+            <div className="mt-2">
+              {!isAddingNewField ? (
+                <button
+                  type="button"
+                  onClick={() => setIsAddingNewField(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100/80 border border-purple-200/80 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>+ Add New Pipeline Field</span>
+                </button>
+              ) : (
+                <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2.5 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                      <FolderPlus className="w-3.5 h-3.5 text-purple-600" />
+                      Add New Pipeline Field
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingNewField(false)}
+                      className="text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newFieldName}
+                      onChange={(e) => setNewFieldName(e.target.value)}
+                      placeholder="Field name (e.g. Quality Assurance, Staging)"
+                      className="flex-1 bg-white border border-purple-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateCustomField}
+                      disabled={!newFieldName.trim()}
+                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer shrink-0"
+                    >
+                      Add Field
+                    </button>
+                  </div>
+
+                  {/* Quick color selector for the new field */}
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-[10px] font-semibold text-purple-900">
+                      Field Accent:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {["purple", "indigo", "teal", "orange", "rose"].map((cId) => {
+                        const theme = COLOR_THEMES.find((t) => t.id === cId);
+                        if (!theme) return null;
+                        return (
+                          <button
+                            key={cId}
+                            type="button"
+                            onClick={() => setNewFieldColor(cId)}
+                            className={`w-5 h-5 rounded-full border transition cursor-pointer ${
+                              newFieldColor === cId
+                                ? "ring-2 ring-purple-600 scale-110 border-white shadow-2xs"
+                                : "border-black/10"
+                            }`}
+                            style={{ backgroundColor: theme.hex }}
+                            title={theme.name}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Color Selection - Theme Swatches */}
@@ -301,8 +518,13 @@ export function ColumnEditModal({
                     3 tasks
                   </span>
                 </div>
-                <div className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/80 border border-slate-200/80 text-slate-600">
-                  Step {draftColumn.step}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/90 border border-slate-200/90 text-slate-700 shadow-2xs">
+                    {selectedField.name}
+                  </span>
+                  <div className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/80 border border-slate-200/80 text-slate-600">
+                    Step {draftColumn.step}
+                  </div>
                 </div>
               </div>
 

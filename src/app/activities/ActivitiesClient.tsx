@@ -56,10 +56,15 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
 import {
   FlowColumn,
+  PipelineField,
   DEFAULT_FLOW_COLUMNS,
+  DEFAULT_PIPELINE_FIELDS,
   loadFlowColumns,
   saveFlowColumns,
   resetFlowColumns,
+  loadPipelineFields,
+  savePipelineFields,
+  resetPipelineFields,
   getColumnStyles,
   COLOR_THEMES,
   getCampaignTagStyle,
@@ -330,6 +335,8 @@ export function ActivitiesClient({
 
   // Flow Columns & Customization State
   const [flowColumns, setFlowColumns] = useState<FlowColumn[]>(DEFAULT_FLOW_COLUMNS);
+  const [pipelineFields, setPipelineFields] = useState<PipelineField[]>(DEFAULT_PIPELINE_FIELDS);
+  const [defaultFieldForNewColumn, setDefaultFieldForNewColumn] = useState<string>("inputs");
   const [editingColumn, setEditingColumn] = useState<FlowColumn | null>(null);
   const [isEditingNewColumn, setIsEditingNewColumn] = useState(false);
   const [isColumnEditModalOpen, setIsColumnEditModalOpen] = useState(false);
@@ -341,6 +348,10 @@ export function ActivitiesClient({
     if (loaded && loaded.length > 0) {
       setFlowColumns(loaded);
     }
+    const loadedFields = loadPipelineFields(currentUser?.id);
+    if (loadedFields && loadedFields.length > 0) {
+      setPipelineFields(loadedFields);
+    }
   }, [currentUser?.id]);
 
   const updateColumns = (cols: FlowColumn[]) => {
@@ -348,10 +359,17 @@ export function ActivitiesClient({
     saveFlowColumns(currentUser?.id, cols);
   };
 
+  const updateFields = (fields: PipelineField[]) => {
+    setPipelineFields(fields);
+    savePipelineFields(currentUser?.id, fields);
+  };
+
   const handleResetFlow = () => {
     const defaults = resetFlowColumns(currentUser?.id);
     setFlowColumns(defaults);
-    toast.success("Flow reset", "Pipeline columns restored to default configuration.");
+    const defaultFields = resetPipelineFields(currentUser?.id);
+    setPipelineFields(defaultFields);
+    toast.success("Flow reset", "Pipeline columns and fields restored to default configuration.");
   };
 
   const handleHideColumn = (colId: string) => {
@@ -395,7 +413,12 @@ export function ActivitiesClient({
     toast.success("Color updated", "Background, bubble, and accent colors updated.");
   };
 
-  const handleSaveColumn = (savedCol: FlowColumn) => {
+  const handleSaveColumn = (savedCol: FlowColumn, newField?: PipelineField) => {
+    if (newField) {
+      const updatedFields = [...pipelineFields, newField];
+      setPipelineFields(updatedFields);
+      savePipelineFields(currentUser?.id, updatedFields);
+    }
     if (isEditingNewColumn) {
       const updated = [...flowColumns, savedCol];
       updateColumns(updated);
@@ -2493,14 +2516,17 @@ export function ActivitiesClient({
         onClose={() => setIsVisualFlowModalOpen(false)}
         columns={flowColumns}
         onUpdateColumns={updateColumns}
+        pipelineFields={pipelineFields}
+        onUpdateFields={updateFields}
         onOpenEditColumn={(col) => {
           setEditingColumn(col);
           setIsEditingNewColumn(false);
           setIsColumnEditModalOpen(true);
         }}
-        onOpenCreateColumn={() => {
+        onOpenCreateColumn={(defaultField?: string) => {
           setEditingColumn(null);
           setIsEditingNewColumn(true);
+          setDefaultFieldForNewColumn(defaultField || "inputs");
           setIsColumnEditModalOpen(true);
         }}
         onResetToDefault={handleResetFlow}
@@ -2514,6 +2540,8 @@ export function ActivitiesClient({
         column={editingColumn}
         isNew={isEditingNewColumn}
         existingColumns={flowColumns}
+        pipelineFields={pipelineFields}
+        defaultField={defaultFieldForNewColumn}
         onSave={handleSaveColumn}
         onDelete={handleDeleteColumn}
         onHide={handleHideColumn}

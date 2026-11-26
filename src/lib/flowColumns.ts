@@ -112,6 +112,39 @@ export const COLOR_THEMES: ColorTheme[] = [
   },
 ];
 
+export interface PipelineField {
+  id: string;
+  name: string;
+  type: "input" | "execution" | "outcome" | "custom";
+  colorTheme?: string;
+  description?: string;
+  isCustom?: boolean;
+}
+
+export const DEFAULT_PIPELINE_FIELDS: PipelineField[] = [
+  {
+    id: "inputs",
+    name: "Inputs & Initiation",
+    type: "input",
+    colorTheme: "sky",
+    description: "Intake, drafting, and queue staging.",
+  },
+  {
+    id: "execution",
+    name: "Active Execution Hub",
+    type: "execution",
+    colorTheme: "amber",
+    description: "Live content creation, authoring, and core production engine.",
+  },
+  {
+    id: "outcomes",
+    name: "Outcomes & Destinations",
+    type: "outcome",
+    colorTheme: "emerald",
+    description: "Review gates, completion, published work, and archive states.",
+  },
+];
+
 export interface FlowColumn {
   id: string;
   step: string;
@@ -122,6 +155,7 @@ export interface FlowColumn {
   hidden?: boolean;
   isCustom?: boolean;
   statusMapping?: string;
+  field?: string;
 }
 
 export const DEFAULT_FLOW_COLUMNS: FlowColumn[] = [
@@ -130,12 +164,14 @@ export const DEFAULT_FLOW_COLUMNS: FlowColumn[] = [
     step: "1",
     label: "Draft",
     colorTheme: "slate",
+    field: "inputs",
   },
   {
     id: "scheduled",
     step: "2",
     label: "Scheduled",
     colorTheme: "sky",
+    field: "inputs",
   },
   {
     id: "in_progress",
@@ -144,30 +180,35 @@ export const DEFAULT_FLOW_COLUMNS: FlowColumn[] = [
     colorTheme: "amber",
     // Purple bubble dot as shown on reference image
     customDotHex: "#a855f7",
+    field: "execution",
   },
   {
     id: "awaiting_review",
     step: "4",
     label: "Awaiting Review",
     colorTheme: "purple",
+    field: "outcomes",
   },
   {
     id: "passed",
     step: "5",
     label: "Completed",
     colorTheme: "emerald",
+    field: "outcomes",
   },
   {
     id: "failed",
     step: "6",
     label: "Failed",
     colorTheme: "rose",
+    field: "outcomes",
   },
   {
     id: "canceled",
     step: "↶",
     label: "Canceled",
     colorTheme: "slate",
+    field: "outcomes",
   },
 ];
 
@@ -306,6 +347,84 @@ export function resetFlowColumns(workspaceId?: string): FlowColumn[] {
     }
   }
   return DEFAULT_FLOW_COLUMNS;
+}
+
+export function getColumnFieldId(col: FlowColumn, fields: PipelineField[] = DEFAULT_PIPELINE_FIELDS): string {
+  if (col.field && fields.some((f) => f.id === col.field)) {
+    return col.field;
+  }
+  // Backwards compatibility fallbacks
+  if (col.id === "draft" || col.id === "scheduled" || col.step === "1" || col.step === "2") {
+    return "inputs";
+  }
+  if (col.id === "in_progress" || col.step === "3") {
+    return "execution";
+  }
+  return "outcomes";
+}
+
+export function loadPipelineFields(workspaceId?: string): PipelineField[] {
+  if (typeof window === "undefined") {
+    return DEFAULT_PIPELINE_FIELDS;
+  }
+  try {
+    const key = `campaignflow_pipeline_fields_${workspaceId || "default"}`;
+    const stored = localStorage.getItem(key);
+    if (!stored) return DEFAULT_PIPELINE_FIELDS;
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed;
+    }
+  } catch (e) {
+    console.error("Failed to load pipeline fields from localStorage", e);
+  }
+  return DEFAULT_PIPELINE_FIELDS;
+}
+
+export function savePipelineFields(workspaceId: string | undefined, fields: PipelineField[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    const key = `campaignflow_pipeline_fields_${workspaceId || "default"}`;
+    localStorage.setItem(key, JSON.stringify(fields));
+  } catch (e) {
+    console.error("Failed to save pipeline fields to localStorage", e);
+  }
+}
+
+export function resetPipelineFields(workspaceId?: string): PipelineField[] {
+  if (typeof window !== "undefined") {
+    try {
+      const key = `campaignflow_pipeline_fields_${workspaceId || "default"}`;
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.error("Failed to reset pipeline fields", e);
+    }
+  }
+  return DEFAULT_PIPELINE_FIELDS;
+}
+
+export function getFieldStyles(field: PipelineField) {
+  const theme =
+    COLOR_THEMES.find((t) => t.id === field.colorTheme) ||
+    (field.type === "input"
+      ? COLOR_THEMES.find((t) => t.id === "sky")
+      : field.type === "execution"
+      ? COLOR_THEMES.find((t) => t.id === "amber")
+      : COLOR_THEMES.find((t) => t.id === "emerald")) ||
+    COLOR_THEMES[0];
+
+  const hex = theme.hex;
+
+  return {
+    theme,
+    hex,
+    containerBg: hexToRgba(hex, 0.05),
+    borderColor: hexToRgba(hex, 0.35),
+    headerText: hexToDark(hex),
+    badgeBg: hexToRgba(hex, 0.12),
+    portBg: hex,
+    wireStroke: hex,
+  };
 }
 
 export function getCampaignTagStyle(status?: string | null, customColor?: string | null) {
