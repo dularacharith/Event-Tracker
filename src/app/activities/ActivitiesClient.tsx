@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -69,6 +69,10 @@ import {
   getColumnStyles,
   COLOR_THEMES,
   getCampaignTagStyle,
+  getFieldStyles,
+  hexToRgba,
+  getColumnFieldId,
+  sortColumnsByPipeline,
 } from "@/lib/flowColumns";
 import { ColumnEditModal } from "@/components/activities/ColumnEditModal";
 import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
@@ -351,24 +355,30 @@ export function ActivitiesClient({
   }, []);
 
   useEffect(() => {
-    const loaded = loadFlowColumns(currentUser?.id);
-    if (loaded && loaded.length > 0) {
-      setFlowColumns(loaded);
-    }
     const loadedFields = loadPipelineFields(currentUser?.id);
+    const activeFields = loadedFields && loadedFields.length > 0 ? loadedFields : DEFAULT_PIPELINE_FIELDS;
     if (loadedFields && loadedFields.length > 0) {
       setPipelineFields(loadedFields);
+    }
+    const loaded = loadFlowColumns(currentUser?.id);
+    if (loaded && loaded.length > 0) {
+      const sorted = sortColumnsByPipeline(loaded, activeFields);
+      setFlowColumns(sorted);
     }
   }, [currentUser?.id]);
 
   const updateColumns = (cols: FlowColumn[]) => {
-    setFlowColumns(cols);
-    saveFlowColumns(currentUser?.id, cols);
+    const sorted = sortColumnsByPipeline(cols, pipelineFields);
+    setFlowColumns(sorted);
+    saveFlowColumns(currentUser?.id, sorted);
   };
 
   const updateFields = (fields: PipelineField[]) => {
     setPipelineFields(fields);
     savePipelineFields(currentUser?.id, fields);
+    const sorted = sortColumnsByPipeline(flowColumns, fields);
+    setFlowColumns(sorted);
+    saveFlowColumns(currentUser?.id, sorted);
   };
 
   const handleResetFlow = () => {
@@ -437,7 +447,12 @@ export function ActivitiesClient({
     }
   };
 
-  const visibleColumns = flowColumns.filter((c) => !c.hidden);
+  const visibleColumns = useMemo<FlowColumn[]>(() => {
+    return sortColumnsByPipeline(
+      flowColumns.filter((c) => !c.hidden),
+      pipelineFields
+    );
+  }, [flowColumns, pipelineFields]);
   const hiddenColumns = flowColumns.filter((c) => c.hidden);
 
   const [activeKebabActivityId, setActiveKebabActivityId] = useState<string | null>(null);
@@ -1062,17 +1077,145 @@ export function ActivitiesClient({
             key={`track-${filterStatus || "all"}`}
             className="flex items-stretch overflow-x-auto pb-2 pt-1 px-1 flex-1 min-h-0 animate-tab-slide-right gap-3"
           >
-            {visibleColumns.filter(
-              (col) => !filterStatus || filterStatus === col.id
-            ).map((col, idx, arr) => {
-              const colActivities = filteredActivities.filter(
-                (a) => a.status === col.id
+            {pipelineFields.map((field, fIdx) => {
+              const fieldCols = visibleColumns.filter(
+                (col) => getColumnFieldId(col, pipelineFields) === field.id && (!filterStatus || filterStatus === col.id)
               );
-              const colStyles = getColumnStyles(col);
+
+              // If filtering by column and this field has no matching columns, hide it
+              if (filterStatus && fieldCols.length === 0) return null;
+
+              const isFirst = fIdx === 0;
+              const isLast = fIdx === pipelineFields.length - 1;
+              const isExecution = field.id === "execution" || field.type === "execution";
+              const isInput = field.id === "inputs" || field.type === "input";
+              const isOutcome = field.id === "outcomes" || field.type === "outcome";
+              const fieldStyles = getFieldStyles(field);
+              const nextField = !isLast ? pipelineFields[fIdx + 1] : null;
+
+              const transitionPillText = isFirst
+                ? "Start"
+                : nextField && (nextField.id === "outcomes" || nextField.type === "outcome")
+                ? "Verify"
+                : isExecution
+                ? "Verify"
+                : "Proceed";
+
+              const totalFieldTasks = fieldCols.reduce(
+                (sum, c) => sum + filteredActivities.filter((a) => a.status === c.id).length,
+                0
+              );
 
               return (
-                <React.Fragment key={col.id}>
-                  <div className="flex-1 min-w-[260px] max-w-[360px] shrink-0 self-stretch flex flex-col h-full min-h-0">
+                <React.Fragment key={field.id}>
+                  {/* Pipeline Field Section Container */}
+                  <div
+                    className="shrink-0 flex flex-col h-full min-h-0 rounded-3xl border-2 p-2.5 sm:p-3 transition-all duration-200 shadow-2xs group/field"
+                    style={{
+                      backgroundColor: fieldStyles.containerBg,
+                      borderColor: fieldStyles.borderColor,
+                    }}
+                  >
+                    {/* Field Section Header */}
+                    <div
+                      className="flex items-center justify-between pb-2 mb-2 px-1 border-b shrink-0 gap-3"
+                      style={{ borderColor: hexToRgba(fieldStyles.hex, 0.25) }}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs"
+                          style={{ backgroundColor: hexToRgba(fieldStyles.hex, 0.15) }}
+                        >
+                          {isInput ? (
+                            <FileText className="w-3.5 h-3.5" style={{ color: fieldStyles.hex }} />
+                          ) : isExecution ? (
+                            <Play className="w-3.5 h-3.5" style={{ color: fieldStyles.hex, fill: fieldStyles.hex }} />
+                          ) : isOutcome ? (
+                            <Layers className="w-3.5 h-3.5" style={{ color: fieldStyles.hex }} />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5" style={{ color: fieldStyles.hex }} />
+                          )}
+                        </div>
+
+                        <span
+                          className="font-black text-xs uppercase tracking-wider truncate"
+                          style={{ color: fieldStyles.headerText }}
+                        >
+                          {field.name}
+                        </span>
+
+                        <span
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                          style={{
+                            backgroundColor: fieldStyles.badgeBg,
+                            color: fieldStyles.headerText,
+                          }}
+                        >
+                          {fieldCols.length} {fieldCols.length === 1 ? "stage" : "stages"} • {totalFieldTasks} {totalFieldTasks === 1 ? "task" : "tasks"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingColumn(null);
+                            setIsEditingNewColumn(true);
+                            setDefaultFieldForNewColumn(field.id);
+                            setIsColumnEditModalOpen(true);
+                          }}
+                          className="h-6 px-2 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer hover:shadow-2xs active:scale-95"
+                          style={{
+                            backgroundColor: hexToRgba(fieldStyles.hex, 0.15),
+                            color: fieldStyles.headerText,
+                          }}
+                          title={`Add a new stage into ${field.name}`}
+                        >
+                          <Plus className="w-3 h-3 stroke-[2.5]" />
+                          <span className="hidden sm:inline">Add Stage</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Columns inside this Field Section */}
+                    <div className="flex items-stretch gap-3 flex-1 min-h-0">
+                      {fieldCols.length === 0 ? (
+                        <div
+                          className="w-64 min-w-[240px] flex-1 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-6 text-center"
+                          style={{ borderColor: hexToRgba(fieldStyles.hex, 0.25) }}
+                        >
+                          <span className="text-xs font-semibold text-slate-500 mb-2">
+                            No stages in {field.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingColumn(null);
+                              setIsEditingNewColumn(true);
+                              setDefaultFieldForNewColumn(field.id);
+                              setIsColumnEditModalOpen(true);
+                            }}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer"
+                            style={{
+                              backgroundColor: hexToRgba(fieldStyles.hex, 0.15),
+                              color: fieldStyles.headerText,
+                            }}
+                          >
+                            + Add Stage
+                          </button>
+                        </div>
+                      ) : (
+                        fieldCols.map((col) => {
+                          const colActivities = filteredActivities.filter(
+                            (a) => a.status === col.id
+                          );
+                          const colStyles = getColumnStyles(col);
+
+                          return (
+                            <div
+                              key={col.id}
+                              className="w-[280px] sm:w-[310px] shrink-0 self-stretch flex flex-col h-full min-h-0"
+                            >
                     <div
                       className={`rounded-2xl border ${colStyles.borderClass} ${colStyles.bgClass} p-3.5 flex flex-col justify-between shadow-2xs hover:shadow-xs transition h-full min-h-0`}
                       style={colStyles.containerStyle}
@@ -1749,27 +1892,20 @@ export function ActivitiesClient({
                     </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Independent Arrow Connector NEXT to the box (in the gap between boxes, NEVER overlapping!) */}
-                  {!filterStatus && idx < arr.length - 1 && (
-                    <div className="hidden xl:flex flex-col items-center justify-start pt-5 px-1.5 shrink-0 text-slate-400 select-none">
-                      {idx === 1 ? (
-                        <div
-                          className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 shadow-2xs"
-                          title="Bidirectional: Scheduled ⇄ In Progress"
-                        >
-                          <ArrowLeftRight className="w-3.5 h-3.5" />
-                        </div>
-                      ) : idx === 4 || idx === 5 ? (
-                        <div className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 font-bold text-xs shadow-2xs">
-                          /
-                        </div>
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 shadow-2xs">
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </div>
+                            </div>
+                          );
+                        })
                       )}
+                    </div>
+                  </div>
+
+                  {/* Field-to-Field Flow Connector */}
+                  {!filterStatus && !isLast && (
+                    <div className="hidden xl:flex flex-col items-center justify-center shrink-0 px-1 select-none self-center">
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200/90 shadow-2xs text-xs font-bold text-slate-600 hover:border-purple-300 transition group">
+                        <span>{transitionPillText}</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-purple-600 group-hover:translate-x-0.5 transition-transform" />
+                      </div>
                     </div>
                   )}
                 </React.Fragment>
@@ -1836,6 +1972,24 @@ export function ActivitiesClient({
                     <span className="text-xs font-semibold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-2xs">
                       {colActivities.length}
                     </span>
+                    {(() => {
+                      const field = pipelineFields.find(
+                        (f) => f.id === getColumnFieldId(col, pipelineFields)
+                      );
+                      const fStyles = field ? getFieldStyles(field) : null;
+                      if (!field) return null;
+                      return (
+                        <span
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ml-1"
+                          style={{
+                            backgroundColor: fStyles?.badgeBg,
+                            color: fStyles?.headerText,
+                          }}
+                        >
+                          {field.name}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   {col.id === "draft" && (

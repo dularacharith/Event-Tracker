@@ -49,6 +49,7 @@ import {
   getFieldStyles,
   COLOR_THEMES,
   getColumnStyles,
+  sortColumnsByPipeline,
 } from "@/lib/flowColumns";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/Toast";
@@ -202,8 +203,10 @@ export function VisualFlowModal({
 
   const handleSavePipeline = () => {
     setIsSaving(true);
-    onUpdateColumns(workingColumns);
-    setSavedColumns(workingColumns);
+    const sorted = sortColumnsByPipeline(workingColumns, pipelineFields);
+    onUpdateColumns(sorted);
+    setSavedColumns(sorted);
+    setWorkingColumns(sorted);
     savePipelineFields(undefined, pipelineFields);
     if (onUpdateFields) onUpdateFields(pipelineFields);
     setIsDirty(false);
@@ -222,8 +225,10 @@ export function VisualFlowModal({
   };
 
   const handleSaveAndClose = () => {
-    onUpdateColumns(workingColumns);
-    setSavedColumns(workingColumns);
+    const sorted = sortColumnsByPipeline(workingColumns, pipelineFields);
+    onUpdateColumns(sorted);
+    setSavedColumns(sorted);
+    setWorkingColumns(sorted);
     savePipelineFields(undefined, pipelineFields);
     if (onUpdateFields) onUpdateFields(pipelineFields);
     setIsDirty(false);

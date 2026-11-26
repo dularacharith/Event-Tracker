@@ -363,6 +363,28 @@ export function getColumnFieldId(col: FlowColumn, fields: PipelineField[] = DEFA
   return "outcomes";
 }
 
+export function sortColumnsByPipeline(
+  columns: FlowColumn[],
+  fields: PipelineField[] = DEFAULT_PIPELINE_FIELDS
+): FlowColumn[] {
+  const fieldOrder = new Map<string, number>();
+  fields.forEach((f, idx) => fieldOrder.set(f.id, idx));
+
+  return columns
+    .map((col, index) => ({ col, index }))
+    .sort((a, b) => {
+      const fA = getColumnFieldId(a.col, fields);
+      const fB = getColumnFieldId(b.col, fields);
+      const orderA = fieldOrder.has(fA) ? fieldOrder.get(fA)! : 999;
+      const orderB = fieldOrder.has(fB) ? fieldOrder.get(fB)! : 999;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      return a.index - b.index;
+    })
+    .map(({ col }) => col);
+}
+
 export function loadPipelineFields(workspaceId?: string): PipelineField[] {
   if (typeof window === "undefined") {
     return DEFAULT_PIPELINE_FIELDS;
