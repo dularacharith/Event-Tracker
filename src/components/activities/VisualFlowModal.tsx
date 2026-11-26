@@ -35,6 +35,8 @@ import {
   AlertTriangle,
   Loader2,
   FolderPlus,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import {
   FlowColumn,
@@ -114,6 +116,7 @@ export function VisualFlowModal({
   const [isRulesExpanded, setIsRulesExpanded] = useState(false);
   const [isHowToUseOpen, setIsHowToUseOpen] = useState(false);
   const [showQualityInfo, setShowQualityInfo] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Auto-fit board to canvas
   const autoFitCanvas = useCallback(() => {
@@ -125,16 +128,17 @@ export function VisualFlowModal({
     const boardH = 360;
     const scaleW = availableW / boardW;
     const scaleH = availableH / boardH;
-    const targetScale = Math.min(0.9, Math.max(0.55, Math.min(scaleW, scaleH)));
+    const maxScale = isExpanded ? 1.05 : 0.9;
+    const targetScale = Math.min(maxScale, Math.max(0.55, Math.min(scaleW, scaleH)));
     const pct = Math.round(targetScale * 100);
     setZoomLevel(pct);
     setPan({ x: 0, y: 0 });
-  }, []);
+  }, [isExpanded]);
 
   useEffect(() => {
-    const timer = setTimeout(autoFitCanvas, 100);
+    const timer = setTimeout(autoFitCanvas, 150);
     return () => clearTimeout(timer);
-  }, [autoFitCanvas, isLibraryOpen, isInspectorOpen]);
+  }, [autoFitCanvas, isLibraryOpen, isInspectorOpen, isExpanded]);
 
   // Drag and drop state
   const [draggedStageId, setDraggedStageId] = useState<string | null>(null);
@@ -520,14 +524,24 @@ export function VisualFlowModal({
 
   return (
     <>
-      {/* Centered Modal Overlay below Navbar with balanced margins */}
+      {/* Modal Overlay below Navbar with dynamic expanded / centered sizing */}
       <div
-        className="fixed top-16 inset-x-0 bottom-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 bg-slate-900/40 backdrop-blur-xs select-none overflow-hidden"
+        className={`fixed top-16 inset-x-0 bottom-0 z-50 flex items-center justify-center select-none overflow-hidden transition-all duration-200 ${
+          isExpanded
+            ? "p-0 bg-slate-900/10"
+            : "p-3 sm:p-5 lg:p-6 bg-slate-900/40 backdrop-blur-xs"
+        }`}
         onClick={(e) => {
           if (e.target === e.currentTarget) handleRequestClose();
         }}
       >
-        <div className="bg-white text-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-[1360px] h-[calc(100%-2.5rem)] max-h-[700px] min-h-[380px] flex flex-col overflow-hidden relative font-sans my-auto">
+        <div
+          className={`bg-white text-slate-800 shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden relative font-sans transition-all duration-200 ${
+            isExpanded
+              ? "w-full h-full max-w-none max-h-none rounded-none border-x-0 border-b-0 border-t"
+              : "w-full max-w-[1360px] h-[calc(100%-2.5rem)] max-h-[700px] min-h-[380px] rounded-2xl sm:rounded-3xl my-auto"
+          }`}
+        >
           {/* Top Header Bar (Clean in-app modal header) */}
           <div className="bg-slate-50/90 border-b border-slate-200/80 px-5 py-3 flex items-center justify-between shrink-0 select-none">
             {/* Left: Icon + Title + Status */}
@@ -563,7 +577,7 @@ export function VisualFlowModal({
             </div>
 
             {/* Right Header Controls */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 sm:gap-2.5">
               {/* Live Preview Toggle */}
               <button
                 type="button"
@@ -607,11 +621,44 @@ export function VisualFlowModal({
                 <span>Save Pipeline</span>
               </button>
 
+              {/* Expand / Minimize Full View Toggle Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExpanded((prev) => !prev);
+                  toast.info(
+                    !isExpanded ? "Expanded to Full View" : "Restored Normal View",
+                    !isExpanded
+                      ? "Flow builder taking whole screen space below header."
+                      : "Flow builder returned to standard window view."
+                  );
+                }}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs ${
+                  isExpanded
+                    ? "bg-purple-50 hover:bg-purple-100/70 border-purple-300 text-purple-800 shadow-sm"
+                    : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300"
+                }`}
+                title={isExpanded ? "Exit full view" : "Expand to full screen view"}
+                aria-label={isExpanded ? "Exit full view" : "Expand view"}
+              >
+                {isExpanded ? (
+                  <>
+                    <Minimize2 className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="hidden sm:inline">Exit Full View</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="hidden sm:inline">Expand View</span>
+                  </>
+                )}
+              </button>
+
               {/* Close Button */}
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer ml-1"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer ml-0.5"
                 title="Close builder"
               >
                 <X className="w-4 h-4" />
