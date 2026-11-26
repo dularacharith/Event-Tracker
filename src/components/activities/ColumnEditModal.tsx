@@ -25,6 +25,8 @@ import {
   COLOR_THEMES,
   ColorTheme,
   getColumnStyles,
+  PRESET_FIELD_ICONS,
+  getFieldIconComponent,
 } from "@/lib/flowColumns";
 import { CustomDropdown, DropdownOption } from "@/components/ui/CustomDropdown";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -71,7 +73,9 @@ export function ColumnEditModal({
   const [selectedFieldId, setSelectedFieldId] = useState<string>("inputs");
   const [isAddingNewField, setIsAddingNewField] = useState(false);
   const [newFieldName, setNewFieldName] = useState("");
+  const [newFieldType, setNewFieldType] = useState<"input" | "execution" | "outcome" | "custom">("execution");
   const [newFieldColor, setNewFieldColor] = useState("purple");
+  const [newFieldIcon, setNewFieldIcon] = useState("Zap");
   const [newFieldCreated, setNewFieldCreated] = useState<PipelineField | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -88,7 +92,9 @@ export function ColumnEditModal({
       setFields(currentFields);
       setIsAddingNewField(false);
       setNewFieldName("");
+      setNewFieldType("execution");
       setNewFieldColor("purple");
+      setNewFieldIcon("Zap");
       setNewFieldCreated(null);
 
       if (column) {
@@ -120,8 +126,9 @@ export function ColumnEditModal({
     const newField: PipelineField = {
       id: customFieldId,
       name: newFieldName.trim(),
-      type: "custom",
+      type: newFieldType,
       colorTheme: newFieldColor,
+      icon: newFieldIcon,
       isCustom: true,
       description: "Custom workflow pipeline stage section.",
     };
@@ -231,6 +238,7 @@ export function ColumnEditModal({
                 const isInput = f.type === "input" || f.id === "inputs";
                 const isExecution = f.type === "execution" || f.id === "execution";
                 const isOutcome = f.type === "outcome" || f.id === "outcomes";
+                const FieldIcon = getFieldIconComponent(f.icon, f.type);
 
                 return (
                   <button
@@ -257,15 +265,15 @@ export function ColumnEditModal({
                   >
                     <div className="flex items-center justify-between gap-1 w-full mb-1">
                       <div className="flex items-center gap-1.5">
-                        {isInput ? (
-                          <FileText className="w-3.5 h-3.5 text-blue-600" />
-                        ) : isExecution ? (
-                          <Play className="w-3.5 h-3.5 text-amber-600 fill-amber-600" />
-                        ) : isOutcome ? (
-                          <Layers className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                        )}
+                        <FieldIcon className={`w-3.5 h-3.5 ${
+                          isInput
+                            ? "text-blue-600"
+                            : isExecution
+                            ? "text-amber-600"
+                            : isOutcome
+                            ? "text-emerald-600"
+                            : "text-purple-600"
+                        }`} />
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                           {isInput
                             ? "Input"
@@ -333,13 +341,74 @@ export function ColumnEditModal({
                     </button>
                   </div>
 
+                  {/* Field Role & Type */}
+                  <div>
+                    <span className="text-[10px] font-semibold text-purple-900 block mb-1">
+                      Field Role / Type:
+                    </span>
+                    <div className="grid grid-cols-4 gap-1">
+                      {[
+                        { id: "input", label: "Input" },
+                        { id: "execution", label: "Execution" },
+                        { id: "outcome", label: "Outcome" },
+                        { id: "custom", label: "Custom" },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setNewFieldType(t.id as any)}
+                          className={`py-1 px-1.5 rounded-lg text-[10px] font-semibold border transition cursor-pointer text-center ${
+                            newFieldType === t.id
+                              ? "bg-purple-600 border-purple-600 text-white shadow-2xs"
+                              : "bg-white border-purple-200/80 text-purple-800 hover:bg-purple-100/60"
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Preset Icon Selector */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-semibold text-purple-900">
+                        Preset Icon:
+                      </span>
+                      <span className="text-[10px] text-purple-700 font-medium">
+                        {PRESET_FIELD_ICONS.find((p) => p.id === newFieldIcon)?.label || "Select icon"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-10 gap-1 p-1.5 bg-white border border-purple-200/80 rounded-xl">
+                      {PRESET_FIELD_ICONS.map((preset) => {
+                        const IconComp = preset.Icon;
+                        const isSelected = newFieldIcon === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => setNewFieldIcon(preset.id)}
+                            className={`h-6 rounded-lg flex items-center justify-center transition cursor-pointer ${
+                              isSelected
+                                ? "bg-purple-600 text-white shadow-xs scale-105"
+                                : "text-slate-600 hover:text-purple-700 hover:bg-purple-50"
+                            }`}
+                            title={preset.label}
+                          >
+                            <IconComp className="w-3 h-3" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Quick color selector for the new field */}
                   <div className="flex items-center gap-2 pt-0.5">
                     <span className="text-[10px] font-semibold text-purple-900">
                       Field Accent:
                     </span>
                     <div className="flex items-center gap-1.5">
-                      {["purple", "indigo", "teal", "orange", "rose"].map((cId) => {
+                      {["sky", "amber", "emerald", "purple", "indigo", "rose", "orange", "teal", "slate"].map((cId) => {
                         const theme = COLOR_THEMES.find((t) => t.id === cId);
                         if (!theme) return null;
                         return (

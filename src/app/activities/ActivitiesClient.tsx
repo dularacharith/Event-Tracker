@@ -38,6 +38,7 @@ import {
   Minimize2,
   Maximize2,
   Eye,
+  Settings,
   EyeOff,
   Share2,
   Palette,
@@ -73,6 +74,7 @@ import {
   hexToRgba,
   getColumnFieldId,
   sortColumnsByPipeline,
+  getFieldIconComponent,
 } from "@/lib/flowColumns";
 import { ColumnEditModal } from "@/components/activities/ColumnEditModal";
 import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
@@ -1148,15 +1150,15 @@ export function ActivitiesClient({
                           className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs"
                           style={{ backgroundColor: hexToRgba(fieldStyles.hex, 0.15) }}
                         >
-                          {isInput ? (
-                            <FileText className="w-3.5 h-3.5" style={{ color: fieldStyles.hex }} />
-                          ) : isExecution ? (
-                            <Play className="w-3.5 h-3.5" style={{ color: fieldStyles.hex, fill: fieldStyles.hex }} />
-                          ) : isOutcome ? (
-                            <Layers className="w-3.5 h-3.5" style={{ color: fieldStyles.hex }} />
-                          ) : (
-                            <Sparkles className="w-3.5 h-3.5" style={{ color: fieldStyles.hex }} />
-                          )}
+                          {(() => {
+                            const IconComponent = getFieldIconComponent(field.icon, field.type);
+                            return (
+                              <IconComponent
+                                className="w-3.5 h-3.5"
+                                style={{ color: fieldStyles.hex }}
+                              />
+                            );
+                          })()}
                         </div>
 
                         <span
@@ -1195,6 +1197,18 @@ export function ActivitiesClient({
                         >
                           <Plus className="w-3 h-3 stroke-[2.5]" />
                           <span className="hidden sm:inline">Add Stage</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsVisualFlowModalOpen(true)}
+                          className="h-6 w-6 rounded-lg text-[10px] font-bold transition flex items-center justify-center cursor-pointer hover:shadow-2xs active:scale-95"
+                          style={{
+                            backgroundColor: hexToRgba(fieldStyles.hex, 0.12),
+                            color: fieldStyles.headerText,
+                          }}
+                          title={`Configure flow & edit fields`}
+                        >
+                          <Settings className="w-3 h-3" />
                         </button>
                       </div>
                     </div>

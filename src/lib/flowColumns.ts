@@ -1,3 +1,26 @@
+import {
+  FileText,
+  Inbox,
+  Play,
+  Zap,
+  Layers,
+  CheckCircle2,
+  Sparkles,
+  Target,
+  Flag,
+  Folder,
+  ShieldCheck,
+  Send,
+  Clock,
+  Flame,
+  Heart,
+  Star,
+  Cpu,
+  Compass,
+  Bookmark,
+  Package,
+} from "lucide-react";
+
 export interface ColorTheme {
   id: string;
   name: string;
@@ -117,8 +140,43 @@ export interface PipelineField {
   name: string;
   type: "input" | "execution" | "outcome" | "custom";
   colorTheme?: string;
+  icon?: string;
   description?: string;
   isCustom?: boolean;
+}
+
+export const PRESET_FIELD_ICONS = [
+  { id: "FileText", label: "Document", Icon: FileText },
+  { id: "Inbox", label: "Inbox", Icon: Inbox },
+  { id: "Play", label: "Play", Icon: Play },
+  { id: "Zap", label: "Zap", Icon: Zap },
+  { id: "Layers", label: "Layers", Icon: Layers },
+  { id: "CheckCircle2", label: "Check", Icon: CheckCircle2 },
+  { id: "Sparkles", label: "Sparkles", Icon: Sparkles },
+  { id: "Target", label: "Target", Icon: Target },
+  { id: "Flag", label: "Flag", Icon: Flag },
+  { id: "Folder", label: "Folder", Icon: Folder },
+  { id: "ShieldCheck", label: "Shield", Icon: ShieldCheck },
+  { id: "Send", label: "Send", Icon: Send },
+  { id: "Clock", label: "Clock", Icon: Clock },
+  { id: "Flame", label: "Flame", Icon: Flame },
+  { id: "Heart", label: "Heart", Icon: Heart },
+  { id: "Star", label: "Star", Icon: Star },
+  { id: "Cpu", label: "Engine", Icon: Cpu },
+  { id: "Compass", label: "Compass", Icon: Compass },
+  { id: "Bookmark", label: "Bookmark", Icon: Bookmark },
+  { id: "Package", label: "Package", Icon: Package },
+] as const;
+
+export function getFieldIconComponent(iconId?: string, fieldType?: string) {
+  if (iconId) {
+    const found = PRESET_FIELD_ICONS.find((item) => item.id === iconId);
+    if (found) return found.Icon;
+  }
+  if (fieldType === "input") return FileText;
+  if (fieldType === "execution") return Play;
+  if (fieldType === "outcome") return Layers;
+  return Sparkles;
 }
 
 export const DEFAULT_PIPELINE_FIELDS: PipelineField[] = [
@@ -127,6 +185,7 @@ export const DEFAULT_PIPELINE_FIELDS: PipelineField[] = [
     name: "Inputs & Initiation",
     type: "input",
     colorTheme: "sky",
+    icon: "FileText",
     description: "Intake, drafting, and queue staging.",
   },
   {
@@ -134,6 +193,7 @@ export const DEFAULT_PIPELINE_FIELDS: PipelineField[] = [
     name: "Active Execution Hub",
     type: "execution",
     colorTheme: "amber",
+    icon: "Play",
     description: "Live content creation, authoring, and core production engine.",
   },
   {
@@ -141,6 +201,7 @@ export const DEFAULT_PIPELINE_FIELDS: PipelineField[] = [
     name: "Outcomes & Destinations",
     type: "outcome",
     colorTheme: "emerald",
+    icon: "Layers",
     description: "Review gates, completion, published work, and archive states.",
   },
 ];

@@ -51,6 +51,8 @@ import {
   COLOR_THEMES,
   getColumnStyles,
   sortColumnsByPipeline,
+  PRESET_FIELD_ICONS,
+  getFieldIconComponent,
 } from "@/lib/flowColumns";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/Toast";
@@ -103,10 +105,13 @@ export function VisualFlowModal({
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldType, setNewFieldType] = useState<"input" | "execution" | "outcome" | "custom">("execution");
   const [newFieldColor, setNewFieldColor] = useState("purple");
+  const [newFieldIcon, setNewFieldIcon] = useState("Zap");
 
   const [editingField, setEditingField] = useState<PipelineField | null>(null);
   const [editFieldName, setEditFieldName] = useState("");
+  const [editFieldType, setEditFieldType] = useState<"input" | "execution" | "outcome" | "custom">("execution");
   const [editFieldColor, setEditFieldColor] = useState("purple");
+  const [editFieldIcon, setEditFieldIcon] = useState("FileText");
   const [isEditFieldModalOpen, setIsEditFieldModalOpen] = useState(false);
 
   // Selected stage for the Stage Inspector
@@ -449,6 +454,7 @@ export function VisualFlowModal({
       name: newFieldName.trim(),
       type: newFieldType,
       colorTheme: newFieldColor,
+      icon: newFieldIcon,
       isCustom: true,
       description: "Custom workflow pipeline stage section.",
     };
@@ -471,7 +477,18 @@ export function VisualFlowModal({
   const handleOpenEditField = (field: PipelineField) => {
     setEditingField(field);
     setEditFieldName(field.name);
+    setEditFieldType(field.type);
     setEditFieldColor(field.colorTheme || "purple");
+    setEditFieldIcon(
+      field.icon ||
+        (field.type === "input"
+          ? "FileText"
+          : field.type === "execution"
+          ? "Play"
+          : field.type === "outcome"
+          ? "Layers"
+          : "Sparkles")
+    );
     setIsEditFieldModalOpen(true);
   };
 
@@ -479,7 +496,13 @@ export function VisualFlowModal({
     if (!editingField || !editFieldName.trim()) return;
     const updated = pipelineFields.map((f) =>
       f.id === editingField.id
-        ? { ...f, name: editFieldName.trim(), colorTheme: editFieldColor }
+        ? {
+            ...f,
+            name: editFieldName.trim(),
+            type: editFieldType,
+            colorTheme: editFieldColor,
+            icon: editFieldIcon,
+          }
         : f
     );
     setPipelineFields(updated);
@@ -751,10 +774,30 @@ export function VisualFlowModal({
 
                     return (
                       <div key={field.id}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block truncate">
-                            {field.name}
-                          </span>
+                        <div className="flex items-center justify-between mb-1.5 group">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {(() => {
+                              const IconComponent = getFieldIconComponent(field.icon, field.type);
+                              const fStyles = getFieldStyles(field);
+                              return (
+                                <IconComponent
+                                  className="w-3 h-3 shrink-0"
+                                  style={{ color: fStyles.hex }}
+                                />
+                              );
+                            })()}
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block truncate">
+                              {field.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditField(field)}
+                              className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-purple-600 rounded transition cursor-pointer"
+                              title={`Configure ${field.name} field`}
+                            >
+                              <Settings className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
                           <span className="text-[9px] font-bold text-slate-400">
                             {fieldCols.length}
                           </span>
@@ -1082,15 +1125,15 @@ export function VisualFlowModal({
                             style={{ borderColor: styles.borderColor }}
                           >
                             <div className="flex items-center gap-1.5 min-w-0">
-                              {isInput ? (
-                                <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: styles.hex }} />
-                              ) : isExecution ? (
-                                <Play className="w-3.5 h-3.5 shrink-0" style={{ color: styles.hex, fill: styles.hex }} />
-                              ) : isOutcome ? (
-                                <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: styles.hex }} />
-                              ) : (
-                                <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: styles.hex }} />
-                              )}
+                              {(() => {
+                                const IconComp = getFieldIconComponent(field.icon, field.type);
+                                return (
+                                  <IconComp
+                                    className="w-3.5 h-3.5 shrink-0"
+                                    style={{ color: styles.hex }}
+                                  />
+                                );
+                              })()}
                               <span
                                 className="font-bold text-[11px] uppercase tracking-wider truncate"
                                 style={{ color: styles.headerText }}
@@ -1799,7 +1842,7 @@ export function VisualFlowModal({
             if (e.target === e.currentTarget) setIsAddFieldModalOpen(false);
           }}
         >
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-5 max-h-[calc(100vh-5.5rem)] sm:max-h-[520px] overflow-y-auto animate-in zoom-in-95 duration-150 my-auto">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-5 max-h-[calc(100vh-5.5rem)] sm:max-h-[580px] overflow-y-auto animate-in zoom-in-95 duration-150 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
@@ -1836,13 +1879,14 @@ export function VisualFlowModal({
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Field Role
+                  Field Role &amp; Type
                 </label>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-4 gap-1.5">
                   {[
+                    { id: "input", label: "Input" },
                     { id: "execution", label: "Execution" },
                     { id: "outcome", label: "Outcome" },
-                    { id: "input", label: "Input" },
+                    { id: "custom", label: "Custom" },
                   ].map((t) => (
                     <button
                       key={t.id}
@@ -1860,12 +1904,45 @@ export function VisualFlowModal({
                 </div>
               </div>
 
+              {/* Preset Icon Selector */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Field Icon
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {PRESET_FIELD_ICONS.find((p) => p.id === newFieldIcon)?.label || "Select an icon"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-2xl">
+                  {PRESET_FIELD_ICONS.map((preset) => {
+                    const IconComp = preset.Icon;
+                    const isSelected = newFieldIcon === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setNewFieldIcon(preset.id)}
+                        className={`h-8 rounded-xl flex items-center justify-center transition cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-600 text-white shadow-xs scale-105 ring-2 ring-purple-400"
+                            : "bg-white text-slate-600 hover:text-purple-700 hover:bg-purple-50 border border-slate-200/80 shadow-2xs hover:scale-105"
+                        }`}
+                        title={preset.label}
+                      >
+                        <IconComp className="w-3.5 h-3.5" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Color Theme
                 </label>
-                <div className="grid grid-cols-5 gap-2">
-                  {["purple", "indigo", "teal", "orange", "rose"].map((cId) => {
+                <div className="grid grid-cols-9 gap-1.5">
+                  {["sky", "amber", "emerald", "purple", "indigo", "rose", "orange", "teal", "slate"].map((cId) => {
                     const t = COLOR_THEMES.find((theme) => theme.id === cId);
                     if (!t) return null;
                     return (
@@ -1879,6 +1956,7 @@ export function VisualFlowModal({
                             : "border-black/10 hover:scale-105"
                         }`}
                         style={{ backgroundColor: t.hex }}
+                        title={t.name}
                       >
                         {newFieldColor === cId && <Check className="w-3.5 h-3.5 text-white" />}
                       </button>
@@ -1917,7 +1995,7 @@ export function VisualFlowModal({
             if (e.target === e.currentTarget) setIsEditFieldModalOpen(false);
           }}
         >
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-5 max-h-[calc(100vh-5.5rem)] sm:max-h-[580px] overflow-y-auto animate-in zoom-in-95 duration-150 my-auto">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-5 max-h-[calc(100vh-5.5rem)] sm:max-h-[600px] overflow-y-auto animate-in zoom-in-95 duration-150 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
@@ -1925,7 +2003,7 @@ export function VisualFlowModal({
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">Configure Field: {editingField.name}</h3>
-                  <p className="text-[11px] text-slate-500">Edit title, appearance, or manage field</p>
+                  <p className="text-[11px] text-slate-500">Edit name, role, preset icon, or appearance</p>
                 </div>
               </div>
               <button
@@ -1952,11 +2030,71 @@ export function VisualFlowModal({
               </div>
 
               <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Field Role &amp; Type
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[
+                    { id: "input", label: "Input" },
+                    { id: "execution", label: "Execution" },
+                    { id: "outcome", label: "Outcome" },
+                    { id: "custom", label: "Custom" },
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setEditFieldType(t.id as any)}
+                      className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                        editFieldType === t.id
+                          ? "bg-purple-50 border-purple-400 text-purple-900 shadow-2xs ring-2 ring-purple-500/20"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-white"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preset Icon Selector */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Field Icon
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {PRESET_FIELD_ICONS.find((p) => p.id === editFieldIcon)?.label || "Select an icon"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-2xl">
+                  {PRESET_FIELD_ICONS.map((preset) => {
+                    const IconComp = preset.Icon;
+                    const isSelected = editFieldIcon === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setEditFieldIcon(preset.id)}
+                        className={`h-8 rounded-xl flex items-center justify-center transition cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-600 text-white shadow-xs scale-105 ring-2 ring-purple-400"
+                            : "bg-white text-slate-600 hover:text-purple-700 hover:bg-purple-50 border border-slate-200/80 shadow-2xs hover:scale-105"
+                        }`}
+                        title={preset.label}
+                      >
+                        <IconComp className="w-3.5 h-3.5" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Color Theme
                 </label>
-                <div className="grid grid-cols-5 gap-2">
-                  {["sky", "amber", "emerald", "purple", "rose"].map((cId) => {
+                <div className="grid grid-cols-9 gap-1.5">
+                  {["sky", "amber", "emerald", "purple", "indigo", "rose", "orange", "teal", "slate"].map((cId) => {
                     const t = COLOR_THEMES.find((theme) => theme.id === cId);
                     if (!t) return null;
                     return (
@@ -1970,6 +2108,7 @@ export function VisualFlowModal({
                             : "border-black/10 hover:scale-105"
                         }`}
                         style={{ backgroundColor: t.hex }}
+                        title={t.name}
                       >
                         {editFieldColor === cId && <Check className="w-3.5 h-3.5 text-white" />}
                       </button>
