@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Palette,
@@ -72,6 +73,11 @@ export function ColumnEditModal({
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldColor, setNewFieldColor] = useState("purple");
   const [newFieldCreated, setNewFieldCreated] = useState<PipelineField | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -156,9 +162,16 @@ export function ColumnEditModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-lg overflow-hidden flex flex-col max-h-[calc(100vh-5.5rem)] sm:max-h-[640px] my-auto">
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
+    <div
+      className="fixed top-16 inset-x-0 bottom-0 z-[75] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-md select-none overflow-hidden animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-lg overflow-hidden flex flex-col max-h-[calc(100vh-6rem)] sm:max-h-[640px] my-auto">
         {/* Header */}
         <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
           <div className="flex items-center gap-2.5">
@@ -608,6 +621,7 @@ export function ColumnEditModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

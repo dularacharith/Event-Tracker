@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   HelpCircle,
@@ -26,10 +27,21 @@ interface HowItWorksModalProps {
 }
 
 export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[80] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in-0 duration-150">
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
+    <div
+      className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-md z-[80] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in-0 duration-150 select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-3xl w-full my-8 overflow-hidden animate-in zoom-in-95 duration-150 text-slate-900">
         {/* Modal Header */}
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-purple-50/70 via-indigo-50/30 to-white">
@@ -266,6 +278,7 @@ export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

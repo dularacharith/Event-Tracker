@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Plus,
@@ -117,6 +118,11 @@ export function VisualFlowModal({
   const [isHowToUseOpen, setIsHowToUseOpen] = useState(false);
   const [showQualityInfo, setShowQualityInfo] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Auto-fit board to canvas
   const autoFitCanvas = useCallback(() => {
@@ -252,7 +258,7 @@ export function VisualFlowModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, isDirty, showUnsavedPrompt, isHowToUseOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const pushHistory = (newCols: FlowColumn[]) => {
     setHistory((prev) => [...prev, workingColumns]);
@@ -522,14 +528,14 @@ export function VisualFlowModal({
     c.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  return (
+  return createPortal(
     <>
       {/* Modal Overlay below Navbar with dynamic expanded / centered sizing */}
       <div
         className={`fixed top-16 inset-x-0 bottom-0 z-50 flex items-center justify-center select-none overflow-hidden transition-all duration-200 ${
           isExpanded
             ? "p-0 bg-slate-900/10"
-            : "p-3 sm:p-5 lg:p-6 bg-slate-900/40 backdrop-blur-xs"
+            : "p-3 sm:p-5 lg:p-6 bg-slate-900/40 backdrop-blur-md"
         }`}
         onClick={(e) => {
           if (e.target === e.currentTarget) handleRequestClose();
@@ -1560,7 +1566,12 @@ export function VisualFlowModal({
 
       {/* "HOW TO USE" COMPREHENSIVE PIPELINE GUIDE MODAL */}
       {isHowToUseOpen && (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 z-[75] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsHowToUseOpen(false);
+          }}
+        >
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[calc(100vh-5.5rem)] sm:max-h-[640px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
             {/* Header */}
             <div className="p-5 border-b border-slate-200/90 flex items-center justify-between bg-slate-50/80">
@@ -1693,7 +1704,12 @@ export function VisualFlowModal({
 
       {/* ADD PIPELINE FIELD MODAL */}
       {isAddFieldModalOpen && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 z-[85] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsAddFieldModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-5 max-h-[calc(100vh-5.5rem)] sm:max-h-[520px] overflow-y-auto animate-in zoom-in-95 duration-150 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
@@ -1806,7 +1822,12 @@ export function VisualFlowModal({
 
       {/* EDIT PIPELINE FIELD MODAL */}
       {isEditFieldModalOpen && editingField && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 z-[85] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsEditFieldModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-5 max-h-[calc(100vh-5.5rem)] sm:max-h-[580px] overflow-y-auto animate-in zoom-in-95 duration-150 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
@@ -1905,7 +1926,12 @@ export function VisualFlowModal({
 
       {/* UNSAVED CHANGES PROMPT MODAL */}
       {showUnsavedPrompt && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 z-[90] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowUnsavedPrompt(false);
+          }}
+        >
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-6 text-center animate-in zoom-in-95 duration-150 relative my-auto">
             <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto mb-3.5 shadow-2xs">
               <AlertTriangle className="w-6 h-6 stroke-[2.2]" />
@@ -1950,6 +1976,7 @@ export function VisualFlowModal({
           </div>
         </div>
       )}
-    </>
+    </>,
+    document.body
   );
 }

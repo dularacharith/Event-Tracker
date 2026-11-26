@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -342,6 +343,11 @@ export function ActivitiesClient({
   const [isColumnEditModalOpen, setIsColumnEditModalOpen] = useState(false);
   const [isVisualFlowModalOpen, setIsVisualFlowModalOpen] = useState(false);
   const [activeKebabMenuColId, setActiveKebabMenuColId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const loaded = loadFlowColumns(currentUser?.id);
@@ -764,7 +770,7 @@ export function ActivitiesClient({
   return (
     <div className="space-y-3.5 flex-1 flex flex-col min-h-0 h-full overflow-hidden">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 pb-2 sm:pb-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Activities</h1>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -2017,8 +2023,13 @@ export function ActivitiesClient({
       </div>
 
       {/* Create Activity Modal */}
-      {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[75] flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
+      {mounted && createModalOpen && createPortal(
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-md z-[75] flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150 select-none overflow-hidden"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setCreateModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-lg w-full flex flex-col max-h-[82vh] text-slate-900 overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
             {/* Static / Sticky Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0 bg-white">
@@ -2507,7 +2518,8 @@ export function ActivitiesClient({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Visual Pipeline Architecture & Flow Modal (Inspired by Reference) */}

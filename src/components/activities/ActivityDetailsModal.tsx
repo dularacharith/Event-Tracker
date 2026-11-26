@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   X,
@@ -109,6 +110,11 @@ export function ActivityDetailsModal({
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [postingComment, setPostingComment] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sync initial activity and fetch complete details
   useEffect(() => {
@@ -183,8 +189,15 @@ export function ActivityDetailsModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[75] flex items-center justify-center p-3 sm:p-5 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
+    <div
+      className="fixed top-16 inset-x-0 bottom-0 z-[75] flex items-center justify-center p-3 sm:p-5 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-150 select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-2xl w-full flex flex-col max-h-[85vh] text-slate-900 overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
         {/* Sticky Header */}
         <div className="shrink-0 px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-white z-10">
@@ -579,6 +592,7 @@ export function ActivityDetailsModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
