@@ -1236,7 +1236,7 @@ export function ActivitiesClient({
                     </div>
 
                     {/* Cards */}
-                    <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto pr-1 my-2">
+                    <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto pr-1 my-2 pb-16">
                       {colActivities.length === 0 ? (
                         <div className="p-4 text-center text-xs text-slate-400 border border-dashed border-slate-200/90 rounded-xl bg-white/50">
                           No activities
@@ -1258,7 +1258,7 @@ export function ActivitiesClient({
                                   );
                                 }}
                                 className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
-                                title="Activity options"
+                                aria-label="Activity options"
                               >
                                 <MoreVertical className="w-3.5 h-3.5" />
                               </button>
@@ -1352,8 +1352,8 @@ export function ActivitiesClient({
                           return (
                             <div
                               key={act.id}
-                              className={`bg-white rounded-xl border border-slate-200/90 p-3 shadow-2xs hover:shadow-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col group/card ${
-                                activeKebabActivityId === act.id ? "relative z-30" : "relative z-0"
+                              className={`bg-white rounded-xl border border-slate-200/90 p-3 shadow-2xs hover:shadow-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col group/card relative ${
+                                activeKebabActivityId === act.id ? "z-30" : "z-10 hover:z-30"
                               }`}
                             >
                               {/* Header row: [Collapse/Expand Button] + [Title] + [Expanded Kebab] */}
@@ -1398,7 +1398,7 @@ export function ActivitiesClient({
                                 </div>
                               </div>
 
-                              {/* Collapsed Details Row (Platform, Date, Three-Dotted Button with Tooltip) */}
+                              {/* Collapsed Details Row (Platform, Date) */}
                               <div
                                 className={`grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                                   isCollapsed
@@ -1407,172 +1407,75 @@ export function ActivitiesClient({
                                 }`}
                               >
                                 <div className="overflow-hidden">
-                                  <div className="flex items-center justify-between gap-1.5 text-[10px] pl-9">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      {/* Platform Badge */}
-                                      <span
-                                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${pStyle.bg} flex items-center gap-1 shrink-0`}
-                                      >
-                                        <PlatformIcon platform={act.socialPlatform} className="w-2.5 h-2.5 shrink-0" />
-                                        <span>{pStyle.label}</span>
+                                  <div className="flex items-center gap-2 text-[10px] pl-9">
+                                    {/* Platform Badge */}
+                                    <span
+                                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${pStyle.bg} flex items-center gap-1 shrink-0`}
+                                    >
+                                      <PlatformIcon platform={act.socialPlatform} className="w-2.5 h-2.5 shrink-0" />
+                                      <span>{pStyle.label}</span>
+                                    </span>
+
+                                    {/* Date */}
+                                    <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium shrink-0">
+                                      <Calendar className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                                      <span>
+                                        {act.scheduledAt
+                                          ? new Date(act.scheduledAt).toLocaleDateString(undefined, {
+                                              month: "short",
+                                              day: "numeric",
+                                            })
+                                          : act.createdAt
+                                          ? new Date(act.createdAt).toLocaleDateString(undefined, {
+                                              month: "short",
+                                              day: "numeric",
+                                            })
+                                          : "No date"}
                                       </span>
-
-                                      {/* Date */}
-                                      <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium shrink-0">
-                                        <Calendar className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                                        <span>
-                                          {act.scheduledAt
-                                            ? new Date(act.scheduledAt).toLocaleDateString(undefined, {
-                                                month: "short",
-                                                day: "numeric",
-                                              })
-                                            : act.createdAt
-                                            ? new Date(act.createdAt).toLocaleDateString(undefined, {
-                                                month: "short",
-                                                day: "numeric",
-                                              })
-                                            : "No date"}
-                                        </span>
-                                      </span>
-                                    </div>
-
-                                    {/* Three-Dotted Button with hover tooltip showing Content Type, Creator, Campaign */}
-                                    <div className="relative group/kebab shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setActiveKebabActivityId(
-                                            activeKebabActivityId === act.id ? null : act.id
-                                          );
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition cursor-pointer"
-                                        title="Activity options"
-                                      >
-                                        <MoreVertical className="w-3.5 h-3.5" />
-                                      </button>
-
-                                      {/* Hover Tooltip: Hidden when kebab is open, pops up on hover */}
-                                      {activeKebabActivityId !== act.id && (
-                                        <div className="pointer-events-none absolute right-0 bottom-full mb-1.5 hidden group-hover/kebab:flex flex-col gap-1.5 w-56 p-2.5 bg-slate-900/95 text-white rounded-xl shadow-xl text-[10px] z-50 animate-in fade-in zoom-in-95 duration-100 backdrop-blur-xs">
-                                          <div className="flex items-center justify-between border-b border-slate-700/80 pb-1">
-                                            <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Activity Info</span>
-                                            <span className="text-[9px] text-purple-300 font-semibold">{pStyle.label}</span>
-                                          </div>
-
-                                          {/* Campaign with dynamic status color */}
-                                          {act.campaignName && (
-                                            <div className="flex items-center justify-between gap-1.5">
-                                              <span className="text-slate-400 shrink-0">Campaign:</span>
-                                              <span className="font-semibold text-white truncate max-w-[130px] flex items-center gap-1">
-                                                <span
-                                                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${campStyle.dotClass}`}
-                                                  style={campStyle.dotStyle}
-                                                />
-                                                <span className="truncate">{act.campaignName}</span>
-                                              </span>
-                                            </div>
-                                          )}
-
-                                          {/* Content Type */}
-                                          <div className="flex items-center justify-between gap-1.5">
-                                            <span className="text-slate-400 shrink-0">Content Type:</span>
-                                            <span className="font-semibold text-slate-200 capitalize truncate max-w-[130px]">
-                                              {act.contentType?.replace("_", " ")}
-                                            </span>
-                                          </div>
-
-                                          {/* Creator / Owner */}
-                                          <div className="flex items-center justify-between gap-1.5">
-                                            <span className="text-slate-400 shrink-0">Creator:</span>
-                                            <span className="font-semibold text-slate-200 truncate max-w-[130px]">
-                                              {act.owner?.displayName || act.owner?.name || "Unassigned"}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      )}
-
-                                      {/* Kebab Dropdown Menu when clicked in collapsed state */}
-                                      {activeKebabActivityId === act.id && (
-                                        <>
-                                          <div
-                                            className="fixed inset-0 z-40"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setActiveKebabActivityId(null);
-                                            }}
-                                          />
-                                          <div className="absolute right-0 top-full mt-1.5 z-50 w-44 bg-white rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200/90 p-1.5 text-xs animate-in fade-in-0 zoom-in-95 duration-100">
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveKebabActivityId(null);
-                                                handleEditActivityTitle(act.id, act.title);
-                                              }}
-                                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer text-left"
-                                            >
-                                              <div className="w-6 h-6 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-                                                <Pencil className="w-3 h-3" />
-                                              </div>
-                                              <span>Rename Title</span>
-                                            </button>
-
-                                            {CHAIN_TRANSITIONS[act.status]?.length > 0 && (
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setActiveKebabActivityId(null);
-                                                  setMovingActivity(act);
-                                                }}
-                                                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition cursor-pointer text-left"
-                                              >
-                                                <div className="w-6 h-6 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-                                                  <ArrowRight className="w-3 h-3" />
-                                                </div>
-                                                <span>Move to...</span>
-                                              </button>
-                                            )}
-
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveKebabActivityId(null);
-                                                setSelectedActivityForDetails(act);
-                                              }}
-                                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition text-left cursor-pointer"
-                                            >
-                                              <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-                                                <ExternalLink className="w-3 h-3" />
-                                              </div>
-                                              <span>View Details</span>
-                                            </button>
-
-                                            <div className="border-t border-slate-100 my-1" />
-
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveKebabActivityId(null);
-                                                handleDeleteActivity(act.id, act.title);
-                                              }}
-                                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer text-left"
-                                            >
-                                              <div className="w-6 h-6 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
-                                                <Trash2 className="w-3 h-3" />
-                                              </div>
-                                              <span>Delete Activity</span>
-                                            </button>
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
+                                    </span>
                                   </div>
                                 </div>
                               </div>
+
+                              {/* Hover Visual Display of Creator, Content Type, and Campaign on Collapsed Card */}
+                              {isCollapsed && (
+                                <div className="pointer-events-none absolute left-0 right-0 top-full mt-2 z-50 hidden group-hover/card:flex flex-col gap-1.5 p-3 bg-slate-900/95 text-white rounded-xl shadow-xl text-[10px] animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xs border border-slate-700/60">
+                                  <div className="flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+                                    <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Activity Info</span>
+                                    <span className="text-[9px] text-purple-300 font-semibold">{pStyle.label}</span>
+                                  </div>
+
+                                  {/* Creator / Owner */}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-slate-400 shrink-0">Creator:</span>
+                                    <span className="font-semibold text-slate-200 truncate max-w-[140px]">
+                                      {act.owner?.displayName || act.owner?.name || "Unassigned"}
+                                    </span>
+                                  </div>
+
+                                  {/* Content Type */}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-slate-400 shrink-0">Content Type:</span>
+                                    <span className="font-semibold text-slate-200 capitalize truncate max-w-[140px]">
+                                      {act.contentType?.replace("_", " ")}
+                                    </span>
+                                  </div>
+
+                                  {/* Campaign with dynamic status color */}
+                                  {act.campaignName && (
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-slate-400 shrink-0">Campaign:</span>
+                                      <span className="font-semibold text-white truncate max-w-[140px] flex items-center gap-1">
+                                        <span
+                                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${campStyle.dotClass}`}
+                                          style={campStyle.dotStyle}
+                                        />
+                                        <span className="truncate">{act.campaignName}</span>
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                               {/* Expanded Content Section (Tags, Date/Notes/Avatar, Actions) */}
                               <div
