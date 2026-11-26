@@ -324,7 +324,7 @@ export function ColumnEditModal({
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100/80 border border-purple-200/80 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>+ Add New Pipeline Field</span>
+                  <span>Add New Pipeline Field</span>
                 </button>
               ) : (
                 <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2.5 animate-in fade-in duration-150">

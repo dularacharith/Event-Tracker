@@ -896,7 +896,7 @@ export function VisualFlowModal({
                     className="w-full py-1.5 px-3 rounded-xl border border-purple-200 hover:border-purple-300 bg-purple-50 hover:bg-purple-100/70 text-purple-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
                   >
                     <FolderPlus className="w-3.5 h-3.5 text-purple-600" />
-                    <span>+ Add Pipeline Field</span>
+                    <span>Add Pipeline Field</span>
                   </button>
                 </div>
               </div>
