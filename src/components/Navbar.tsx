@@ -41,6 +41,7 @@ interface NavbarProps {
 export function Navbar({ currentUser, userRole }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const isLoginPage = pathname === "/login";
   const { isExpanded, toggleSidebar } = useSidebar();
   const { loadingHref, startLoading } = useNavigationLoader();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -112,32 +113,40 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
           <div className="flex items-center justify-between h-16">
             {/* Brand Logo / Sidebar Toggle */}
             <div className="flex items-center gap-6">
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
-                className="flex items-center gap-2.5 group px-2.5 py-1.5 -ml-2 rounded-xl hover:bg-slate-100/80 transition cursor-pointer select-none text-left shrink-0"
-              >
-                <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-purple-900 transition">
-                  Campaign<span className="text-purple-600">Flow</span>
-                </span>
-                <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
-                  <PanelLeft
-                    className={`w-4 h-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] absolute inset-0 ${
-                      isExpanded
-                        ? "opacity-0 rotate-90 scale-75 pointer-events-none"
-                        : "opacity-100 rotate-0 scale-100 text-slate-400 group-hover:text-purple-600"
-                    }`}
-                  />
-                  <PanelLeftClose
-                    className={`w-4 h-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] absolute inset-0 ${
-                      isExpanded
-                        ? "opacity-100 rotate-0 scale-100 text-purple-600 group-hover:text-purple-700"
-                        : "opacity-0 -rotate-90 scale-75 pointer-events-none"
-                    }`}
-                  />
+              {isLoginPage ? (
+                <div className="flex items-center gap-2.5 px-2.5 py-1.5 -ml-2 select-none shrink-0">
+                  <span className="font-extrabold text-xl tracking-tight text-slate-900">
+                    Campaign<span className="text-purple-600">Flow</span>
+                  </span>
                 </div>
-              </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+                  className="flex items-center gap-2.5 group px-2.5 py-1.5 -ml-2 rounded-xl hover:bg-slate-100/80 transition cursor-pointer select-none text-left shrink-0"
+                >
+                  <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-purple-900 transition">
+                    Campaign<span className="text-purple-600">Flow</span>
+                  </span>
+                  <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
+                    <PanelLeft
+                      className={`w-4 h-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] absolute inset-0 ${
+                        isExpanded
+                          ? "opacity-0 rotate-90 scale-75 pointer-events-none"
+                          : "opacity-100 rotate-0 scale-100 text-slate-400 group-hover:text-purple-600"
+                      }`}
+                    />
+                    <PanelLeftClose
+                      className={`w-4 h-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] absolute inset-0 ${
+                        isExpanded
+                          ? "opacity-100 rotate-0 scale-100 text-purple-600 group-hover:text-purple-700"
+                          : "opacity-0 -rotate-90 scale-75 pointer-events-none"
+                      }`}
+                    />
+                  </div>
+                </button>
+              )}
 
               {/* Desktop Navigation */}
               {effectiveUser && (
@@ -282,7 +291,7 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                     )}
                   </button>
                 </>
-              ) : (
+              ) : !isLoginPage ? (
                 <button
                   onClick={handleNavbarSignIn}
                   disabled={isSigningIn}
@@ -297,7 +306,7 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                     <span>Sign In</span>
                   )}
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
 

@@ -18,6 +18,7 @@ function MainLayout({ currentUser, userRole, children }: AppShellProps) {
   const { isExpanded } = useSidebar();
   const { loadingHref } = useNavigationLoader();
   const pathname = usePathname();
+  const isLoginPage = pathname === "/login";
 
   return (
     <div className="h-screen h-[100dvh] flex flex-col bg-slate-50 relative overflow-hidden">
@@ -26,16 +27,24 @@ function MainLayout({ currentUser, userRole, children }: AppShellProps) {
 
       {/* Main Body Area: Sidebar below Navbar, and Main Content */}
       <div className="flex-1 flex relative min-h-0 overflow-hidden">
-        <Sidebar currentUser={currentUser} userRole={userRole} />
+        {!isLoginPage && <Sidebar currentUser={currentUser} userRole={userRole} />}
 
         <div
-          className={`flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden transition-all duration-300 ease-in-out ${
-            isExpanded ? "lg:pl-80" : "lg:pl-0"
+          className={`flex-1 flex flex-col min-w-0 min-h-0 ${
+            isLoginPage
+              ? "overflow-y-auto"
+              : `overflow-hidden transition-all duration-300 ease-in-out ${
+                  isExpanded ? "lg:pl-80" : "lg:pl-0"
+                }`
           }`}
         >
           <main
             key={pathname}
-            className={`flex-1 w-full px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-out animate-page-slide ${
+            className={`flex-1 w-full ${
+              isLoginPage
+                ? "flex items-center justify-center p-3 sm:p-6 lg:p-8"
+                : "px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex flex-col min-h-0 overflow-hidden"
+            } transition-all duration-300 ease-out animate-page-slide ${
               loadingHref ? "page-loading-blur" : ""
             }`}
           >
