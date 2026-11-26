@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Trash2, AlertCircle, HelpCircle } from "lucide-react";
 
 export interface ConfirmOptions {
   title: string;
@@ -49,14 +49,14 @@ export function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[100] flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+      className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget && !loading) {
           onClose();
         }
       }}
     >
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-sm sm:max-w-md w-full p-6 sm:p-8 text-center relative animate-in zoom-in-95 duration-150 select-none">
+      <div className="bg-white rounded-3xl shadow-2xl shadow-slate-950/15 border border-slate-100 max-w-sm sm:max-w-md w-full p-6 sm:p-7 text-center relative animate-in zoom-in-95 duration-150 select-none overflow-hidden">
         {/* Close Button Top Right */}
         <button
           type="button"
@@ -64,11 +64,26 @@ export function ConfirmModal({
           disabled={loading}
           className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
+        {/* Modern Icon Badge Top Center */}
+        <div
+          className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-2xs border ${
+            confirmVariant === "rose"
+              ? "bg-rose-50 border-rose-100 text-rose-600"
+              : "bg-purple-50 border-purple-100 text-purple-600"
+          }`}
+        >
+          {confirmVariant === "rose" ? (
+            <Trash2 className="w-5 h-5 stroke-[2.2]" />
+          ) : (
+            <AlertCircle className="w-5 h-5 stroke-[2.2]" />
+          )}
+        </div>
+
         {/* Title Question */}
-        <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight mt-2 px-4 leading-snug">
+        <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight px-2 leading-snug">
           {title}
         </h3>
 
@@ -79,14 +94,24 @@ export function ConfirmModal({
           </p>
         )}
 
-        {/* Action Buttons Centered Side-by-Side (Matching Reference Design) */}
-        <div className="flex items-center justify-center gap-3.5 mt-6 pt-2">
-          {/* Confirm Button (Purple by Default matching Reference) */}
+        {/* Action Buttons Centered Side-by-Side */}
+        <div className="flex items-center justify-center gap-3 mt-6 pt-1">
+          {/* Cancel Button */}
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 max-w-[130px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
+          >
+            {cancelLabel}
+          </button>
+
+          {/* Confirm Button */}
           <button
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`min-w-[100px] px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-md transition cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 max-w-[140px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-md transition cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98] ${
               confirmVariant === "rose"
                 ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20 active:bg-rose-800"
                 : "bg-purple-600 hover:bg-purple-700 shadow-purple-500/25 active:bg-purple-800"
@@ -94,16 +119,6 @@ export function ConfirmModal({
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
             <span>{confirmLabel}</span>
-          </button>
-
-          {/* Cancel Button (Delicate Gray Outline matching reference) */}
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="min-w-[100px] px-6 py-2.5 rounded-xl text-xs sm:text-sm font-medium border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-          >
-            {cancelLabel}
           </button>
         </div>
       </div>

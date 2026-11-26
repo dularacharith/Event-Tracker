@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { DevAccountSwitcher } from "@/components/DevAccountSwitcher";
 import { ToastProvider } from "@/components/Toast";
 import { ConfirmProvider } from "@/components/ui/ConfirmModal";
+import { PromptProvider } from "@/components/ui/PromptModal";
 import { NavigationLoaderProvider } from "@/contexts/NavigationLoaderContext";
 
 export const dynamic = "force-dynamic";
@@ -34,15 +35,17 @@ export default async function RootLayout({
       <body className="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col">
         <ToastProvider>
           <ConfirmProvider>
-            <NavigationLoaderProvider>
-              <AppShell
-                currentUser={authContext?.user || null}
-                userRole={authContext?.member?.role || null}
-              >
-                {children}
-              </AppShell>
-              <DevAccountSwitcher />
-            </NavigationLoaderProvider>
+            <PromptProvider>
+              <NavigationLoaderProvider>
+                <AppShell
+                  currentUser={authContext?.user || null}
+                  userRole={authContext?.member?.role || null}
+                >
+                  {children}
+                </AppShell>
+                <DevAccountSwitcher />
+              </NavigationLoaderProvider>
+            </PromptProvider>
           </ConfirmProvider>
         </ToastProvider>
       </body>

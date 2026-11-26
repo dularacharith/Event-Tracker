@@ -299,9 +299,6 @@ export function ChannelsClient({
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            {isTabPending && pendingTab === "all" && (
-              <Loader2 className="w-3 h-3 text-white animate-spin" />
-            )}
             <span>All Platforms ({channelsList.length})</span>
           </button>
           {ALL_PLATFORMS.map((p) => {
@@ -309,7 +306,6 @@ export function ChannelsClient({
               (c) => (c.platform || "other").toLowerCase() === p.id
             ).length;
             if (count === 0 && filterPlatform !== p.id) return null;
-            const isThisPending = isTabPending && pendingTab === p.id;
 
             return (
               <button
@@ -326,9 +322,6 @@ export function ChannelsClient({
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
-                {isThisPending && (
-                  <Loader2 className="w-3 h-3 animate-spin text-purple-200" />
-                )}
                 <span>{p.label}</span>
                 <span className="text-[10px] opacity-75">({count})</span>
               </button>
@@ -338,7 +331,12 @@ export function ChannelsClient({
       </div>
 
       {/* Channels Grouped by Platform */}
-      {filteredChannels.length === 0 ? (
+      <div
+        className={`transition-all duration-300 ease-out ${
+          isTabPending ? "filter blur-[2px] opacity-80 pointer-events-none" : ""
+        }`}
+      >
+        {filteredChannels.length === 0 ? (
         <div className="p-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
           <Radio className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-slate-800">
@@ -480,12 +478,14 @@ export function ChannelsClient({
           })}
         </div>
       )}
+      </div>
 
       {/* Create Channel Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 pt-20">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-md w-full flex flex-col max-h-[82vh] text-slate-900 overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
+            {/* Static / Sticky Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0 bg-white">
               <div className="flex items-center gap-2">
                 <Radio className="w-5 h-5 text-indigo-600" />
                 <h3 className="font-bold text-base text-slate-900">
@@ -493,20 +493,22 @@ export function ChannelsClient({
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {error && (
-              <div className="mb-4 p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateChannel} className="space-y-4">
+            <form onSubmit={handleCreateChannel} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {/* Scrollable Contents Only */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {error && (
+                  <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200">
+                    {error}
+                  </div>
+                )}
               {/* Social Media Platform */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -568,18 +570,21 @@ export function ChannelsClient({
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              </div>
+
+              {/* Static / Sticky Footer */}
+              <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t border-slate-100 shrink-0 bg-slate-50/80">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {loading ? "Creating..." : "Create Channel"}
                 </button>

@@ -33,7 +33,6 @@ import {
   RefreshCw,
   Pencil,
   Trash2,
-  Loader2,
   Minimize2,
   Maximize2,
   Eye,
@@ -68,6 +67,7 @@ import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
 import { HowItWorksModal } from "@/components/activities/HowItWorksModal";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { usePrompt } from "@/components/ui/PromptModal";
 
 interface ActivityItem {
   id: string;
@@ -277,6 +277,12 @@ export function ActivitiesClient({
 }: ActivitiesClientProps) {
   const { toast } = useToast();
   const confirm = useConfirm();
+  const prompt = usePrompt();
+  const [activitiesList, setActivitiesList] = useState<ActivityItem[]>(initialActivities);
+
+  useEffect(() => {
+    setActivitiesList(initialActivities);
+  }, [initialActivities]);
   const [viewMode, setViewMode] = useState<"list" | "board">("board");
   const [isTabPending, startTabTransition] = useTransition();
   const [pendingTab, setPendingTab] = useState<string | null>(null);
@@ -298,14 +304,14 @@ export function ActivitiesClient({
   };
 
   const areAllCollapsed =
-    initialActivities.length > 0 &&
-    initialActivities.every((a) => collapsedCardIds.has(a.id));
+    activitiesList.length > 0 &&
+    activitiesList.every((a) => collapsedCardIds.has(a.id));
 
   const toggleCollapseAll = () => {
     if (areAllCollapsed) {
       setCollapsedCardIds(new Set());
     } else {
-      setCollapsedCardIds(new Set(initialActivities.map((a) => a.id)));
+      setCollapsedCardIds(new Set(activitiesList.map((a) => a.id)));
     }
   };
 
@@ -350,7 +356,7 @@ export function ActivitiesClient({
       return;
     }
     const target = flowColumns.find((c) => c.id === colId);
-    const count = initialActivities.filter((a) => a.status === colId).length;
+    const count = activitiesList.filter((a) => a.status === colId).length;
     const ok = await confirm({
       title: `Are you sure you want to delete the "${target?.label || colId}" card?`,
       description:
@@ -394,7 +400,16 @@ export function ActivitiesClient({
   const [activeKebabActivityId, setActiveKebabActivityId] = useState<string | null>(null);
 
   const handleEditActivityTitle = async (activityId: string, currentTitle: string) => {
-    const newTitle = prompt("Edit activity title:", currentTitle);
+    const newTitle = await prompt({
+      title: "Rename Activity",
+      description: "Enter a new title for this campaign activity.",
+      defaultValue: currentTitle,
+      placeholder: "e.g. New Product Launch Reel",
+      confirmLabel: "Save Title",
+      cancelLabel: "Cancel",
+      icon: "pencil",
+      confirmVariant: "purple",
+    });
     if (!newTitle || newTitle.trim() === currentTitle.trim()) return;
 
     try {
@@ -407,8 +422,10 @@ export function ActivitiesClient({
         const d = await res.json();
         throw new Error(d.error || "Failed to update title");
       }
+      setActivitiesList((prev) =>
+        prev.map((a) => (a.id === activityId ? { ...a, title: newTitle.trim() } : a))
+      );
       toast.success("Title updated", "Activity title changed successfully.");
-      window.location.reload();
     } catch (err: any) {
       toast.error("Failed to update title", err.message);
     }
@@ -431,8 +448,8 @@ export function ActivitiesClient({
         const d = await res.json();
         throw new Error(d.error || "Failed to delete activity");
       }
+      setActivitiesList((prev) => prev.filter((a) => a.id !== activityId));
       toast.success("Activity deleted", `"${title}" has been deleted.`);
-      window.location.reload();
     } catch (err: any) {
       toast.error("Failed to delete", err.message);
     }
@@ -557,7 +574,7 @@ export function ActivitiesClient({
   const [newRecurrenceCount, setNewRecurrenceCount] = useState<number>(5);
 
   // Filtering
-  const filteredActivities = initialActivities.filter((act) => {
+  const filteredActivities = activitiesList.filter((act) => {
     if (search) {
       const q = search.toLowerCase();
       const match =
@@ -594,10 +611,10 @@ export function ActivitiesClient({
         window.location.reload();
       } else {
         const d = await res.json();
-        alert(d.error || "Failed to start progress");
+        toast.error("Failed to start progress", d.error || "Action could not be completed.");
       }
     } catch (err: any) {
-      alert(err.message);
+      toast.error("Error", err.message || "Failed to start progress");
     }
   };
 
@@ -744,11 +761,7 @@ export function ActivitiesClient({
                 viewMode === "board" ? "text-slate-900 font-bold" : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              {isTabPending && pendingTab === "board" ? (
-                <Loader2 className="w-3.5 h-3.5 text-purple-600 animate-spin" />
-              ) : (
-                <Kanban className="w-3.5 h-3.5" />
-              )}
+              <Kanban className="w-3.5 h-3.5" />
               <span>Board</span>
             </button>
             <button
@@ -763,11 +776,7 @@ export function ActivitiesClient({
                 viewMode === "list" ? "text-slate-900 font-bold" : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              {isTabPending && pendingTab === "list" ? (
-                <Loader2 className="w-3.5 h-3.5 text-purple-600 animate-spin" />
-              ) : (
-                <List className="w-3.5 h-3.5" />
-              )}
+              <List className="w-3.5 h-3.5" />
               <span>List</span>
             </button>
           </div>
@@ -884,60 +893,57 @@ export function ActivitiesClient({
         </div>
       )}
 
-      {/* View: Status Board (Linked Pipeline Flow & Kanban Columns) */}
-      {viewMode === "board" ? (
-        <div key="board-view" className="space-y-4 flex-1 flex flex-col min-h-0 animate-tab-slide-left">
-          {/* Quick Column Jump Pills & Visual Flow Controls */}
-          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs px-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-slate-400 font-semibold text-[11px] mr-1">Columns:</span>
-              <button
-                onClick={() => {
-                  setPendingTab("all-columns");
-                  startTabTransition(() => setFilterStatus(""));
-                }}
-                className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer ${
-                  !filterStatus
-                    ? "bg-slate-800 text-white shadow-xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {isTabPending && pendingTab === "all-columns" && (
-                  <Loader2 className="w-3 h-3 text-white animate-spin" />
-                )}
-                <span>All {visibleColumns.length} Columns</span>
-              </button>
-              {visibleColumns.map((c) => {
-                const styles = getColumnStyles(c);
-                const count = filteredActivities.filter((a) => a.status === c.id).length;
-                const isThisPending = isTabPending && pendingTab === c.id;
+      {/* View: Status Board (Linked Pipeline Flow & Kanban Columns) vs Grouped List */}
+      <div
+        className={`flex-1 flex flex-col min-h-0 transition-all duration-300 ease-out ${
+          isTabPending ? "filter blur-[2px] opacity-80 pointer-events-none" : ""
+        }`}
+      >
+        {viewMode === "board" ? (
+          <div key="board-view" className="space-y-4 flex-1 flex flex-col min-h-0 animate-tab-slide-left">
+            {/* Quick Column Jump Pills & Visual Flow Controls */}
+            <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs px-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-slate-400 font-semibold text-[11px] mr-1">Columns:</span>
+                <button
+                  onClick={() => {
+                    setPendingTab("all-columns");
+                    startTabTransition(() => setFilterStatus(""));
+                  }}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer ${
+                    !filterStatus
+                      ? "bg-slate-800 text-white shadow-xs"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <span>All {visibleColumns.length} Columns</span>
+                </button>
+                {visibleColumns.map((c) => {
+                  const styles = getColumnStyles(c);
+                  const count = filteredActivities.filter((a) => a.status === c.id).length;
 
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      setPendingTab(c.id);
-                      startTabTransition(() => setFilterStatus(filterStatus === c.id ? "" : c.id));
-                    }}
-                    className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
-                      filterStatus === c.id
-                        ? "bg-indigo-600 text-white shadow-xs"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    {isThisPending ? (
-                      <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                    ) : (
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        setPendingTab(c.id);
+                        startTabTransition(() => setFilterStatus(filterStatus === c.id ? "" : c.id));
+                      }}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                        filterStatus === c.id
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
                       <span
                         className={`w-2 h-2 rounded-full shrink-0 ${styles.dotClass}`}
                         style={styles.dotStyle}
                       />
-                    )}
-                    <span>{c.label}</span>
-                    <span className="text-[10px] opacity-75">({count})</span>
-                  </button>
-                );
-              })}
+                      <span>{c.label}</span>
+                      <span className="text-[10px] opacity-75">({count})</span>
+                    </button>
+                  );
+                })}
 
               {/* Hidden Columns Pill */}
               {hiddenColumns.length > 0 && (
@@ -1650,24 +1656,21 @@ export function ActivitiesClient({
               );
             })}
 
-            {/* "+ Add New Card" Column at the end of the track */}
+            {/* "+" Button at the end of the track */}
             {!filterStatus && (
-              <div className="min-w-[200px] shrink-0 self-stretch flex">
+              <div className="shrink-0 flex items-start pt-4 px-2">
                 <button
+                  type="button"
                   onClick={() => {
                     setEditingColumn(null);
                     setIsEditingNewColumn(true);
                     setIsColumnEditModalOpen(true);
                   }}
-                  className="w-full h-full min-h-[calc(100vh-280px)] border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl flex flex-col items-center justify-center gap-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/20 transition p-4 cursor-pointer group bg-white/40"
+                  title="Add new stage"
+                  aria-label="Add new stage"
+                  className="w-9 h-9 rounded-full bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-500 hover:text-indigo-600 shadow-2xs flex items-center justify-center transition-all cursor-pointer group hover:scale-110 active:scale-95"
                 >
-                  <div className="w-10 h-10 rounded-2xl bg-slate-100 group-hover:bg-indigo-100 text-slate-500 group-hover:text-indigo-600 flex items-center justify-center transition shadow-2xs">
-                    <Plus className="w-5 h-5" />
-                  </div>
-                  <span className="font-bold text-xs">Add New Card</span>
-                  <span className="text-[10px] text-slate-400 text-center leading-relaxed">
-                    Insert another stage into your activity pipeline flow
-                  </span>
+                  <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-200" />
                 </button>
               </div>
             )}
@@ -1906,28 +1909,33 @@ export function ActivitiesClient({
           })}
         </div>
       )}
+      </div>
 
       {/* Create Activity Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 flex items-center justify-center p-4 pt-20">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 text-slate-900 overflow-y-auto max-h-[calc(100vh-6rem)]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-lg w-full flex flex-col max-h-[82vh] text-slate-900 overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
+            {/* Static / Sticky Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0 bg-white">
               <h3 className="font-bold text-base text-slate-900">Create Campaign Activity</h3>
               <button
+                type="button"
                 onClick={() => setCreateModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {formError && (
-              <div className="mb-4 p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200">
-                {formError}
-              </div>
-            )}
-
-            <form onSubmit={handleCreate} className="space-y-4">
+            {/* Form wrapping scrollable content and static footer */}
+            <form onSubmit={handleCreate} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {/* Scrollable Contents Only */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {formError && (
+                  <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200">
+                    {formError}
+                  </div>
+                )}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-semibold text-slate-700">
@@ -2369,19 +2377,21 @@ export function ActivitiesClient({
                   </div>
                 </div>
               )}
+              </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              {/* Static / Sticky Footer */}
+              <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t border-slate-100 shrink-0 bg-slate-50/80">
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || currentCampaigns.length === 0}
-                  className="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition shadow-sm disabled:opacity-50"
+                  className="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {submitting
                     ? "Saving..."

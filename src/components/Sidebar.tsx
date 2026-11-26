@@ -16,7 +16,6 @@ import {
   User,
   Settings,
   ChevronRight,
-  PanelLeftClose,
   RotateCcw,
   Sparkles,
   Hash,
@@ -171,33 +170,18 @@ export function Sidebar({ currentUser, userRole }: SidebarProps) {
       {isExpanded && (
         <div
           onClick={collapseSidebar}
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 lg:hidden transition-opacity"
+          className="fixed inset-0 top-16 bg-slate-900/40 backdrop-blur-xs z-30 lg:hidden transition-opacity"
         />
       )}
 
-      {/* Main Collapsible Sidebar Drawer / Dock */}
+      {/* Main Collapsible Sidebar Drawer / Dock - Expands from below the header */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 bg-white border-r border-slate-200/90 shadow-2xl lg:shadow-sm flex flex-col transition-all duration-300 ease-in-out select-none ${
+        className={`fixed top-16 left-0 bottom-0 z-40 bg-white border-r border-slate-200/90 shadow-2xl lg:shadow-xs flex flex-col transition-all duration-300 ease-in-out select-none h-[calc(100vh-4rem)] ${
           isExpanded
             ? "w-80 translate-x-0 opacity-100"
             : "-translate-x-full w-0 opacity-0 pointer-events-none"
         }`}
       >
-        {/* Top Brand Header */}
-        <div className="h-16 px-5 border-b border-slate-200 flex items-center justify-between shrink-0 bg-white">
-          <button
-            type="button"
-            onClick={collapseSidebar}
-            title="Collapse Sidebar"
-            className="flex items-center gap-2 group px-2 py-1.5 -ml-2 rounded-xl hover:bg-slate-100/80 transition cursor-pointer select-none text-left"
-          >
-            <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-purple-900 transition">
-              Campaign<span className="text-purple-600">Flow</span>
-            </span>
-            <PanelLeftClose className="w-4 h-4 text-purple-600 group-hover:text-purple-800 transition" />
-          </button>
-        </div>
-
         {/* Search & Filter Controls Section */}
         <div className="p-3 border-b border-slate-100 bg-white space-y-2 shrink-0">
           <div className="flex items-center gap-2" ref={searchContainerRef}>
@@ -669,33 +653,23 @@ export function Sidebar({ currentUser, userRole }: SidebarProps) {
                     <div className="flex items-center gap-2.5">
                       <div
                         className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition ${
-                          isLinkLoading
-                            ? "bg-purple-600 text-white"
-                            : isActive
+                          isLinkLoading || isActive
                             ? "bg-purple-600 text-white"
                             : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-800"
                         }`}
                       >
-                        {isLinkLoading ? (
-                          <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-                        ) : (
-                          <Icon className="w-3.5 h-3.5" />
-                        )}
+                        <Icon className="w-3.5 h-3.5" />
                       </div>
                       <span>{item.label}</span>
                     </div>
 
-                    {isLinkLoading ? (
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping shrink-0 mr-1" />
-                    ) : (
-                      <ChevronRight
-                        className={`w-3.5 h-3.5 transition shrink-0 ${
-                          isActive
-                            ? "text-purple-600"
-                            : "text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5"
-                        }`}
-                      />
-                    )}
+                    <ChevronRight
+                      className={`w-3.5 h-3.5 transition shrink-0 ${
+                        isActive
+                          ? "text-purple-600"
+                          : "text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5"
+                      }`}
+                    />
                   </Link>
                 );
               })}

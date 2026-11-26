@@ -30,6 +30,7 @@ import {
   getColumnStyles,
 } from "@/lib/flowColumns";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { useToast } from "@/components/Toast";
 
 interface VisualFlowModalProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ export function VisualFlowModal({
   activitiesCountByStatus,
 }: VisualFlowModalProps) {
   const confirm = useConfirm();
+  const { toast } = useToast();
   const [selectedColId, setSelectedColId] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -91,7 +93,7 @@ export function VisualFlowModal({
 
   const deleteColumn = async (colId: string) => {
     if (columns.length <= 1) {
-      alert("You must have at least one card in the flow.");
+      toast.error("Cannot remove stage", "You must have at least one card in the flow.");
       return;
     }
     const target = columns.find((c) => c.id === colId);

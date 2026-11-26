@@ -340,28 +340,32 @@ export function TeamClient({
 
       {/* Invite Teammate Modal */}
       {inviteModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 flex items-center justify-center p-4 pt-20">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[calc(100vh-6rem)]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-md w-full flex flex-col max-h-[82vh] text-slate-900 overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
+            {/* Static / Sticky Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0 bg-white">
               <h3 className="font-bold text-base text-slate-900">
                 Invite New Teammate
               </h3>
               <button
+                type="button"
                 onClick={() => {
                   setInviteModalOpen(false);
                   if (generatedLink) window.location.reload();
                 }}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {error && (
-              <div className="mb-4 p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200">
-                {error}
-              </div>
-            )}
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {error && (
+                  <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200">
+                    {error}
+                  </div>
+                )}
 
             {generatedLink ? (
               <div className="space-y-4">
@@ -459,24 +463,26 @@ export function TeamClient({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t border-slate-100 shrink-0 bg-slate-50/80 -mx-6 -mb-6 mt-4">
                   <button
                     type="button"
                     onClick={() => setInviteModalOpen(false)}
-                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition shadow-sm disabled:opacity-50"
+                    className="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                   >
                     {loading ? "Generating Link..." : "Generate Invite Link"}
                   </button>
                 </div>
               </form>
             )}
+              </div>
+            </div>
           </div>
         </div>
       )}

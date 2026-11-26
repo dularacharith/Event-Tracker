@@ -48,48 +48,88 @@ select option:hover {
   animation: indeterminate-bar 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* Tab & View Mode Slide Animations */
+/* Tab & View Mode Slide & Blur Animations */
 @keyframes tabSlideRight {
   0% {
     opacity: 0;
-    transform: translateX(18px);
+    filter: blur(8px);
+    transform: translateX(20px);
+  }
+  60% {
+    filter: blur(2px);
   }
   100% {
     opacity: 1;
-    transform: translateX(0);
+    filter: none;
+    transform: none;
   }
 }
 
 @keyframes tabSlideLeft {
   0% {
     opacity: 0;
-    transform: translateX(-18px);
+    filter: blur(8px);
+    transform: translateX(-20px);
+  }
+  60% {
+    filter: blur(2px);
   }
   100% {
     opacity: 1;
-    transform: translateX(0);
+    filter: none;
+    transform: none;
   }
 }
 
 @keyframes tabFadeScale {
   0% {
     opacity: 0;
+    filter: blur(6px);
     transform: scale(0.985);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    filter: none;
+    transform: none;
+  }
+}
+
+@keyframes pageSlideBlur {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(6px);
+  }
+  60% {
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: none;
   }
 }
 
 .animate-tab-slide-right {
-  animation: tabSlideRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: tabSlideRight 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-tab-slide-left {
-  animation: tabSlideLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: tabSlideLeft 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-tab-fade-scale {
-  animation: tabFadeScale 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: tabFadeScale 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-page-slide {
+  animation: pageSlideBlur 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Blur & opacity transition applied while internal route navigation is loading */
+.page-loading-blur {
+  filter: blur(4px) !important;
+  opacity: 0.7 !important;
+  pointer-events: none !important;
+  transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }

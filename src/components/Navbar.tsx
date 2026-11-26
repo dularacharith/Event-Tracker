@@ -17,6 +17,7 @@ import {
   Radio,
   ChevronRight,
   PanelLeft,
+  PanelLeftClose,
 } from "lucide-react";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useNavigationLoader } from "@/contexts/NavigationLoaderContext";
@@ -115,14 +116,27 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                 type="button"
                 onClick={toggleSidebar}
                 title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
-                className={`items-center gap-2 group px-2 py-1.5 -ml-2 rounded-xl hover:bg-slate-100/80 transition cursor-pointer select-none text-left shrink-0 ${
-                  isExpanded ? "hidden lg:hidden" : "flex"
-                }`}
+                className="flex items-center gap-2.5 group px-2.5 py-1.5 -ml-2 rounded-xl hover:bg-slate-100/80 transition cursor-pointer select-none text-left shrink-0"
               >
                 <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-purple-900 transition">
                   Campaign<span className="text-purple-600">Flow</span>
                 </span>
-                <PanelLeft className="w-4 h-4 text-slate-400 group-hover:text-purple-600 transition" />
+                <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
+                  <PanelLeft
+                    className={`w-4 h-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] absolute inset-0 ${
+                      isExpanded
+                        ? "opacity-0 rotate-90 scale-75 pointer-events-none"
+                        : "opacity-100 rotate-0 scale-100 text-slate-400 group-hover:text-purple-600"
+                    }`}
+                  />
+                  <PanelLeftClose
+                    className={`w-4 h-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] absolute inset-0 ${
+                      isExpanded
+                        ? "opacity-100 rotate-0 scale-100 text-purple-600 group-hover:text-purple-700"
+                        : "opacity-0 -rotate-90 scale-75 pointer-events-none"
+                    }`}
+                  />
+                </div>
               </button>
 
               {/* Desktop Navigation */}
@@ -148,21 +162,14 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                         }}
                         className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer select-none ${
                           isTabLoading
-                            ? "bg-purple-50 text-purple-700 ring-1 ring-purple-200/80 shadow-2xs font-semibold"
+                            ? "bg-indigo-50/80 text-indigo-700 ring-1 ring-indigo-200/80 shadow-2xs font-semibold"
                             : isActive
                             ? "bg-indigo-50 text-indigo-700 font-semibold"
                             : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                         }`}
                       >
-                        {isTabLoading ? (
-                          <Loader2 className="w-4 h-4 text-purple-600 animate-spin shrink-0" />
-                        ) : (
-                          <Icon className="w-4 h-4 shrink-0" />
-                        )}
+                        <Icon className="w-4 h-4 shrink-0" />
                         <span>{item.label}</span>
-                        {isTabLoading && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping shrink-0" />
-                        )}
                       </Link>
                     );
                   })}
@@ -318,17 +325,13 @@ export function Navbar({ currentUser, userRole }: NavbarProps) {
                     }}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${
                       isTabLoading
-                        ? "bg-purple-50 text-purple-700 ring-1 ring-purple-200 font-semibold"
+                        ? "bg-indigo-50/80 text-indigo-700 ring-1 ring-indigo-200 font-semibold"
                         : isActive
                         ? "bg-indigo-50 text-indigo-700 font-semibold"
                         : "text-slate-600 hover:bg-slate-50"
                     }`}
                   >
-                    {isTabLoading ? (
-                      <Loader2 className="w-4 h-4 text-purple-600 animate-spin shrink-0" />
-                    ) : (
-                      <Icon className="w-4 h-4 shrink-0" />
-                    )}
+                    <Icon className="w-4 h-4 shrink-0" />
                     <span>{item.label}</span>
                   </Link>
                 );
