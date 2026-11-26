@@ -1995,7 +1995,7 @@ export function ActivitiesClient({
 
       {/* Create Activity Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[75] flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-lg w-full flex flex-col max-h-[82vh] text-slate-900 overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
             {/* Static / Sticky Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0 bg-white">
@@ -2487,18 +2487,6 @@ export function ActivitiesClient({
         </div>
       )}
 
-      {/* Column Edit / Create Modal */}
-      <ColumnEditModal
-        isOpen={isColumnEditModalOpen}
-        onClose={() => setIsColumnEditModalOpen(false)}
-        column={editingColumn}
-        isNew={isEditingNewColumn}
-        existingColumns={flowColumns}
-        onSave={handleSaveColumn}
-        onDelete={handleDeleteColumn}
-        onHide={handleHideColumn}
-      />
-
       {/* Visual Pipeline Architecture & Flow Modal (Inspired by Reference) */}
       <VisualFlowModal
         isOpen={isVisualFlowModalOpen}
@@ -2517,6 +2505,18 @@ export function ActivitiesClient({
         }}
         onResetToDefault={handleResetFlow}
         activitiesCountByStatus={activitiesCountByStatus}
+      />
+
+      {/* Column Edit / Create Modal (Layered on top of VisualFlowModal) */}
+      <ColumnEditModal
+        isOpen={isColumnEditModalOpen}
+        onClose={() => setIsColumnEditModalOpen(false)}
+        column={editingColumn}
+        isNew={isEditingNewColumn}
+        existingColumns={flowColumns}
+        onSave={handleSaveColumn}
+        onDelete={handleDeleteColumn}
+        onHide={handleHideColumn}
       />
 
       {/* How it Works Workflow Guide Modal */}

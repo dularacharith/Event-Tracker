@@ -373,6 +373,16 @@ export function VisualFlowModal({
                   <h3 className="text-xs font-bold text-slate-900">Stage Library</h3>
                   <p className="text-[11px] text-slate-500">Drag nodes into canvas</p>
 
+                  {/* Add New Stage Button */}
+                  <button
+                    type="button"
+                    onClick={onOpenCreateColumn}
+                    className="w-full mt-2 py-1.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm shadow-purple-500/25 transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add New Stage</span>
+                  </button>
+
                   {/* Search stages */}
                   <div className="relative mt-2">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -540,7 +550,7 @@ export function VisualFlowModal({
                     <button
                       type="button"
                       onClick={() => setIsLibraryOpen(true)}
-                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer shrink-0 whitespace-nowrap"
                       title="Open Stage Library"
                     >
                       Library
@@ -551,7 +561,7 @@ export function VisualFlowModal({
                   <button
                     type="button"
                     onClick={() => setActiveTool("pan")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 whitespace-nowrap ${
                       activeTool === "pan"
                         ? "bg-purple-600 text-white shadow-xs"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
@@ -566,7 +576,7 @@ export function VisualFlowModal({
                   <button
                     type="button"
                     onClick={() => setActiveTool("select")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 whitespace-nowrap ${
                       activeTool === "select"
                         ? "bg-purple-600 text-white shadow-xs"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
@@ -577,13 +587,13 @@ export function VisualFlowModal({
                     <span>Select</span>
                   </button>
 
-                  <div className="h-4 w-px bg-slate-200 mx-0.5" />
+                  <div className="h-4 w-px bg-slate-200 mx-0.5 shrink-0" />
 
                   {/* Add Stage */}
                   <button
                     type="button"
                     onClick={onOpenCreateColumn}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1 transition cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1 transition cursor-pointer shrink-0 whitespace-nowrap"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Stage</span>
@@ -593,19 +603,19 @@ export function VisualFlowModal({
                   <button
                     type="button"
                     onClick={() => setIsLivePreview(!isLivePreview)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1 transition cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1 transition cursor-pointer shrink-0 whitespace-nowrap"
                   >
                     <Share2 className="w-3.5 h-3.5 text-purple-600" />
                     <span>Connect Nodes</span>
                   </button>
 
-                  <div className="h-4 w-px bg-slate-200 mx-0.5" />
+                  <div className="h-4 w-px bg-slate-200 mx-0.5 shrink-0" />
 
                   {/* Zoom Controls */}
                   <button
                     type="button"
                     onClick={() => setZoomLevel((z) => Math.max(z - 10, 60))}
-                    className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                    className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer shrink-0"
                     title="Zoom Out"
                   >
                     <ZoomOut className="w-3.5 h-3.5" />
@@ -616,7 +626,7 @@ export function VisualFlowModal({
                       setZoomLevel(100);
                       setPan({ x: 0, y: 0 });
                     }}
-                    className="text-xs font-bold text-slate-700 px-1 hover:text-purple-600 transition cursor-pointer"
+                    className="text-xs font-bold text-slate-700 px-1 hover:text-purple-600 transition cursor-pointer shrink-0 whitespace-nowrap"
                     title="Reset to 100% and Center"
                   >
                     {zoomLevel}%
@@ -624,20 +634,20 @@ export function VisualFlowModal({
                   <button
                     type="button"
                     onClick={() => setZoomLevel((z) => Math.min(z + 10, 160))}
-                    className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                    className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer shrink-0"
                     title="Zoom In"
                   >
                     <ZoomIn className="w-3.5 h-3.5" />
                   </button>
 
-                  <div className="h-4 w-px bg-slate-200 mx-0.5" />
+                  <div className="h-4 w-px bg-slate-200 mx-0.5 shrink-0" />
 
                   {/* Undo / Redo */}
                   <button
                     type="button"
                     onClick={handleUndo}
                     disabled={history.length === 0}
-                    className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                    className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shrink-0"
                     title="Undo last change"
                   >
                     <Undo className="w-3.5 h-3.5" />
@@ -646,23 +656,23 @@ export function VisualFlowModal({
                     type="button"
                     onClick={handleRedo}
                     disabled={future.length === 0}
-                    className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                    className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shrink-0"
                     title="Redo change"
                   >
                     <Redo className="w-3.5 h-3.5" />
                   </button>
 
-                  <div className="h-4 w-px bg-slate-200 mx-0.5" />
+                  <div className="h-4 w-px bg-slate-200 mx-0.5 shrink-0" />
 
-                  {/* "How to use" Button */}
+                  {/* Modern Question Mark Icon Button */}
                   <button
                     type="button"
                     onClick={() => setIsHowToUseOpen(true)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100/80 border border-purple-200/80 flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-                    title="Open guide explaining this pipeline"
+                    className="w-7 h-7 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 hover:text-purple-900 border border-purple-200/90 flex items-center justify-center transition cursor-pointer shadow-2xs shrink-0 group"
+                    title="How to use the pipeline flow builder"
+                    aria-label="How to use pipeline guide"
                   >
-                    <HelpCircle className="w-3.5 h-3.5 text-purple-600" />
-                    <span>How to use</span>
+                    <HelpCircle className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform" />
                   </button>
 
                   {/* Toggle Inspector sidebar if closed */}
@@ -670,7 +680,7 @@ export function VisualFlowModal({
                     <button
                       type="button"
                       onClick={() => setIsInspectorOpen(true)}
-                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition shrink-0 whitespace-nowrap cursor-pointer"
                       title="Open Inspector"
                     >
                       Inspector
@@ -1047,7 +1057,7 @@ export function VisualFlowModal({
                       e.preventDefault();
                       handleDropToSection("outcomes");
                     }}
-                    className={`w-60 bg-emerald-50/40 border-2 ${
+                    className={`w-72 bg-emerald-50/40 border-2 ${
                       dragOverSection === "outcomes"
                         ? "border-emerald-500 ring-4 ring-emerald-500/20"
                         : "border-emerald-200/90 hover:border-emerald-300"
@@ -1104,17 +1114,20 @@ export function VisualFlowModal({
                             } ${col.hidden ? "opacity-50 border-dashed" : ""}`}
                           >
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <GripVertical className="w-3 h-3 text-slate-300 hover:text-slate-500" />
+                              <GripVertical className="w-3 h-3 text-slate-300 hover:text-slate-500 shrink-0" />
                               <span
                                 className={`w-2 h-2 rounded-full shrink-0 ${styles.dotClass}`}
                                 style={styles.dotStyle}
                               />
-                              <span className="font-bold text-xs uppercase tracking-wider text-slate-800 truncate">
+                              <span
+                                className="font-bold text-[11px] sm:text-xs uppercase tracking-tight text-slate-800 whitespace-nowrap"
+                                title={col.label}
+                              >
                                 {col.label}
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
                                 {count}
                               </span>
@@ -1124,7 +1137,7 @@ export function VisualFlowModal({
                                   e.stopPropagation();
                                   toggleHide(col.id);
                                 }}
-                                className="text-slate-400 hover:text-slate-700"
+                                className="text-slate-400 hover:text-slate-700 cursor-pointer"
                                 title={col.hidden ? "Show in flow" : "Hide from flow"}
                               >
                                 {col.hidden ? (
@@ -1385,7 +1398,7 @@ export function VisualFlowModal({
 
       {/* "HOW TO USE" COMPREHENSIVE PIPELINE GUIDE MODAL */}
       {isHowToUseOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
             {/* Header */}
             <div className="p-5 border-b border-slate-200/90 flex items-center justify-between bg-slate-50/80">

@@ -184,7 +184,7 @@ export function ActivityDetailsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[75] flex items-center justify-center p-3 sm:p-5 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-2xl w-full flex flex-col max-h-[85vh] text-slate-900 overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
         {/* Sticky Header */}
         <div className="shrink-0 px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-white z-10">

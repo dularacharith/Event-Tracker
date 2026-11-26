@@ -206,7 +206,7 @@ export function MoveActivityModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-md w-full flex flex-col max-h-[82vh] text-slate-900 overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
         {/* Static Header */}
         <div className="shrink-0 px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
