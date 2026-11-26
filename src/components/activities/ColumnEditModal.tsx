@@ -200,18 +200,13 @@ export function ColumnEditModal({
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-lg overflow-hidden flex flex-col max-h-[calc(100vh-6rem)] sm:max-h-[640px] my-auto">
         {/* Header */}
         <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-              {isNew ? <Plus className="w-4 h-4" /> : <Palette className="w-4 h-4" />}
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight">
-                {isNew ? "Create New Card / Stage" : `Edit Card: ${column?.label || ""}`}
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Customize title, background, bubble, and accent colors.
-              </p>
-            </div>
+          <div>
+            <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight">
+              {isNew ? "Create New Card / Stage" : `Edit Card: ${column?.label || ""}`}
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              Customize title, background, bubble, and accent colors.
+            </p>
           </div>
           <button
             onClick={onClose}
