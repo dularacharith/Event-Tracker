@@ -19,6 +19,7 @@ import {
 import { useToast, setPendingToast } from "@/components/Toast";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { PlatformIcon } from "@/components/icons/PlatformIcons";
 
 interface ChannelItem {
   id: string;
@@ -91,14 +92,14 @@ const PLATFORM_META: Record<
 };
 
 const ALL_PLATFORMS = [
-  { id: "youtube", label: "YouTube", icon: "YT", badgeBg: "bg-red-50 text-red-700 border-red-200" },
-  { id: "twitter", label: "Twitter / X", icon: "𝕏", badgeBg: "bg-slate-100 text-slate-800 border-slate-200" },
-  { id: "instagram", label: "Instagram", icon: "IG", badgeBg: "bg-pink-50 text-pink-700 border-pink-200" },
-  { id: "tiktok", label: "TikTok", icon: "TT", badgeBg: "bg-cyan-50 text-cyan-700 border-cyan-200" },
-  { id: "linkedin", label: "LinkedIn", icon: "in", badgeBg: "bg-blue-50 text-blue-700 border-blue-200" },
-  { id: "facebook", label: "Facebook", icon: "fb", badgeBg: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-  { id: "threads", label: "Threads", icon: "@", badgeBg: "bg-slate-100 text-slate-800 border-slate-200" },
-  { id: "other", label: "Other / General", icon: "#", badgeBg: "bg-purple-50 text-purple-700 border-purple-200" },
+  { id: "youtube", label: "YouTube", icon: <PlatformIcon platform="youtube" className="w-4 h-4 text-red-600" />, badgeBg: "bg-red-50 text-red-700 border-red-200" },
+  { id: "twitter", label: "Twitter / X", icon: <PlatformIcon platform="twitter" className="w-4 h-4 text-slate-900" />, badgeBg: "bg-slate-100 text-slate-800 border-slate-200" },
+  { id: "instagram", label: "Instagram", icon: <PlatformIcon platform="instagram" className="w-4 h-4 text-pink-600" />, badgeBg: "bg-pink-50 text-pink-700 border-pink-200" },
+  { id: "tiktok", label: "TikTok", icon: <PlatformIcon platform="tiktok" className="w-4 h-4 text-slate-900" />, badgeBg: "bg-cyan-50 text-cyan-700 border-cyan-200" },
+  { id: "linkedin", label: "LinkedIn", icon: <PlatformIcon platform="linkedin" className="w-4 h-4 text-blue-600" />, badgeBg: "bg-blue-50 text-blue-700 border-blue-200" },
+  { id: "facebook", label: "Facebook", icon: <PlatformIcon platform="facebook" className="w-4 h-4 text-blue-600" />, badgeBg: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  { id: "threads", label: "Threads", icon: <PlatformIcon platform="threads" className="w-4 h-4 text-slate-900" />, badgeBg: "bg-slate-100 text-slate-800 border-slate-200" },
+  { id: "other", label: "Other / General", icon: <Globe className="w-4 h-4 text-slate-600" />, badgeBg: "bg-purple-50 text-purple-700 border-purple-200" },
 ];
 
 export function ChannelsClient({
@@ -322,6 +323,7 @@ export function ChannelsClient({
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
+                <PlatformIcon platform={p.id} className="w-3.5 h-3.5 shrink-0" />
                 <span>{p.label}</span>
                 <span className="text-[10px] opacity-75">({count})</span>
               </button>
@@ -518,14 +520,14 @@ export function ChannelsClient({
                   value={platform}
                   onChange={setPlatform}
                   options={[
-                    { value: "twitter", label: "Twitter / X", subtitle: "Microblogging & announcements", icon: <span className="font-bold text-xs">𝕏</span> },
-                    { value: "instagram", label: "Instagram", subtitle: "Reels, Posts & Stories", icon: <span className="text-pink-600 font-bold text-xs">IG</span> },
-                    { value: "tiktok", label: "TikTok", subtitle: "Short-form video", icon: <span className="text-cyan-600 font-bold text-xs">TT</span> },
-                    { value: "linkedin", label: "LinkedIn", subtitle: "Professional network", icon: <span className="text-blue-600 font-bold text-xs">in</span> },
-                    { value: "youtube", label: "YouTube", subtitle: "Long-form & Shorts", icon: <span className="text-red-600 font-bold text-xs">YT</span> },
-                    { value: "facebook", label: "Facebook", subtitle: "Community & Pages", icon: <span className="text-blue-700 font-bold text-xs">fb</span> },
-                    { value: "threads", label: "Threads", subtitle: "Text conversations", icon: <span className="font-bold text-xs">@</span> },
-                    { value: "other", label: "Other / General", subtitle: "Blog, newsletter, etc.", icon: <Globe className="w-3.5 h-3.5 text-slate-600" /> },
+                    { value: "twitter", label: "Twitter / X", subtitle: "Microblogging & announcements", icon: <PlatformIcon platform="twitter" className="w-4 h-4 text-slate-900" /> },
+                    { value: "instagram", label: "Instagram", subtitle: "Reels, Posts & Stories", icon: <PlatformIcon platform="instagram" className="w-4 h-4 text-pink-600" /> },
+                    { value: "tiktok", label: "TikTok", subtitle: "Short-form video", icon: <PlatformIcon platform="tiktok" className="w-4 h-4 text-slate-900" /> },
+                    { value: "linkedin", label: "LinkedIn", subtitle: "Professional network", icon: <PlatformIcon platform="linkedin" className="w-4 h-4 text-blue-600" /> },
+                    { value: "youtube", label: "YouTube", subtitle: "Long-form & Shorts", icon: <PlatformIcon platform="youtube" className="w-4 h-4 text-red-600" /> },
+                    { value: "facebook", label: "Facebook", subtitle: "Community & Pages", icon: <PlatformIcon platform="facebook" className="w-4 h-4 text-blue-600" /> },
+                    { value: "threads", label: "Threads", subtitle: "Text conversations", icon: <PlatformIcon platform="threads" className="w-4 h-4 text-slate-900" /> },
+                    { value: "other", label: "Other / General", subtitle: "Blog, newsletter, etc.", icon: <Globe className="w-4 h-4 text-slate-600" /> },
                   ]}
                 />
                 <span className="text-[10px] text-slate-400 mt-1 block">

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { setPendingToast } from "@/components/Toast";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
+import { PlatformIcon } from "@/components/icons/PlatformIcons";
 import {
   format,
   addMonths,
@@ -501,13 +502,13 @@ export function CalendarClient({
                     value={formPlatform}
                     onChange={setFormPlatform}
                     options={[
-                      { value: "twitter", label: "Twitter / X", icon: <span className="font-bold text-xs">𝕏</span> },
-                      { value: "instagram", label: "Instagram", icon: <span className="text-pink-600 font-bold text-xs">IG</span> },
-                      { value: "tiktok", label: "TikTok", icon: <span className="text-cyan-600 font-bold text-xs">TT</span> },
-                      { value: "linkedin", label: "LinkedIn", icon: <span className="text-blue-600 font-bold text-xs">in</span> },
-                      { value: "youtube", label: "YouTube", icon: <span className="text-red-600 font-bold text-xs">YT</span> },
-                      { value: "facebook", label: "Facebook", icon: <span className="text-blue-700 font-bold text-xs">fb</span> },
-                      { value: "threads", label: "Threads", icon: <span className="font-bold text-xs">@</span> },
+                      { value: "twitter", label: "Twitter / X", icon: <PlatformIcon platform="twitter" className="w-4 h-4 text-slate-900" /> },
+                      { value: "instagram", label: "Instagram", icon: <PlatformIcon platform="instagram" className="w-4 h-4 text-pink-600" /> },
+                      { value: "tiktok", label: "TikTok", icon: <PlatformIcon platform="tiktok" className="w-4 h-4 text-slate-900" /> },
+                      { value: "linkedin", label: "LinkedIn", icon: <PlatformIcon platform="linkedin" className="w-4 h-4 text-blue-600" /> },
+                      { value: "youtube", label: "YouTube", icon: <PlatformIcon platform="youtube" className="w-4 h-4 text-red-600" /> },
+                      { value: "facebook", label: "Facebook", icon: <PlatformIcon platform="facebook" className="w-4 h-4 text-blue-600" /> },
+                      { value: "threads", label: "Threads", icon: <PlatformIcon platform="threads" className="w-4 h-4 text-slate-900" /> },
                     ]}
                   />
                 </div>

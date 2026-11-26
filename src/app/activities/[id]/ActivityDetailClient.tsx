@@ -35,6 +35,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { PlatformIcon } from "@/components/icons/PlatformIcons";
 
 interface ActivityDetailClientProps {
   currentUser: {
@@ -427,8 +428,9 @@ export function ActivityDetailClient({
               {activity.title}
             </h1>
             {getStatusBadge(activity.status)}
-            <span className="text-xs uppercase font-semibold tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded">
-              {activity.socialPlatform}
+            <span className="text-xs uppercase font-semibold tracking-wider text-slate-700 bg-slate-100 px-2.5 py-1 rounded flex items-center gap-1.5 shrink-0">
+              <PlatformIcon platform={activity.socialPlatform} className="w-3.5 h-3.5 shrink-0" colored />
+              <span>{activity.socialPlatform}</span>
             </span>
             <span className="text-xs text-slate-500 capitalize bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
               {activity.contentType.replace("_", " ")}

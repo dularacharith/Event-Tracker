@@ -68,6 +68,8 @@ import { HowItWorksModal } from "@/components/activities/HowItWorksModal";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { usePrompt } from "@/components/ui/PromptModal";
+import { useSidebar } from "@/contexts/SidebarContext";
+import { PlatformIcon } from "@/components/icons/PlatformIcons";
 
 interface ActivityItem {
   id: string;
@@ -278,6 +280,7 @@ export function ActivitiesClient({
   const { toast } = useToast();
   const confirm = useConfirm();
   const prompt = usePrompt();
+  const { isExpanded } = useSidebar();
   const [activitiesList, setActivitiesList] = useState<ActivityItem[]>(initialActivities);
 
   useEffect(() => {
@@ -963,29 +966,39 @@ export function ActivitiesClient({
               <button
                 type="button"
                 onClick={toggleCollapseAll}
-                className="px-3 py-1.5 rounded-xl bg-white hover:bg-purple-50/50 border border-slate-200 hover:border-purple-200 text-slate-700 hover:text-purple-600 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+                className={`rounded-xl bg-white hover:bg-purple-50/50 border border-slate-200 hover:border-purple-200 text-slate-700 hover:text-purple-600 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer ${
+                  isExpanded ? "w-8 h-8 p-0" : "px-3 py-1.5"
+                }`}
                 title={areAllCollapsed ? "Expand all activity cards" : "Collapse all activity cards"}
+                aria-label={areAllCollapsed ? "Expand all activity cards" : "Collapse all activity cards"}
               >
                 {areAllCollapsed ? (
-                  <>
-                    <Maximize2 className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Expand All</span>
-                  </>
+                  <Maximize2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                 ) : (
-                  <>
-                    <Minimize2 className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Collapse All</span>
-                  </>
+                  <Minimize2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                )}
+                {!isExpanded && (
+                  <span className="animate-in fade-in duration-200 whitespace-nowrap">
+                    {areAllCollapsed ? "Expand All" : "Collapse All"}
+                  </span>
                 )}
               </button>
 
               <button
+                type="button"
                 onClick={() => setIsVisualFlowModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-indigo-600 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+                className={`rounded-xl bg-white hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-indigo-600 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer ${
+                  isExpanded ? "w-8 h-8 p-0" : "px-3 py-1.5"
+                }`}
                 title="Configure Visual Flow Pipeline"
+                aria-label="Configure Visual Flow Pipeline"
               >
-                <Share2 className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Configure Flow</span>
+                <Share2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                {!isExpanded && (
+                  <span className="animate-in fade-in duration-200 whitespace-nowrap">
+                    Configure Flow
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -1324,9 +1337,10 @@ export function ActivitiesClient({
                                 <div className="flex items-center justify-between gap-1 text-[10px] pl-5 text-slate-500">
                                   <div className="flex items-center gap-1 min-w-0 overflow-hidden">
                                     <span
-                                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${pStyle.bg} shrink-0`}
+                                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${pStyle.bg} shrink-0 flex items-center gap-1`}
                                     >
-                                      {pStyle.label}
+                                      <PlatformIcon platform={act.socialPlatform} className="w-2.5 h-2.5 shrink-0" />
+                                      <span>{pStyle.label}</span>
                                     </span>
                                     {act.campaignName ? (
                                       <span
@@ -1394,9 +1408,10 @@ export function ActivitiesClient({
                               {/* Tags row: Platform, Content Type, Channel, Campaign */}
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span
-                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${pStyle.bg}`}
+                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${pStyle.bg} flex items-center gap-1 shrink-0`}
                                 >
-                                  {pStyle.label}
+                                  <PlatformIcon platform={act.socialPlatform} className="w-2.5 h-2.5 shrink-0" />
+                                  <span>{pStyle.label}</span>
                                 </span>
                                 <span
                                   className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${cStyle.bg}`}
@@ -1797,9 +1812,10 @@ export function ActivitiesClient({
                             <div className="flex items-center gap-2 flex-wrap">
                               {getStatusBadge(act.status)}
                               <span
-                                className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${pStyle.bg}`}
+                                className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${pStyle.bg} flex items-center gap-1.5 shrink-0`}
                               >
-                                {pStyle.label}
+                                <PlatformIcon platform={act.socialPlatform} className="w-3 h-3 shrink-0" />
+                                <span>{pStyle.label}</span>
                               </span>
                               <span
                                 className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${cStyle.bg}`}
@@ -2074,13 +2090,13 @@ export function ActivitiesClient({
                     value={newPlatform}
                     onChange={setNewPlatform}
                     options={[
-                      { value: "twitter", label: "Twitter / X", icon: <span className="font-bold text-xs">𝕏</span> },
-                      { value: "instagram", label: "Instagram", icon: <span className="text-pink-600 font-bold text-xs">IG</span> },
-                      { value: "tiktok", label: "TikTok", icon: <span className="text-cyan-600 font-bold text-xs">TT</span> },
-                      { value: "linkedin", label: "LinkedIn", icon: <span className="text-blue-600 font-bold text-xs">in</span> },
-                      { value: "youtube", label: "YouTube", icon: <span className="text-red-600 font-bold text-xs">YT</span> },
-                      { value: "facebook", label: "Facebook", icon: <span className="text-blue-700 font-bold text-xs">fb</span> },
-                      { value: "threads", label: "Threads", icon: <span className="font-bold text-xs">@</span> },
+                      { value: "twitter", label: "Twitter / X", icon: <PlatformIcon platform="twitter" className="w-4 h-4 text-slate-900" /> },
+                      { value: "instagram", label: "Instagram", icon: <PlatformIcon platform="instagram" className="w-4 h-4 text-pink-600" /> },
+                      { value: "tiktok", label: "TikTok", icon: <PlatformIcon platform="tiktok" className="w-4 h-4 text-slate-900" /> },
+                      { value: "linkedin", label: "LinkedIn", icon: <PlatformIcon platform="linkedin" className="w-4 h-4 text-blue-600" /> },
+                      { value: "youtube", label: "YouTube", icon: <PlatformIcon platform="youtube" className="w-4 h-4 text-red-600" /> },
+                      { value: "facebook", label: "Facebook", icon: <PlatformIcon platform="facebook" className="w-4 h-4 text-blue-600" /> },
+                      { value: "threads", label: "Threads", icon: <PlatformIcon platform="threads" className="w-4 h-4 text-slate-900" /> },
                     ]}
                   />
                 </div>

@@ -99,9 +99,9 @@ export function CustomDropdown({
         <div className="flex items-center gap-2 min-w-0">
           {/* Trigger Icon */}
           {icon ? (
-            <span className="text-purple-600 shrink-0">{icon}</span>
+            <span className="shrink-0 flex items-center justify-center text-purple-600">{icon}</span>
           ) : selectedOption?.icon ? (
-            <span className="text-purple-600 shrink-0">{selectedOption.icon}</span>
+            <span className="shrink-0 flex items-center justify-center">{selectedOption.icon}</span>
           ) : null}
 
           <span className="truncate block font-semibold text-slate-800">
@@ -155,7 +155,7 @@ export function CustomDropdown({
                         className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition ${
                           isSelected
                             ? "bg-white/20 text-white"
-                            : "bg-slate-100 text-purple-600 group-hover:bg-slate-200/80 group-hover:text-purple-700"
+                            : "bg-slate-100 text-slate-700 group-hover:bg-slate-200/80"
                         }`}
                       >
                         {opt.icon}

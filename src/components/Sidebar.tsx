@@ -33,6 +33,7 @@ import { useFilterContext } from "@/contexts/FilterContext";
 import { useNavigationLoader } from "@/contexts/NavigationLoaderContext";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import { UserAvatar } from "@/components/UserAvatar";
+import { PlatformIcon } from "@/components/icons/PlatformIcons";
 
 interface SidebarProps {
   currentUser?: {
@@ -541,13 +542,13 @@ export function Sidebar({ currentUser, userRole }: SidebarProps) {
                   size="sm"
                   options={[
                     { value: "", label: "All Platforms", icon: <Radio className="w-3.5 h-3.5" /> },
-                    { value: "twitter", label: "Twitter / X", icon: <span className="font-bold text-xs">𝕏</span> },
-                    { value: "instagram", label: "Instagram", icon: <span className="text-pink-600 font-bold text-xs">IG</span> },
-                    { value: "tiktok", label: "TikTok", icon: <span className="text-cyan-600 font-bold text-xs">TT</span> },
-                    { value: "linkedin", label: "LinkedIn", icon: <span className="text-blue-600 font-bold text-xs">in</span> },
-                    { value: "youtube", label: "YouTube", icon: <span className="text-red-600 font-bold text-xs">YT</span> },
-                    { value: "facebook", label: "Facebook", icon: <span className="text-blue-700 font-bold text-xs">fb</span> },
-                    { value: "threads", label: "Threads", icon: <span className="font-bold text-xs">@</span> },
+                    { value: "twitter", label: "Twitter / X", icon: <PlatformIcon platform="twitter" className="w-3.5 h-3.5 text-slate-900" /> },
+                    { value: "instagram", label: "Instagram", icon: <PlatformIcon platform="instagram" className="w-3.5 h-3.5 text-pink-600" /> },
+                    { value: "tiktok", label: "TikTok", icon: <PlatformIcon platform="tiktok" className="w-3.5 h-3.5 text-slate-900" /> },
+                    { value: "linkedin", label: "LinkedIn", icon: <PlatformIcon platform="linkedin" className="w-3.5 h-3.5 text-blue-600" /> },
+                    { value: "youtube", label: "YouTube", icon: <PlatformIcon platform="youtube" className="w-3.5 h-3.5 text-red-600" /> },
+                    { value: "facebook", label: "Facebook", icon: <PlatformIcon platform="facebook" className="w-3.5 h-3.5 text-blue-600" /> },
+                    { value: "threads", label: "Threads", icon: <PlatformIcon platform="threads" className="w-3.5 h-3.5 text-slate-900" /> },
                   ]}
                 />
               </div>
