@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   X,
   Plus,
@@ -105,14 +105,36 @@ export function VisualFlowModal({
   // Selected stage for the Stage Inspector
   const [selectedColId, setSelectedColId] = useState<string>("in_progress");
   const [searchQuery, setSearchQuery] = useState("");
+  const canvasRef = useRef<HTMLDivElement>(null);
   const [activeTool, setActiveTool] = useState<"pan" | "select">("select");
-  const [zoomLevel, setZoomLevel] = useState<number>(100);
+  const [zoomLevel, setZoomLevel] = useState<number>(75);
   const [isLivePreview, setIsLivePreview] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(true);
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isRulesExpanded, setIsRulesExpanded] = useState(false);
   const [isHowToUseOpen, setIsHowToUseOpen] = useState(false);
   const [showQualityInfo, setShowQualityInfo] = useState(false);
+
+  // Auto-fit board to canvas
+  const autoFitCanvas = useCallback(() => {
+    if (!canvasRef.current) return;
+    const availableW = canvasRef.current.clientWidth - 40;
+    const availableH = canvasRef.current.clientHeight - 40;
+    if (availableW <= 0 || availableH <= 0) return;
+    const boardW = 760;
+    const boardH = 360;
+    const scaleW = availableW / boardW;
+    const scaleH = availableH / boardH;
+    const targetScale = Math.min(0.9, Math.max(0.55, Math.min(scaleW, scaleH)));
+    const pct = Math.round(targetScale * 100);
+    setZoomLevel(pct);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(autoFitCanvas, 100);
+    return () => clearTimeout(timer);
+  }, [autoFitCanvas, isLibraryOpen, isInspectorOpen]);
 
   // Drag and drop state
   const [draggedStageId, setDraggedStageId] = useState<string | null>(null);
@@ -500,12 +522,12 @@ export function VisualFlowModal({
     <>
       {/* Centered Modal Overlay below Navbar with balanced margins */}
       <div
-        className="fixed top-16 inset-x-0 bottom-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 bg-slate-950/40 backdrop-blur-xs select-none overflow-hidden"
+        className="fixed top-16 inset-x-0 bottom-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 bg-slate-900/40 backdrop-blur-xs select-none overflow-hidden"
         onClick={(e) => {
           if (e.target === e.currentTarget) handleRequestClose();
         }}
       >
-        <div className="bg-white text-slate-800 rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-[1440px] h-[calc(100vh-8.5rem)] max-h-[760px] min-h-[460px] flex flex-col overflow-hidden relative font-sans my-auto">
+        <div className="bg-white text-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-[1360px] h-[calc(100%-2.5rem)] max-h-[700px] min-h-[380px] flex flex-col overflow-hidden relative font-sans my-auto">
           {/* Top Header Bar (Clean in-app modal header) */}
           <div className="bg-slate-50/90 border-b border-slate-200/80 px-5 py-3 flex items-center justify-between shrink-0 select-none">
             {/* Left: Icon + Title + Status */}
@@ -601,7 +623,7 @@ export function VisualFlowModal({
           <div className="flex-1 flex overflow-hidden relative min-h-0">
             {/* 1. LEFT SIDEBAR: STAGE LIBRARY */}
             {isLibraryOpen && (
-              <div className="w-60 bg-slate-50/70 border-r border-slate-200/80 flex flex-col shrink-0 select-none z-10 animate-in slide-in-from-left duration-150 min-h-0">
+              <div className="w-52 sm:w-56 bg-slate-50/70 border-r border-slate-200/80 flex flex-col shrink-0 select-none z-10 animate-in slide-in-from-left duration-150 min-h-0">
                 {/* Library Header */}
                 <div className="p-3 pb-2.5 border-b border-slate-200/80 shrink-0">
                   <div className="flex items-center justify-between mb-1">
@@ -833,12 +855,9 @@ export function VisualFlowModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setZoomLevel(100);
-                      setPan({ x: 0, y: 0 });
-                    }}
+                    onClick={autoFitCanvas}
                     className="text-xs font-bold text-slate-700 px-1 hover:text-purple-600 transition cursor-pointer shrink-0 whitespace-nowrap"
-                    title="Reset to 100% and Center"
+                    title="Auto-fit board to canvas"
                   >
                     {zoomLevel}%
                   </button>
@@ -902,6 +921,7 @@ export function VisualFlowModal({
 
               {/* Canvas Viewport: Interactive Pan & Zoom, Perfectly Centered */}
               <div
+                ref={canvasRef}
                 className="flex-1 overflow-hidden relative flex items-center justify-center p-4 pt-14 min-h-0"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
@@ -954,7 +974,7 @@ export function VisualFlowModal({
                             e.preventDefault();
                             handleDropToSection(field.id);
                           }}
-                          className={`w-64 sm:w-72 rounded-2xl p-3.5 flex flex-col gap-2.5 shadow-xs relative transition shrink-0 border-2 ${
+                          className={`w-52 sm:w-60 rounded-2xl p-3 flex flex-col gap-2 shadow-xs relative transition shrink-0 border-2 ${
                             isDragOver
                               ? "border-purple-500 ring-4 ring-purple-500/20"
                               : ""
@@ -1142,7 +1162,7 @@ export function VisualFlowModal({
 
                         {/* Connector Wires & Transition Pill between fields */}
                         {!isLast && nextField && (
-                          <div className="w-14 h-40 relative shrink-0 flex items-center justify-center">
+                          <div className="w-10 sm:w-12 h-36 relative shrink-0 flex items-center justify-center">
                             <svg className="w-full h-full overflow-visible" viewBox="0 0 56 160">
                               {isFirst && fieldCols.length >= 2 ? (
                                 <>
@@ -1227,7 +1247,7 @@ export function VisualFlowModal({
 
             {/* 3. RIGHT SIDEBAR: STAGE INSPECTOR */}
             {isInspectorOpen && (
-              <div className="w-60 bg-slate-50/70 border-l border-slate-200/80 flex flex-col shrink-0 select-none z-10 animate-in slide-in-from-right duration-150 min-h-0">
+              <div className="w-52 sm:w-56 bg-slate-50/70 border-l border-slate-200/80 flex flex-col shrink-0 select-none z-10 animate-in slide-in-from-right duration-150 min-h-0">
                 {/* Inspector Header */}
                 <div className="p-3 border-b border-slate-200/80 flex items-center justify-between shrink-0">
                   <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
@@ -1493,8 +1513,8 @@ export function VisualFlowModal({
 
       {/* "HOW TO USE" COMPREHENSIVE PIPELINE GUIDE MODAL */}
       {isHowToUseOpen && (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[calc(100vh-5.5rem)] sm:max-h-[640px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
             {/* Header */}
             <div className="p-5 border-b border-slate-200/90 flex items-center justify-between bg-slate-50/80">
               <div className="flex items-center gap-3">
@@ -1626,8 +1646,8 @@ export function VisualFlowModal({
 
       {/* ADD PIPELINE FIELD MODAL */}
       {isAddFieldModalOpen && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-6 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-5 max-h-[calc(100vh-5.5rem)] sm:max-h-[520px] overflow-y-auto animate-in zoom-in-95 duration-150 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
@@ -1739,8 +1759,8 @@ export function VisualFlowModal({
 
       {/* EDIT PIPELINE FIELD MODAL */}
       {isEditFieldModalOpen && editingField && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-6 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-5 max-h-[calc(100vh-5.5rem)] sm:max-h-[580px] overflow-y-auto animate-in zoom-in-95 duration-150 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
@@ -1838,8 +1858,8 @@ export function VisualFlowModal({
 
       {/* UNSAVED CHANGES PROMPT MODAL */}
       {showUnsavedPrompt && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-6 text-center animate-in zoom-in-95 duration-150 relative">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-6 text-center animate-in zoom-in-95 duration-150 relative my-auto">
             <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto mb-3.5 shadow-2xs">
               <AlertTriangle className="w-6 h-6 stroke-[2.2]" />
             </div>
