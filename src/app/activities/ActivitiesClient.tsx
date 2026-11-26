@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   List,
   Kanban,
@@ -65,6 +66,7 @@ import {
 import { ColumnEditModal } from "@/components/activities/ColumnEditModal";
 import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
 import { HowItWorksModal } from "@/components/activities/HowItWorksModal";
+import { MoveActivityModal } from "@/components/activities/MoveActivityModal";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { usePrompt } from "@/components/ui/PromptModal";
@@ -280,6 +282,7 @@ export function ActivitiesClient({
   const { toast } = useToast();
   const confirm = useConfirm();
   const prompt = usePrompt();
+  const router = useRouter();
   const { isExpanded } = useSidebar();
   const [activitiesList, setActivitiesList] = useState<ActivityItem[]>(initialActivities);
 
@@ -401,6 +404,7 @@ export function ActivitiesClient({
   const hiddenColumns = flowColumns.filter((c) => c.hidden);
 
   const [activeKebabActivityId, setActiveKebabActivityId] = useState<string | null>(null);
+  const [movingActivity, setMovingActivity] = useState<ActivityItem | null>(null);
 
   const handleEditActivityTitle = async (activityId: string, currentTitle: string) => {
     const newTitle = await prompt({
@@ -690,12 +694,19 @@ export function ActivitiesClient({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update status");
 
-      setPendingToast({
-        type: "success",
-        title: "Activity moved!",
-        message: `Activity transitioned along the chain to ${targetStatus.replace("_", " ")}.`,
-      });
-      window.location.reload();
+      const targetCol = flowColumns.find((c) => c.id === targetStatus);
+      const stageName = targetCol?.label || targetStatus.replace("_", " ");
+
+      setActivitiesList((prev) =>
+        prev.map((a) =>
+          a.id === activityId
+            ? { ...a, status: targetStatus, ...(data.activity || {}) }
+            : a
+        )
+      );
+
+      toast.success("Activity moved!", `Successfully moved to ${stageName}.`);
+      router.refresh();
     } catch (err: any) {
       toast.error("Transition failed", err.message);
     }
@@ -1224,12 +1235,13 @@ export function ActivitiesClient({
                             <div className="relative shrink-0">
                               <button
                                 type="button"
-                                onClick={() =>
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setActiveKebabActivityId(
                                     activeKebabActivityId === act.id ? null : act.id
-                                  )
-                                }
-                                className="p-0.5 text-slate-300 hover:text-slate-600 rounded transition cursor-pointer"
+                                  );
+                                }}
+                                className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
                                 title="Activity options"
                               >
                                 <MoreVertical className="w-3.5 h-3.5" />
@@ -1237,54 +1249,71 @@ export function ActivitiesClient({
                               {activeKebabActivityId === act.id && (
                                 <>
                                   <div
-                                    className="fixed inset-0 z-30"
-                                    onClick={() => setActiveKebabActivityId(null)}
+                                    className="fixed inset-0 z-40"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveKebabActivityId(null);
+                                    }}
                                   />
-                                  <div className="absolute right-0 top-5 z-40 w-48 bg-white rounded-2xl shadow-xl shadow-purple-950/10 border border-slate-100 p-1.5 text-xs animate-in fade-in-0 zoom-in-95 duration-100">
+                                  <div className="absolute right-0 top-full mt-1.5 z-50 w-44 bg-white rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200/90 p-1.5 text-xs animate-in fade-in-0 zoom-in-95 duration-100">
                                     <button
                                       type="button"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setActiveKebabActivityId(null);
                                         handleEditActivityTitle(act.id, act.title);
                                       }}
-                                      className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 active:bg-purple-600 active:text-white transition cursor-pointer"
+                                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer text-left"
                                     >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
-                                          <Pencil className="w-3 h-3" />
-                                        </div>
-                                        <span>Rename Title</span>
+                                      <div className="w-6 h-6 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+                                        <Pencil className="w-3 h-3" />
                                       </div>
-                                      <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
+                                      <span>Rename Title</span>
                                     </button>
+
+                                    {CHAIN_TRANSITIONS[act.status]?.length > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveKebabActivityId(null);
+                                          setMovingActivity(act);
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition cursor-pointer text-left"
+                                      >
+                                        <div className="w-6 h-6 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+                                          <ArrowRight className="w-3 h-3" />
+                                        </div>
+                                        <span>Move to...</span>
+                                      </button>
+                                    )}
+
                                     <Link
                                       href={`/activities/${act.id}`}
-                                      className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100/90 hover:text-slate-900 transition"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition text-left"
                                     >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-purple-600 group-hover:bg-slate-200/80 shrink-0">
-                                          <ExternalLink className="w-3 h-3" />
-                                        </div>
-                                        <span>View Details</span>
+                                      <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                                        <ExternalLink className="w-3 h-3" />
                                       </div>
-                                      <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition" />
+                                      <span>View Details</span>
                                     </Link>
+
                                     <div className="border-t border-slate-100 my-1" />
+
                                     <button
                                       type="button"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setActiveKebabActivityId(null);
                                         handleDeleteActivity(act.id, act.title);
                                       }}
-                                      className="w-full group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer text-left"
                                     >
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-md bg-rose-50 flex items-center justify-center text-rose-600 group-hover:bg-rose-100 shrink-0">
-                                          <Trash2 className="w-3 h-3" />
-                                        </div>
-                                        <span>Delete Activity</span>
+                                      <div className="w-6 h-6 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
+                                        <Trash2 className="w-3 h-3" />
                                       </div>
-                                      <ChevronRight className="w-3.5 h-3.5 text-rose-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition" />
+                                      <span>Delete Activity</span>
                                     </button>
                                   </div>
                                 </>
@@ -1296,7 +1325,9 @@ export function ActivitiesClient({
                             return (
                               <div
                                 key={act.id}
-                                className="bg-white rounded-xl border border-slate-200/90 p-2.5 shadow-2xs hover:shadow-xs transition flex flex-col gap-1.5 group/card"
+                                className={`bg-white rounded-xl border border-slate-200/90 p-2.5 shadow-2xs hover:shadow-xs transition flex flex-col gap-1.5 group/card ${
+                                  activeKebabActivityId === act.id ? "relative z-30" : "relative z-0"
+                                }`}
                               >
                                 {/* Collapsed Top Row: Chevron, Title, Owner, Kebab */}
                                 <div className="flex items-center justify-between gap-1.5">
@@ -1382,7 +1413,9 @@ export function ActivitiesClient({
                           return (
                             <div
                               key={act.id}
-                              className="bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-xs hover:shadow transition flex flex-col gap-2.5"
+                              className={`bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-xs hover:shadow transition flex flex-col gap-2.5 ${
+                                activeKebabActivityId === act.id ? "relative z-30" : "relative z-0"
+                              }`}
                             >
                               {/* Title at top with collapse toggle and quick action menu */}
                               <div className="flex items-start justify-between gap-1.5 relative">
@@ -1600,23 +1633,20 @@ export function ActivitiesClient({
                                   </Link>
                                 </div>
 
-                                {/* Quick Chain Move Dropdown */}
+                                {/* "Move to" Action Button */}
                                 {CHAIN_TRANSITIONS[act.status]?.length > 0 && (
                                   <div className="pt-0.5">
-                                    <CustomDropdown
-                                      value=""
-                                      onChange={(targetStatus) => {
-                                        if (targetStatus)
-                                          handleChainTransition(act.id, targetStatus);
-                                      }}
-                                      placeholder="Move along chain..."
-                                      size="sm"
-                                      options={CHAIN_TRANSITIONS[act.status].map((t) => ({
-                                        value: t.targetStatus,
-                                        label: t.label,
-                                        icon: <ArrowRight className="w-3.5 h-3.5" />,
-                                      }))}
-                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => setMovingActivity(act)}
+                                      className="w-full py-1.5 px-3 rounded-xl bg-slate-50 hover:bg-purple-50 text-slate-700 hover:text-purple-700 border border-slate-200/80 hover:border-purple-200 text-xs font-semibold flex items-center justify-between transition cursor-pointer group shadow-2xs"
+                                    >
+                                      <span className="flex items-center gap-1.5">
+                                        <ArrowRight className="w-3.5 h-3.5 text-purple-600 group-hover:translate-x-0.5 transition-transform" />
+                                        <span>Move to</span>
+                                      </span>
+                                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-500 transition-colors" />
+                                    </button>
                                   </div>
                                 )}
                               </div>
@@ -1879,24 +1909,16 @@ export function ActivitiesClient({
                           </div>
 
                           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-                            {/* Quick Chain Move Dropdown */}
+                            {/* "Move to" Action Button */}
                             {CHAIN_TRANSITIONS[act.status]?.length > 0 && (
-                              <div className="w-48">
-                                <CustomDropdown
-                                  value=""
-                                  onChange={(targetStatus) => {
-                                    if (targetStatus)
-                                      handleChainTransition(act.id, targetStatus);
-                                  }}
-                                  placeholder="Move along chain..."
-                                  size="sm"
-                                  options={CHAIN_TRANSITIONS[act.status].map((t) => ({
-                                    value: t.targetStatus,
-                                    label: t.label,
-                                    icon: <ArrowRight className="w-3.5 h-3.5" />,
-                                  }))}
-                                />
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setMovingActivity(act)}
+                                className="bg-slate-50 hover:bg-purple-50 text-slate-700 hover:text-purple-700 border border-slate-200/80 hover:border-purple-200 text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-2xs group shrink-0"
+                              >
+                                <ArrowRight className="w-3.5 h-3.5 text-purple-600 group-hover:translate-x-0.5 transition-transform" />
+                                <span>Move to</span>
+                              </button>
                             )}
 
                             {act.status === "scheduled" && (
@@ -2457,6 +2479,15 @@ export function ActivitiesClient({
       <HowItWorksModal
         isOpen={howItWorksModalOpen}
         onClose={() => setHowItWorksModalOpen(false)}
+      />
+
+      {/* Move Activity Workflow Modal */}
+      <MoveActivityModal
+        isOpen={!!movingActivity}
+        onClose={() => setMovingActivity(null)}
+        activity={movingActivity}
+        flowColumns={flowColumns}
+        onConfirmMove={handleChainTransition}
       />
     </div>
   );
