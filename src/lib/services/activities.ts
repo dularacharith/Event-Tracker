@@ -62,7 +62,7 @@ export interface CreateActivityInput {
   reviewerId?: string | null;
   passCriteria?: string;
   createdById: string;
-  initialStatus?: "draft" | "scheduled";
+  initialStatus?: string;
 }
 
 /**
@@ -265,7 +265,7 @@ export async function createActivity(input: CreateActivityInput) {
     throw new Error("Activity brief is required.");
   }
 
-  const status: ActivityStatus = input.initialStatus || "draft";
+  const status: any = input.initialStatus || "draft";
 
   if (status === "scheduled") {
     await validateSchedulingRules({

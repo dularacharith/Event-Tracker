@@ -27,9 +27,9 @@ export async function POST(
     const { id } = await context.params;
     const body = await req.json();
 
-    if (!body.targetStatus || !VALID_STATUSES.includes(body.targetStatus)) {
+    if (!body.targetStatus || typeof body.targetStatus !== "string" || !body.targetStatus.trim()) {
       return NextResponse.json(
-        { error: `Invalid target status: ${body.targetStatus}` },
+        { error: "Target status is required" },
         { status: 400 }
       );
     }

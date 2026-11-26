@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition, useMemo } from "react";
+import React, { useState, useEffect, useTransition, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -455,6 +455,28 @@ export function ActivitiesClient({
   }, [flowColumns, pipelineFields]);
   const hiddenColumns = flowColumns.filter((c) => c.hidden);
 
+  const isInputStage = useCallback(
+    (col: FlowColumn, field?: PipelineField) => {
+      if (field && (field.type === "input" || field.id === "inputs")) return true;
+      const fieldId = getColumnFieldId(col, pipelineFields);
+      const matchedField = pipelineFields.find((f) => f.id === fieldId);
+      return (
+        matchedField?.type === "input" ||
+        fieldId === "inputs" ||
+        col.field === "inputs" ||
+        col.id === "draft" ||
+        col.id === "scheduled"
+      );
+    },
+    [pipelineFields]
+  );
+
+  const getAddTaskLabel = useCallback((col: FlowColumn) => {
+    if (col.id === "draft" && col.label.toLowerCase() === "draft") return "Add Task";
+    if (col.id === "scheduled" && col.label.toLowerCase() === "scheduled") return "Add Scheduled Task";
+    return `Add ${col.label} Task`;
+  }, []);
+
   const [activeKebabActivityId, setActiveKebabActivityId] = useState<string | null>(null);
   const [movingActivity, setMovingActivity] = useState<ActivityItem | null>(null);
   const [selectedActivityForDetails, setSelectedActivityForDetails] = useState<ActivityItem | null>(null);
@@ -627,7 +649,7 @@ export function ActivitiesClient({
   const [newOwnerId, setNewOwnerId] = useState(currentUser.id);
   const [newReviewerId, setNewReviewerId] = useState("");
   const [newCriteria, setNewCriteria] = useState("");
-  const [newStatus, setNewStatus] = useState<"draft" | "scheduled">("draft");
+  const [newStatus, setNewStatus] = useState<string>("draft");
   const [newRecurrenceRule, setNewRecurrenceRule] = useState<string>("none");
   const [newRecurrenceDay, setNewRecurrenceDay] = useState<string>("monday");
   const [newRecurrenceEndDate, setNewRecurrenceEndDate] = useState<string>("");
@@ -1244,15 +1266,15 @@ export function ActivitiesClient({
                         </div>
                       </div>
                       <div className="flex items-center gap-1 text-slate-400 shrink-0 pt-0.5">
-                        {(col.id === "draft" || col.id === "scheduled") && (
+                        {isInputStage(col, field) && (
                           <button
                             type="button"
                             onClick={() => {
-                              setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
+                              setNewStatus(col.id);
                               setCreateModalOpen(true);
                             }}
                             className="p-1 hover:text-slate-700 hover:bg-white/80 rounded-md transition cursor-pointer"
-                            title={col.id === "scheduled" ? "Schedule new task" : "Add draft task"}
+                            title={getAddTaskLabel(col)}
                           >
                             <Plus className="w-3.5 h-3.5 text-slate-500" />
                           </button>
@@ -1413,21 +1435,21 @@ export function ActivitiesClient({
                     {/* Cards */}
                     <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto pr-1 my-2 pb-2">
                       {colActivities.length === 0 ? (
-                        col.id === "draft" || col.id === "scheduled" ? (
+                        isInputStage(col, field) ? (
                           <button
                             type="button"
                             onClick={() => {
-                              setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
+                              setNewStatus(col.id);
                               setCreateModalOpen(true);
                             }}
                             className="w-full py-5 px-4 border-2 border-dashed border-slate-200 hover:border-purple-300 rounded-xl bg-white/60 hover:bg-purple-50/50 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-purple-600 transition group cursor-pointer shadow-2xs"
-                            aria-label={col.id === "scheduled" ? "Add Scheduled Task" : "Add Task"}
+                            aria-label={getAddTaskLabel(col)}
                           >
                             <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-purple-100 flex items-center justify-center text-slate-500 group-hover:text-purple-600 transition">
                               <Plus className="w-3.5 h-3.5" />
                             </div>
                             <span className="text-xs font-semibold">
-                              {col.id === "scheduled" ? "Add Scheduled Task" : "Add Task"}
+                              {getAddTaskLabel(col)}
                             </span>
                           </button>
                         ) : (
@@ -1992,33 +2014,18 @@ export function ActivitiesClient({
                     })()}
                   </div>
 
-                  {col.id === "draft" && (
+                  {isInputStage(col) && (
                     <button
                       type="button"
                       onClick={() => {
-                        setNewStatus("draft");
+                        setNewStatus(col.id);
                         setCreateModalOpen(true);
                       }}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl transition shadow-2xs cursor-pointer"
-                      title="Create new draft"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-800 bg-white hover:bg-purple-50 border border-purple-200 px-3 py-1.5 rounded-xl transition shadow-2xs cursor-pointer"
+                      title={getAddTaskLabel(col)}
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>New Draft</span>
-                    </button>
-                  )}
-
-                  {col.id === "scheduled" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewStatus("scheduled");
-                        setCreateModalOpen(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-white hover:bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl transition shadow-2xs cursor-pointer"
-                      title="Schedule new task"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Schedule Task</span>
+                      <span>{getAddTaskLabel(col)}</span>
                     </button>
                   )}
                 </div>
@@ -2027,32 +2034,18 @@ export function ActivitiesClient({
                 <div className="divide-y divide-slate-100">
                   {colActivities.length === 0 ? (
                     <div className="p-6 text-center text-xs text-slate-400">
-                      {col.id === "draft" ? (
+                      {isInputStage(col) ? (
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-                          <span>No activities in Draft.</span>
+                          <span>No activities in {col.label}.</span>
                           <button
                             type="button"
                             onClick={() => {
-                              setNewStatus("draft");
+                              setNewStatus(col.id);
                               setCreateModalOpen(true);
                             }}
-                            className="text-indigo-600 hover:text-indigo-800 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                            className="text-purple-600 hover:text-purple-800 font-semibold inline-flex items-center gap-1 cursor-pointer"
                           >
-                            <Plus className="w-3.5 h-3.5" /> Create first draft
-                          </button>
-                        </div>
-                      ) : col.id === "scheduled" ? (
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-                          <span>No activities in Scheduled.</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNewStatus("scheduled");
-                              setCreateModalOpen(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center gap-1 cursor-pointer"
-                          >
-                            <Plus className="w-3.5 h-3.5" /> Schedule first task
+                            <Plus className="w-3.5 h-3.5" /> {getAddTaskLabel(col)}
                           </button>
                         </div>
                       ) : (
@@ -2449,15 +2442,39 @@ export function ActivitiesClient({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Initial Status
+                    Initial Status / Stage
                   </label>
                   <CustomDropdown
                     value={newStatus}
-                    onChange={(val) => setNewStatus(val as any)}
-                    options={[
-                      { value: "draft", label: "Draft", subtitle: "Pre-scheduling stage", icon: <span className="w-2.5 h-2.5 rounded-full bg-slate-500" /> },
-                      { value: "scheduled", label: "Scheduled", subtitle: "Queue with deadline", icon: <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> },
-                    ]}
+                    onChange={(val) => setNewStatus(val as string)}
+                    options={
+                      flowColumns.filter((c) => isInputStage(c)).length > 0
+                        ? flowColumns
+                            .filter((c) => isInputStage(c))
+                            .map((c) => {
+                              const styles = getColumnStyles(c);
+                              return {
+                                value: c.id,
+                                label: c.label,
+                                subtitle:
+                                  c.id === "scheduled"
+                                    ? "Queue with scheduled deadline"
+                                    : c.id === "draft"
+                                    ? "Pre-scheduling intake"
+                                    : "Input stage task",
+                                icon: (
+                                  <span
+                                    className={`w-2.5 h-2.5 rounded-full ${styles.dotClass}`}
+                                    style={styles.dotStyle}
+                                  />
+                                ),
+                              };
+                            })
+                        : [
+                            { value: "draft", label: "Draft", subtitle: "Pre-scheduling stage", icon: <span className="w-2.5 h-2.5 rounded-full bg-slate-500" /> },
+                            { value: "scheduled", label: "Scheduled", subtitle: "Queue with deadline", icon: <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> },
+                          ]
+                    }
                   />
                 </div>
 
