@@ -1231,11 +1231,30 @@ export function ActivitiesClient({
                     </div>
 
                     {/* Cards */}
-                    <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto pr-1 my-2 pb-16">
+                    <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto pr-1 my-2 pb-2">
                       {colActivities.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-slate-400 border border-dashed border-slate-200/90 rounded-xl bg-white/50">
-                          No activities
-                        </div>
+                        col.id === "draft" || col.id === "scheduled" ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
+                              setCreateModalOpen(true);
+                            }}
+                            className="w-full py-5 px-4 border-2 border-dashed border-slate-200 hover:border-purple-300 rounded-xl bg-white/60 hover:bg-purple-50/50 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-purple-600 transition group cursor-pointer shadow-2xs"
+                            aria-label={col.id === "scheduled" ? "Add Scheduled Task" : "Add Task"}
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-purple-100 flex items-center justify-center text-slate-500 group-hover:text-purple-600 transition">
+                              <Plus className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-xs font-semibold">
+                              {col.id === "scheduled" ? "Add Scheduled Task" : "Add Task"}
+                            </span>
+                          </button>
+                        ) : (
+                          <div className="p-4 text-center text-xs text-slate-400 border border-dashed border-slate-200/90 rounded-xl bg-white/50">
+                            No activities
+                          </div>
+                        )
                       ) : (
                         colActivities.map((act) => {
                           const isCollapsed = collapsedCardIds.has(act.id);
@@ -1692,23 +1711,6 @@ export function ActivitiesClient({
                       )}
                     </div>
                     </div>
-
-                    {/* Column Footer: + Add Task only for draft and scheduled */}
-                    {(col.id === "draft" || col.id === "scheduled") && (
-                      <div className="pt-2 border-t border-slate-200/50 mt-auto shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setNewStatus(col.id === "scheduled" ? "scheduled" : "draft");
-                            setCreateModalOpen(true);
-                          }}
-                          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 hover:bg-white/80 p-2 rounded-xl transition w-full text-left cursor-pointer"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>{col.id === "scheduled" ? "Schedule Task" : "Add Task"}</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
 
