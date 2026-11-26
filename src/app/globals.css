@@ -133,3 +133,59 @@ select option:hover {
   pointer-events: none !important;
   transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
+
+/* ==========================================================================
+   Custom Purple Accent Scrollbars (Animated, Weighted, Blended)
+   ========================================================================== */
+
+/* Firefox standard scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #a855f7 rgba(243, 232, 255, 0.4);
+}
+
+/* Chrome, Edge, Safari (WebKit) Scrollbars */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(243, 232, 255, 0.35);
+  border-radius: 9999px;
+  margin: 3px;
+  transition: background 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::-webkit-scrollbar-track:hover {
+  background: rgba(243, 232, 255, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #c084fc 0%, #9333ea 50%, #7e22ce 100%);
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  background-clip: padding-box;
+  box-shadow: 0 1px 3px rgba(147, 51, 234, 0.25);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+/* Animated Hover State: Glow and richer purple gradient */
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #a855f7 0%, #7e22ce 50%, #6b21a8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 10px rgba(147, 51, 234, 0.55), 0 2px 6px rgba(126, 34, 206, 0.4);
+}
+
+/* Active State (Dragging) */
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(135deg, #9333ea 0%, #6b21a8 100%);
+  box-shadow: 0 0 14px rgba(126, 34, 206, 0.75);
+}
+
+/* Corner junction */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
