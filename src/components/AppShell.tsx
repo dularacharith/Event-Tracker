@@ -21,9 +21,13 @@ function MainLayout({ currentUser, userRole, children }: AppShellProps) {
   const isLoginPage = pathname === "/login";
 
   return (
-    <div className="h-screen h-[100dvh] flex flex-col bg-slate-50 relative overflow-hidden">
-      {/* Full-width Top Header */}
-      <Navbar currentUser={currentUser} userRole={userRole} />
+    <div
+      className={`h-screen h-[100dvh] flex flex-col ${
+        isLoginPage ? "bg-[#0b0416]" : "bg-slate-50"
+      } relative overflow-hidden`}
+    >
+      {/* Full-width Top Header (only on non-login workspace pages) */}
+      {!isLoginPage && <Navbar currentUser={currentUser} userRole={userRole} />}
 
       {/* Main Body Area: Sidebar below Navbar, and Main Content */}
       <div className="flex-1 flex relative min-h-0 overflow-hidden">
@@ -42,7 +46,7 @@ function MainLayout({ currentUser, userRole, children }: AppShellProps) {
             key={pathname}
             className={`flex-1 w-full ${
               isLoginPage
-                ? "flex items-center justify-center p-3 sm:p-6 lg:p-8"
+                ? "p-0 min-h-screen flex items-center justify-center"
                 : "px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex flex-col min-h-0 overflow-hidden"
             } transition-all duration-300 ease-out animate-page-slide ${
               loadingHref ? "page-loading-blur" : ""
