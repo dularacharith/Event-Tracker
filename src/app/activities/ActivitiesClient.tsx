@@ -924,9 +924,9 @@ export function ActivitiesClient({
         {viewMode === "board" ? (
           <div key="board-view" className="space-y-3 flex-1 flex flex-col min-h-0 overflow-hidden animate-tab-slide-left">
             {/* Quick Column Jump Pills & Visual Flow Controls */}
-            <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs px-1 shrink-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-slate-400 font-semibold text-[11px] mr-1">Columns:</span>
+            <div className="flex items-center justify-between gap-3 text-xs px-1 shrink-0 min-h-[36px]">
+              <div className="flex items-center gap-1.5 flex-nowrap shrink overflow-x-auto no-scrollbar py-0.5 min-w-0">
+                <span className="text-slate-400 font-semibold text-[11px] mr-1 shrink-0">Columns:</span>
                 <button
                   onClick={() => {
                     setPendingTab("all-columns");
@@ -967,60 +967,68 @@ export function ActivitiesClient({
                   );
                 })}
 
-              {/* Hidden Columns Pill */}
-              {hiddenColumns.length > 0 && (
-                <button
-                  onClick={() => setIsVisualFlowModalOpen(true)}
-                  className="px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 cursor-pointer"
-                  title="Click to view and restore hidden cards in the flow"
-                >
-                  <EyeOff className="w-3 h-3 text-amber-600" />
-                  <span>{hiddenColumns.length} Hidden</span>
-                </button>
-              )}
-            </div>
-
-            {/* Board Controls: Collapse/Expand All & Configure Flow */}
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={toggleCollapseAll}
-                className={`rounded-xl bg-white hover:bg-purple-50/50 border border-slate-200 hover:border-purple-200 text-slate-700 hover:text-purple-600 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer ${
-                  isExpanded ? "w-8 h-8 p-0" : "px-3 py-1.5"
-                }`}
-                title={areAllCollapsed ? "Expand all activity cards" : "Collapse all activity cards"}
-                aria-label={areAllCollapsed ? "Expand all activity cards" : "Collapse all activity cards"}
-              >
-                {areAllCollapsed ? (
-                  <Maximize2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                ) : (
-                  <Minimize2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                {/* Hidden Columns Pill */}
+                {hiddenColumns.length > 0 && (
+                  <button
+                    onClick={() => setIsVisualFlowModalOpen(true)}
+                    className="px-2.5 py-1 rounded-lg font-semibold transition text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 cursor-pointer"
+                    title="Click to view and restore hidden cards in the flow"
+                  >
+                    <EyeOff className="w-3 h-3 text-amber-600" />
+                    <span>{hiddenColumns.length} Hidden</span>
+                  </button>
                 )}
-                {!isExpanded && (
-                  <span className="animate-in fade-in duration-200 whitespace-nowrap">
+              </div>
+
+              {/* Board Controls: Collapse/Expand All & Configure Flow */}
+              <div className="flex items-center gap-2 shrink-0 self-center">
+                <button
+                  type="button"
+                  onClick={toggleCollapseAll}
+                  className={`h-8 rounded-xl bg-white hover:bg-purple-50/50 border border-slate-200 hover:border-purple-200 text-slate-700 hover:text-purple-600 font-bold text-xs flex items-center justify-center shadow-2xs transition-all duration-300 ease-in-out cursor-pointer overflow-hidden ${
+                    isExpanded ? "w-8 px-0" : "px-3"
+                  }`}
+                  title={areAllCollapsed ? "Expand all activity cards" : "Collapse all activity cards"}
+                  aria-label={areAllCollapsed ? "Expand all activity cards" : "Collapse all activity cards"}
+                >
+                  {areAllCollapsed ? (
+                    <Maximize2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                  ) : (
+                    <Minimize2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                  )}
+                  <span
+                    className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap inline-block ${
+                      isExpanded
+                        ? "max-w-0 opacity-0 -translate-x-1 ml-0 pointer-events-none"
+                        : "max-w-[120px] opacity-100 translate-x-0 ml-1.5"
+                    }`}
+                  >
                     {areAllCollapsed ? "Expand All" : "Collapse All"}
                   </span>
-                )}
-              </button>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setIsVisualFlowModalOpen(true)}
-                className={`rounded-xl bg-white hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-indigo-600 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer ${
-                  isExpanded ? "w-8 h-8 p-0" : "px-3 py-1.5"
-                }`}
-                title="Configure Visual Flow Pipeline"
-                aria-label="Configure Visual Flow Pipeline"
-              >
-                <Share2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                {!isExpanded && (
-                  <span className="animate-in fade-in duration-200 whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setIsVisualFlowModalOpen(true)}
+                  className={`h-8 rounded-xl bg-white hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-indigo-600 font-bold text-xs flex items-center justify-center shadow-2xs transition-all duration-300 ease-in-out cursor-pointer overflow-hidden ${
+                    isExpanded ? "w-8 px-0" : "px-3"
+                  }`}
+                  title="Configure Visual Flow Pipeline"
+                  aria-label="Configure Visual Flow Pipeline"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                  <span
+                    className={`overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap inline-block ${
+                      isExpanded
+                        ? "max-w-0 opacity-0 -translate-x-1 ml-0 pointer-events-none"
+                        : "max-w-[120px] opacity-100 translate-x-0 ml-1.5"
+                    }`}
+                  >
                     Configure Flow
                   </span>
-                )}
-              </button>
+                </button>
+              </div>
             </div>
-          </div>
 
           {/* Linked Kanban Columns Track with animated tab slide effect */}
           <div
