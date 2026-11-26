@@ -816,8 +816,8 @@ export function ActivitiesClient({
         </div>
       </div>
 
-      {/* Active Filter Indicators (When Filtered via Sidebar) */}
-      {(activeFilterCount > 0 || search) && (
+      {/* Active Filter Indicators (When Filtered via Global Search or Sidebar Filters - Status is managed by Column options below) */}
+      {(Boolean(search) || Boolean(filterCampaign) || Boolean(filterChannel) || Boolean(filterPlatform) || Boolean(filterOwner)) && (
         <div className="flex items-center gap-2 flex-wrap text-xs bg-purple-50/80 border border-purple-200/80 rounded-2xl px-4 py-2.5 text-purple-900 shadow-2xs">
           <div className="flex items-center gap-1.5 font-bold text-purple-700">
             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -876,19 +876,6 @@ export function ActivitiesClient({
             </span>
           )}
 
-          {filterStatus && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-purple-800 font-medium text-xs">
-              Status: {filterStatus.replace("_", " ").toUpperCase()}
-              <button
-                type="button"
-                onClick={() => setFilterStatus("")}
-                className="hover:text-purple-950 p-0.5 rounded hover:bg-purple-100"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-
           {filterOwner && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-purple-800 font-medium text-xs">
               Owner: {teammates.find((m) => m.userId === filterOwner)?.displayName || "Teammate"}
@@ -906,7 +893,10 @@ export function ActivitiesClient({
             type="button"
             onClick={() => {
               setSearch("");
-              resetFilters();
+              setFilterCampaign("");
+              setFilterChannel("");
+              setFilterPlatform("");
+              setFilterOwner("");
             }}
             className="ml-auto text-xs font-semibold text-purple-700 hover:text-purple-900 underline cursor-pointer"
           >
