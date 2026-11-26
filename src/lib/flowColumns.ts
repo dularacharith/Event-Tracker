@@ -345,6 +345,7 @@ export interface FlowColumn {
   customHex?: string;
   customDotHex?: string;
   hidden?: boolean;
+  inLibrary?: boolean;
   isCustom?: boolean;
   statusMapping?: string;
   field?: string;

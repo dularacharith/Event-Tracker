@@ -350,6 +350,7 @@ export function ActivitiesClient({
   const [flowColumns, setFlowColumns] = useState<FlowColumn[]>(DEFAULT_FLOW_COLUMNS);
   const [pipelineFields, setPipelineFields] = useState<PipelineField[]>(DEFAULT_PIPELINE_FIELDS);
   const [defaultFieldForNewColumn, setDefaultFieldForNewColumn] = useState<string>("inputs");
+  const [defaultInLibraryForNewColumn, setDefaultInLibraryForNewColumn] = useState(false);
   const [editingColumn, setEditingColumn] = useState<FlowColumn | null>(null);
   const [isEditingNewColumn, setIsEditingNewColumn] = useState(false);
   const [isColumnEditModalOpen, setIsColumnEditModalOpen] = useState(false);
@@ -475,7 +476,11 @@ export function ActivitiesClient({
     let updatedCols: FlowColumn[];
     if (isEditingNewColumn) {
       updatedCols = [...flowColumns, savedCol];
-      toast.success("Card created", `"${savedCol.label}" has been added to the flow.`);
+      if (savedCol.inLibrary) {
+        toast.success("Stage added to Library", `"${savedCol.label}" has been added to your Stage Library.`);
+      } else {
+        toast.success("Card created", `"${savedCol.label}" has been added to the flow.`);
+      }
     } else {
       updatedCols = flowColumns.map((c) => (c.id === savedCol.id ? savedCol : c));
       toast.success("Card updated", `"${savedCol.label}" updated successfully.`);
@@ -487,11 +492,11 @@ export function ActivitiesClient({
 
   const visibleColumns = useMemo<FlowColumn[]>(() => {
     return sortColumnsByPipeline(
-      flowColumns.filter((c) => !c.hidden),
+      flowColumns.filter((c) => !c.hidden && !c.inLibrary),
       pipelineFields
     );
   }, [flowColumns, pipelineFields]);
-  const hiddenColumns = flowColumns.filter((c) => c.hidden);
+  const hiddenColumns = flowColumns.filter((c) => c.hidden && !c.inLibrary);
 
   const isInputStage = useCallback(
     (col: FlowColumn, field?: PipelineField) => {
@@ -2531,9 +2536,9 @@ export function ActivitiesClient({
                     value={newStatus}
                     onChange={(val) => setNewStatus(val as string)}
                     options={
-                      flowColumns.filter((c) => isInputStage(c)).length > 0
+                      flowColumns.filter((c) => isInputStage(c) && !c.inLibrary).length > 0
                         ? flowColumns
-                            .filter((c) => isInputStage(c))
+                            .filter((c) => isInputStage(c) && !c.inLibrary)
                             .map((c) => {
                               const styles = getColumnStyles(c);
                               return {
@@ -2813,10 +2818,11 @@ export function ActivitiesClient({
           setIsEditingNewColumn(false);
           setIsColumnEditModalOpen(true);
         }}
-        onOpenCreateColumn={(defaultField?: string) => {
+        onOpenCreateColumn={(defaultField?: string, inLibrary?: boolean) => {
           setEditingColumn(null);
           setIsEditingNewColumn(true);
           setDefaultFieldForNewColumn(defaultField || "inputs");
+          setDefaultInLibraryForNewColumn(Boolean(inLibrary));
           setIsColumnEditModalOpen(true);
         }}
         onResetToDefault={handleResetFlow}
@@ -2832,6 +2838,7 @@ export function ActivitiesClient({
         existingColumns={flowColumns}
         pipelineFields={pipelineFields}
         defaultField={defaultFieldForNewColumn}
+        defaultInLibrary={defaultInLibraryForNewColumn}
         activitiesCount={
           editingColumn ? (activitiesCountByStatus[editingColumn.id] || 0) : 0
         }

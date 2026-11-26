@@ -89,7 +89,10 @@ export function FieldStageSelectModal({
   const sourceStages = useMemo(
     () =>
       flowColumns.filter(
-        (col) => getColumnFieldId(col, allFields) === sourceField.id && !col.hidden
+        (col) =>
+          getColumnFieldId(col, allFields) === sourceField.id &&
+          !col.hidden &&
+          !col.inLibrary
       ),
     [flowColumns, allFields, sourceField]
   );
@@ -97,7 +100,10 @@ export function FieldStageSelectModal({
   const nextStages = useMemo(
     () =>
       flowColumns.filter(
-        (col) => getColumnFieldId(col, allFields) === nextField.id && !col.hidden
+        (col) =>
+          getColumnFieldId(col, allFields) === nextField.id &&
+          !col.hidden &&
+          !col.inLibrary
       ),
     [flowColumns, allFields, nextField]
   );

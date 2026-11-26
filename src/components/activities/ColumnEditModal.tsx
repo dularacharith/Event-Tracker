@@ -44,6 +44,7 @@ interface ColumnEditModalProps {
   onHide?: (colId: string) => void;
   defaultField?: string;
   activitiesCount?: number;
+  defaultInLibrary?: boolean;
 }
 
 export function ColumnEditModal({
@@ -58,6 +59,7 @@ export function ColumnEditModal({
   onHide,
   defaultField,
   activitiesCount = 0,
+  defaultInLibrary = false,
 }: ColumnEditModalProps) {
   const confirm = useConfirm();
   const [label, setLabel] = useState("");
@@ -159,6 +161,7 @@ export function ColumnEditModal({
     colorTheme,
     customHex: useCustomHex && customHex ? customHex : undefined,
     hidden: column?.hidden || false,
+    inLibrary: isNew ? Boolean(defaultInLibrary) : (column?.inLibrary || false),
     isCustom: column?.isCustom ?? isNew,
     statusMapping: statusMapping || "draft",
     field: selectedFieldId,

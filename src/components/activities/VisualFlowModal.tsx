@@ -38,6 +38,9 @@ import {
   FolderPlus,
   Maximize2,
   Minimize2,
+  ArrowLeft,
+  ArrowRight,
+  Bookmark,
 } from "lucide-react";
 import {
   FlowColumn,
@@ -67,7 +70,7 @@ interface VisualFlowModalProps {
   columns: FlowColumn[];
   onUpdateColumns: (cols: FlowColumn[]) => void;
   onOpenEditColumn: (col: FlowColumn) => void;
-  onOpenCreateColumn: (defaultField?: string) => void;
+  onOpenCreateColumn: (defaultField?: string, inLibrary?: boolean) => void;
   onResetToDefault: () => void;
   activitiesCountByStatus: Record<string, number>;
   pipelineFields?: PipelineField[];
@@ -168,6 +171,8 @@ export function VisualFlowModal({
   const [dragOverSection, setDragOverSection] = useState<string | null>(null);
   const [dragOverDropzoneSection, setDragOverDropzoneSection] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<"above" | "below">("below");
+  const [isDragOverLibrary, setIsDragOverLibrary] = useState(false);
+  const [dragOverLibraryField, setDragOverLibraryField] = useState<string | null>(null);
 
   // Canvas Pan (Hand Tool) State
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -211,15 +216,31 @@ export function VisualFlowModal({
         setIsDirty(false);
         setShowUnsavedPrompt(false);
       } else {
-        // Modal is already open; if external modal (like ColumnEditModal) added columns, merge them into workingColumns
+        // Modal is already open; if external modal (like ColumnEditModal) added or edited columns, sync them into workingColumns
         setWorkingColumns((prevWorking) => {
-          const workingIds = new Set(prevWorking.map((c) => c.id));
-          const newCols = columns.filter((c) => !workingIds.has(c.id));
+          const externalMap = new Map(columns.map((c) => [c.id, c]));
+          const updated = prevWorking.map((c) => {
+            const ext = externalMap.get(c.id);
+            if (ext) {
+              return {
+                ...c,
+                label: ext.label,
+                colorTheme: ext.colorTheme,
+                customHex: ext.customHex,
+                customDotHex: ext.customDotHex,
+                hidden: ext.hidden,
+                field: ext.field || c.field,
+                inLibrary: ext.inLibrary !== undefined ? ext.inLibrary : c.inLibrary,
+              };
+            }
+            return c;
+          });
+          const currentIds = new Set(updated.map((c) => c.id));
+          const newCols = columns.filter((c) => !currentIds.has(c.id));
           if (newCols.length > 0) {
-            const merged = [...prevWorking, ...newCols];
-            return sortColumnsByPipeline(merged, pipelineFields);
+            return sortColumnsByPipeline([...updated, ...newCols], pipelineFields);
           }
-          return prevWorking;
+          return updated;
         });
         if (initialPipelineFields && initialPipelineFields.length > 0) {
           setPipelineFields((prevFields) => {
@@ -237,7 +258,8 @@ export function VisualFlowModal({
   const selectedCol = useMemo(() => {
     return (
       workingColumns.find((c) => c.id === selectedColId) ||
-      workingColumns.find((c) => c.id === "in_progress") ||
+      workingColumns.find((c) => !c.inLibrary && c.id === "in_progress") ||
+      workingColumns.find((c) => !c.inLibrary) ||
       workingColumns[0]
     );
   }, [workingColumns, selectedColId]);
@@ -422,7 +444,7 @@ export function VisualFlowModal({
     const targetFieldId = getColumnFieldId(workingColumns[targetIdx], pipelineFields);
     const newCols = [...workingColumns];
     const [moved] = newCols.splice(sourceIdx, 1);
-    const updatedMoved = { ...moved, field: targetFieldId };
+    const updatedMoved = { ...moved, field: targetFieldId, inLibrary: false };
 
     // Find new index of target in newCols after removing source
     let newTargetIdx = newCols.findIndex((c) => c.id === targetId);
@@ -446,7 +468,7 @@ export function VisualFlowModal({
 
     const newCols = [...workingColumns];
     const [moved] = newCols.splice(sourceIdx, 1);
-    const updatedMoved = { ...moved, field: targetSectionId };
+    const updatedMoved = { ...moved, field: targetSectionId, inLibrary: false };
 
     // Find last index of this section in newCols
     let lastSectionIdx = -1;
@@ -468,6 +490,55 @@ export function VisualFlowModal({
     setDragOverSection(null);
     setDragOverColId(null);
     setDragOverDropzoneSection(null);
+  };
+
+  // Move stage back to Stage Library (unplaced)
+  const handleDropToLibrary = (stageId: string, targetFieldId?: string) => {
+    const col = workingColumns.find((c) => c.id === stageId);
+    if (!col) return;
+
+    // Safety guard: ensure at least one active stage remains on canvas
+    const placedOnCanvas = workingColumns.filter((c) => !c.inLibrary);
+    if (placedOnCanvas.length <= 1 && !col.inLibrary) {
+      toast.info("Active Stage Required", "At least one stage must remain active on the pipeline canvas.");
+      setIsDragOverLibrary(false);
+      setDragOverLibraryField(null);
+      setDraggedStageId(null);
+      return;
+    }
+
+    const updated = workingColumns.map((c) => {
+      if (c.id === stageId) {
+        return {
+          ...c,
+          inLibrary: true,
+          ...(targetFieldId ? { field: targetFieldId } : {}),
+        };
+      }
+      return c;
+    });
+
+    pushHistory(updated);
+    setIsDragOverLibrary(false);
+    setDragOverLibraryField(null);
+    setDraggedStageId(null);
+    setSelectedColId(stageId);
+  };
+
+  // Place stage from Stage Library onto canvas
+  const handlePlaceOnCanvas = (stageId: string, targetFieldId?: string) => {
+    const updated = workingColumns.map((c) => {
+      if (c.id === stageId) {
+        return {
+          ...c,
+          inLibrary: false,
+          ...(targetFieldId ? { field: targetFieldId } : {}),
+        };
+      }
+      return c;
+    });
+    pushHistory(updated);
+    setSelectedColId(stageId);
   };
 
   const handleAssignStageField = (colId: string, fieldId: string) => {
@@ -588,27 +659,13 @@ export function VisualFlowModal({
     setIsPanning(false);
   };
 
-  // Group columns according to architecture
-  const inputColumns = workingColumns.filter(
-    (c) => c.id === "draft" || c.id === "scheduled" || c.step === "1" || c.step === "2"
-  );
-  const executionColumns = workingColumns.filter(
-    (c) => c.id === "in_progress" || c.step === "3"
-  );
-  const outcomeColumns = workingColumns.filter(
+  // Filtered list for Stage Library search: only stages stored in library
+  const filteredLibraryColumns = workingColumns.filter(
     (c) =>
-      c.id !== "draft" &&
-      c.id !== "scheduled" &&
-      c.id !== "in_progress" &&
-      c.step !== "1" &&
-      c.step !== "2" &&
-      c.step !== "3"
+      Boolean(c.inLibrary) &&
+      c.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Filtered list for Stage Library search
-  const filteredLibraryColumns = workingColumns.filter((c) =>
-    c.label.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const totalLibraryCount = workingColumns.filter((c) => Boolean(c.inLibrary)).length;
 
   return createPortal(
     <>
@@ -742,36 +799,54 @@ export function VisualFlowModal({
           <div className="flex-1 flex overflow-hidden relative min-h-0">
             {/* 1. LEFT SIDEBAR: STAGE LIBRARY */}
             {isLibraryOpen && (
-              <div className="w-52 sm:w-56 bg-slate-50/70 border-r border-slate-200/80 flex flex-col shrink-0 select-none z-10 animate-in slide-in-from-left duration-150 min-h-0">
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  if (!isDragOverLibrary) setIsDragOverLibrary(true);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setIsDragOverLibrary(false);
+                    setDragOverLibraryField(null);
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragOverLibrary(false);
+                  setDragOverLibraryField(null);
+                  if (draggedStageId) {
+                    handleDropToLibrary(draggedStageId);
+                  }
+                }}
+                className={`w-52 sm:w-56 bg-slate-50/70 border-r border-slate-200/80 flex flex-col shrink-0 select-none z-10 animate-in slide-in-from-left duration-150 min-h-0 transition-colors ${
+                  isDragOverLibrary ? "bg-purple-50/70 border-purple-400 ring-2 ring-purple-500/20" : ""
+                }`}
+              >
                 {/* Library Header */}
                 <div className="p-3 pb-2.5 border-b border-slate-200/80 shrink-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
                       STAGE LIBRARY
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setIsLibraryOpen(false)}
-                      className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
-                      title="Hide library"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                        {totalLibraryCount} unplaced
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsLibraryOpen(false)}
+                        className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
+                        title="Hide library"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <h3 className="text-xs font-bold text-slate-900">Stage Library</h3>
-                  <p className="text-[11px] text-slate-500">Drag nodes into canvas</p>
+                  <p className="text-[11px] text-slate-500">Drag nodes into canvas or back to library</p>
 
-                  {/* Add New Stage Button */}
-                  <button
-                    type="button"
-                    onClick={() => onOpenCreateColumn()}
-                    className="w-full mt-2 py-1.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm shadow-purple-500/25 transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add New Stage</span>
-                  </button>
-
-                  {/* Search stages */}
+                  {/* Search stages (positioned ABOVE Add New Stage) */}
                   <div className="relative mt-2">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                     <input
@@ -779,108 +854,180 @@ export function VisualFlowModal({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search stages..."
-                      className="w-full bg-white border border-slate-200/90 rounded-xl pl-8 pr-3 py-1 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-2xs"
+                      className="w-full bg-white border border-slate-200/90 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-2xs"
                     />
                   </div>
+
+                  {/* Add New Stage Button (positioned BELOW search) */}
+                  <button
+                    type="button"
+                    onClick={() => onOpenCreateColumn(undefined, true)}
+                    className="w-full mt-2 py-1.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm shadow-purple-500/25 transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add New Stage</span>
+                  </button>
                 </div>
 
                 {/* Categorized Draggable Stage Items */}
-                <div className="p-3 flex-1 overflow-y-auto space-y-3.5">
-                  {pipelineFields.map((field) => {
-                    const fieldCols = filteredLibraryColumns.filter(
-                      (c) => getColumnFieldId(c, pipelineFields) === field.id
-                    );
+                <div className="p-3 flex-1 overflow-y-auto space-y-3 min-h-0">
+                  {/* Drop return highlight when dragging over library */}
+                  {isDragOverLibrary && draggedStageId && (
+                    <div className="p-3 rounded-xl border-2 border-dashed border-purple-500 bg-purple-100/70 text-purple-900 text-xs font-semibold flex items-center justify-center gap-2 animate-pulse text-center">
+                      <ArrowLeft className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span>Drop to move stage back to library</span>
+                    </div>
+                  )}
 
-                    return (
-                      <div key={field.id}>
-                        <div className="flex items-center justify-between mb-1.5 group">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            {(() => {
-                              const IconComponent = getFieldIconComponent(field.icon, field.type);
-                              const fStyles = getFieldStyles(field);
-                              return (
-                                <IconComponent
-                                  className="w-3 h-3 shrink-0"
-                                  style={{ color: fStyles.hex }}
-                                />
-                              );
-                            })()}
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block truncate">
-                              {field.name}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditField(field)}
-                              className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-purple-600 rounded transition cursor-pointer"
-                              title={`Configure ${field.name} field`}
-                            >
-                              <Settings className="w-2.5 h-2.5" />
-                            </button>
-                          </div>
-                          <span className="text-[9px] font-bold text-slate-400">
-                            {fieldCols.length}
-                          </span>
-                        </div>
-                        <div className="space-y-1.5">
-                          {fieldCols.map((c) => {
-                            const cStyles = getColumnStyles(c);
-                            return (
-                              <div
-                                key={c.id}
-                                draggable
-                                onDragStart={(e) => {
-                                  e.dataTransfer.setData("text/plain", c.id);
-                                  setDraggedStageId(c.id);
-                                }}
-                                onDragEnd={() => setDraggedStageId(null)}
-                                onClick={() => setSelectedColId(c.id)}
-                                className={`p-2 rounded-xl bg-white border transition flex items-center justify-between cursor-grab active:cursor-grabbing shadow-2xs ${
-                                  selectedColId === c.id
-                                    ? "border-purple-500 text-purple-950 ring-2 ring-purple-500/20 shadow-xs bg-purple-50/40"
-                                    : c.hidden
-                                    ? "border-rose-200 bg-rose-50/30 text-slate-500 opacity-75 hover:opacity-100"
-                                    : "border-slate-200/90 hover:border-slate-300 text-slate-700"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <GripVertical className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                  <span
-                                    className={`w-2 h-2 rounded-full shrink-0 ${cStyles.dotClass}`}
-                                    style={cStyles.dotStyle}
+                  {totalLibraryCount === 0 ? (
+                    <div className="p-3.5 rounded-xl border border-dashed border-slate-200 bg-white text-center space-y-1.5 text-slate-500 shadow-2xs">
+                      <Bookmark className="w-4 h-4 mx-auto text-slate-400" />
+                      <p className="text-xs font-semibold text-slate-700">All stages are on canvas</p>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Drag cards from the canvas here to store them, or click &ldquo;Add New Stage&rdquo; above.
+                      </p>
+                    </div>
+                  ) : filteredLibraryColumns.length === 0 ? (
+                    <div className="p-3 text-center text-xs text-slate-400 italic">
+                      No stages match &ldquo;{searchQuery}&rdquo;
+                    </div>
+                  ) : (
+                    pipelineFields.map((field) => {
+                      const fieldCols = filteredLibraryColumns.filter(
+                        (c) => getColumnFieldId(c, pipelineFields) === field.id
+                      );
+                      if (fieldCols.length === 0) return null;
+
+                      const isFieldHovered = dragOverLibraryField === field.id;
+
+                      return (
+                        <div
+                          key={field.id}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.dataTransfer.dropEffect = "move";
+                            setDragOverLibraryField(field.id);
+                            setIsDragOverLibrary(true);
+                          }}
+                          onDragLeave={(e) => {
+                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                              setDragOverLibraryField((prev) => (prev === field.id ? null : prev));
+                            }
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsDragOverLibrary(false);
+                            setDragOverLibraryField(null);
+                            if (draggedStageId) {
+                              handleDropToLibrary(draggedStageId, field.id);
+                            }
+                          }}
+                          className={`rounded-xl transition p-1 ${
+                            isFieldHovered ? "bg-purple-100/70 ring-2 ring-purple-400/50" : ""
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5 group">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {(() => {
+                                const IconComponent = getFieldIconComponent(field.icon, field.type);
+                                const fStyles = getFieldStyles(field);
+                                return (
+                                  <IconComponent
+                                    className="w-3 h-3 shrink-0"
+                                    style={{ color: fStyles.hex }}
                                   />
-                                  <span className={`text-xs font-semibold truncate ${c.hidden ? "line-through text-slate-400" : ""}`}>
-                                    {c.label}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1 shrink-0">
-                                  {c.hidden && (
-                                    <span className="p-0.5 text-rose-500" title="Hidden stage">
-                                      <EyeOff className="w-3 h-3" />
-                                    </span>
-                                  )}
-                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">
-                                    {field.type}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {fieldCols.length === 0 && (
-                            <div className="text-[10px] text-slate-400 italic p-1.5 text-center">
-                              No stages in this field
+                                );
+                              })()}
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block truncate">
+                                {field.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditField(field)}
+                                className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-purple-600 rounded transition cursor-pointer"
+                                title={`Configure ${field.name} field`}
+                              >
+                                <Settings className="w-2.5 h-2.5" />
+                              </button>
                             </div>
-                          )}
+                            <span className="text-[9px] font-bold text-slate-400">
+                              {fieldCols.length}
+                            </span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {fieldCols.map((c) => {
+                              const cStyles = getColumnStyles(c);
+                              return (
+                                <div
+                                  key={c.id}
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.setData("text/plain", c.id);
+                                    e.dataTransfer.effectAllowed = "move";
+                                    setDraggedStageId(c.id);
+                                  }}
+                                  onDragEnd={() => {
+                                    setDraggedStageId(null);
+                                    setIsDragOverLibrary(false);
+                                    setDragOverLibraryField(null);
+                                  }}
+                                  onClick={() => setSelectedColId(c.id)}
+                                  className={`p-2 rounded-xl bg-white border transition flex items-center justify-between cursor-grab active:cursor-grabbing shadow-2xs group/card ${
+                                    selectedColId === c.id
+                                      ? "border-purple-500 text-purple-950 ring-2 ring-purple-500/20 shadow-xs bg-purple-50/40"
+                                      : c.hidden
+                                      ? "border-rose-200 bg-rose-50/30 text-slate-500 opacity-75 hover:opacity-100"
+                                      : "border-slate-200/90 hover:border-slate-300 text-slate-700"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <GripVertical className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    <span
+                                      className={`w-2 h-2 rounded-full shrink-0 ${cStyles.dotClass}`}
+                                      style={cStyles.dotStyle}
+                                    />
+                                    <span className={`text-xs font-semibold truncate ${c.hidden ? "line-through text-slate-400" : ""}`}>
+                                      {c.label}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePlaceOnCanvas(c.id);
+                                      }}
+                                      className="opacity-0 group-hover/card:opacity-100 p-1 text-purple-600 hover:bg-purple-100 rounded transition cursor-pointer"
+                                      title="Place stage on canvas"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                    </button>
+                                    {c.hidden && (
+                                      <span className="p-0.5 text-rose-500" title="Hidden stage">
+                                        <EyeOff className="w-3 h-3" />
+                                      </span>
+                                    )}
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">
+                                      {field.type}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
 
                 {/* Bottom Custom Stage Button */}
                 <div className="p-3 border-t border-slate-200/80 bg-slate-50/50 shrink-0 space-y-1.5">
                   <button
                     type="button"
-                    onClick={() => onOpenCreateColumn()}
+                    onClick={() => onOpenCreateColumn(undefined, true)}
                     className="w-full py-1.5 px-3 rounded-xl border border-dashed border-slate-300 hover:border-purple-500 bg-white hover:bg-purple-50/40 text-slate-600 hover:text-purple-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -1092,7 +1239,7 @@ export function VisualFlowModal({
                 >
                   {pipelineFields.map((field, fIdx) => {
                     const fieldCols = workingColumns.filter(
-                      (c) => getColumnFieldId(c, pipelineFields) === field.id
+                      (c) => getColumnFieldId(c, pipelineFields) === field.id && !c.inLibrary
                     );
                     const isFirst = fIdx === 0;
                     const isLast = fIdx === pipelineFields.length - 1;
@@ -1255,7 +1402,7 @@ export function VisualFlowModal({
                                     setDraggedStageId(null);
                                   }}
                                   onClick={() => setSelectedColId(col.id)}
-                                  className={`rounded-xl p-2.5 border transition-all duration-150 cursor-pointer flex items-center justify-between shadow-2xs relative select-none ${
+                                  className={`rounded-xl p-2.5 border transition-all duration-150 cursor-pointer flex items-center justify-between shadow-2xs relative select-none group ${
                                     draggedStageId === col.id
                                       ? "opacity-30 scale-[0.98] border-dashed border-purple-400 bg-purple-50/50 shadow-none ring-0"
                                       : dragOverColId === col.id
@@ -1321,6 +1468,17 @@ export function VisualFlowModal({
                                       ) : (
                                         <Eye className="w-3.5 h-3.5" />
                                       )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDropToLibrary(col.id);
+                                      }}
+                                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition cursor-pointer"
+                                      title="Move back to Stage Library"
+                                    >
+                                      <ArrowLeft className="w-3.5 h-3.5" />
                                     </button>
                                     <button
                                       type="button"
@@ -1413,7 +1571,7 @@ export function VisualFlowModal({
                                 </>
                               ) : (nextField.id === "outcomes" || nextField.type === "outcome") &&
                                 workingColumns.filter(
-                                  (c) => getColumnFieldId(c, pipelineFields) === nextField.id
+                                  (c) => getColumnFieldId(c, pipelineFields) === nextField.id && !c.inLibrary
                                 ).length >= 3 ? (
                                 <>
                                   <path
@@ -1638,6 +1796,33 @@ export function VisualFlowModal({
                               />
                             </span>
                           </button>
+                        </div>
+
+                        {/* Location: Canvas / Stage Library Toggle */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                            Canvas Location
+                          </label>
+                          {selectedCol.inLibrary ? (
+                            <button
+                              type="button"
+                              onClick={() => handlePlaceOnCanvas(selectedCol.id)}
+                              className="w-full h-9 px-3 rounded-xl bg-purple-50 hover:bg-purple-100/80 border border-purple-200 text-purple-700 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs"
+                            >
+                              <ArrowRight className="w-3.5 h-3.5 text-purple-600" />
+                              <span>Place on Canvas</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleDropToLibrary(selectedCol.id)}
+                              className="w-full h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs"
+                              title="Move this stage back to Stage Library"
+                            >
+                              <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
+                              <span>Move to Stage Library</span>
+                            </button>
+                          )}
                         </div>
 
                         {/* Status / Task Count */}
