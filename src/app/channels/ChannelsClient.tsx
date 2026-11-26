@@ -228,9 +228,9 @@ export function ChannelsClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 flex-1 flex flex-col min-h-0 h-full overflow-hidden">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
         <div>
           <div className="flex items-center gap-2">
             <Radio className="w-6 h-6 text-indigo-600" />
@@ -256,7 +256,7 @@ export function ChannelsClient({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-3">
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-3 shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative flex-1 max-w-md">
@@ -334,7 +334,7 @@ export function ChannelsClient({
 
       {/* Channels Grouped by Platform */}
       <div
-        className={`transition-all duration-300 ease-out ${
+        className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-out ${
           isTabPending ? "filter blur-[2px] opacity-80 pointer-events-none" : ""
         }`}
       >
@@ -364,7 +364,7 @@ export function ChannelsClient({
           )}
         </div>
       ) : (
-        <div key={filterPlatform || "all"} className="space-y-6 animate-tab-slide-right">
+        <div key={filterPlatform || "all"} className="flex-1 min-h-0 overflow-y-auto pr-1 pb-4 space-y-5 animate-tab-slide-right">
           {ALL_PLATFORMS.map((platformDef) => {
             const groupChannels = groupedChannels.get(platformDef.id);
             if (!groupChannels || groupChannels.length === 0) return null;

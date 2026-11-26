@@ -117,7 +117,8 @@ export function ProfileClient({
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="w-full flex-1 min-h-0 overflow-y-auto pr-1 pb-8">
+      <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
           Edit Profile
@@ -237,6 +238,7 @@ export function ProfileClient({
           </div>
         </form>
       </div>
+    </div>
     </div>
   );
 }

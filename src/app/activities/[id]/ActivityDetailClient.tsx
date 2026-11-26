@@ -408,7 +408,7 @@ export function ActivityDetailClient({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 flex-1 min-h-0 overflow-y-auto pr-1 pb-10">
       {/* Top Banner / Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
         <div>

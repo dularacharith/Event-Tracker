@@ -226,9 +226,9 @@ export function CalendarClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 flex-1 flex flex-col min-h-0 h-full overflow-hidden">
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
             Activity Calendar
@@ -239,7 +239,7 @@ export function CalendarClient({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {/* View toggle */}
           <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold">
             <button
@@ -295,9 +295,9 @@ export function CalendarClient({
       </div>
 
       {/* Calendar Grid */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
         {/* Day Header */}
-        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center py-2.5 text-xs font-semibold text-slate-600">
+        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center py-2 text-xs font-semibold text-slate-600 shrink-0">
           <div>Mon</div>
           <div>Tue</div>
           <div>Wed</div>
@@ -308,7 +308,7 @@ export function CalendarClient({
         </div>
 
         {/* Days Cells */}
-        <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-100">
+        <div className="grid grid-cols-7 flex-1 min-h-0 auto-rows-fr divide-x divide-y divide-slate-100 overflow-y-auto">
           {days.map((day, idx) => {
             const isToday = isSameDay(day, new Date());
             const isCurrentMonth = isSameMonth(day, currentDate);
@@ -322,11 +322,11 @@ export function CalendarClient({
             return (
               <div
                 key={idx}
-                className={`min-h-[120px] p-2 flex flex-col justify-between group transition hover:bg-slate-50/70 ${
+                className={`min-h-[85px] p-2 flex flex-col justify-between group transition hover:bg-slate-50/70 overflow-hidden ${
                   !isCurrentMonth ? "bg-slate-50/40 text-slate-400" : ""
                 }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between shrink-0">
                   <span
                     className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${
                       isToday
@@ -347,7 +347,7 @@ export function CalendarClient({
                 </div>
 
                 {/* Day activities list */}
-                <div className="space-y-1 my-1 overflow-y-auto max-h-24">
+                <div className="space-y-1 my-1 overflow-y-auto flex-1 min-h-0 pr-0.5">
                   {dayActivities.map((act) => (
                     <Link
                       key={act.id}

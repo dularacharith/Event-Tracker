@@ -736,9 +736,9 @@ export function ActivitiesClient({
   };
 
   return (
-    <div className="space-y-6 flex-1 flex flex-col min-h-0">
+    <div className="space-y-3.5 flex-1 flex flex-col min-h-0 h-full overflow-hidden">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Activities</h1>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -914,14 +914,14 @@ export function ActivitiesClient({
 
       {/* View: Status Board (Linked Pipeline Flow & Kanban Columns) vs Grouped List */}
       <div
-        className={`flex-1 flex flex-col min-h-0 transition-all duration-300 ease-out ${
+        className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-out ${
           isTabPending ? "filter blur-[2px] opacity-80 pointer-events-none" : ""
         }`}
       >
         {viewMode === "board" ? (
-          <div key="board-view" className="space-y-4 flex-1 flex flex-col min-h-0 animate-tab-slide-left">
+          <div key="board-view" className="space-y-3 flex-1 flex flex-col min-h-0 overflow-hidden animate-tab-slide-left">
             {/* Quick Column Jump Pills & Visual Flow Controls */}
-            <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs px-1">
+            <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs px-1 shrink-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-slate-400 font-semibold text-[11px] mr-1">Columns:</span>
                 <button
@@ -1022,7 +1022,7 @@ export function ActivitiesClient({
           {/* Linked Kanban Columns Track with animated tab slide effect */}
           <div
             key={`track-${filterStatus || "all"}`}
-            className="flex items-stretch overflow-x-auto pb-4 pt-1 px-1 flex-1 min-h-[calc(100vh-270px)] animate-tab-slide-right"
+            className="flex items-stretch overflow-x-auto pb-2 pt-1 px-1 flex-1 min-h-0 animate-tab-slide-right gap-3"
           >
             {visibleColumns.filter(
               (col) => !filterStatus || filterStatus === col.id
@@ -1034,15 +1034,15 @@ export function ActivitiesClient({
 
               return (
                 <React.Fragment key={col.id}>
-                  <div className="flex-1 min-w-[240px] max-w-[360px] shrink-0 self-stretch flex flex-col">
+                  <div className="flex-1 min-w-[245px] max-w-[360px] shrink-0 self-stretch flex flex-col h-full min-h-0">
                     <div
-                      className={`rounded-2xl border ${colStyles.borderClass} ${colStyles.bgClass} p-3.5 flex flex-col justify-between shadow-2xs hover:shadow-xs transition h-full flex-1 min-h-[calc(100vh-280px)]`}
+                      className={`rounded-2xl border ${colStyles.borderClass} ${colStyles.bgClass} p-3.5 flex flex-col justify-between shadow-2xs hover:shadow-xs transition h-full min-h-0`}
                       style={colStyles.containerStyle}
                     >
                     {/* Top Column Section: Header & Cards List */}
-                    <div className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     {/* Column Header */}
-                    <div className="flex items-start justify-between pb-1 gap-2 relative">
+                    <div className="flex items-start justify-between pb-1 gap-2 relative shrink-0">
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
                           <span
@@ -1225,7 +1225,7 @@ export function ActivitiesClient({
                     </div>
 
                     {/* Cards */}
-                    <div className="space-y-2.5 flex-1 overflow-y-auto pr-1 my-2 max-h-[calc(100vh-380px)] min-h-[140px]">
+                    <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto pr-1 my-2">
                       {colActivities.length === 0 ? (
                         <div className="p-4 text-center text-xs text-slate-400 border border-dashed border-slate-200/90 rounded-xl bg-white/50">
                           No activities
@@ -1841,7 +1841,10 @@ export function ActivitiesClient({
         </div>
       ) : (
         /* View: Grouped List (displaying board columns as list groups) */
-        <div key={`list-view-${filterStatus || "all"}`} className="space-y-4 animate-tab-slide-right">
+        <div
+          key={`list-view-${filterStatus || "all"}`}
+          className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 pb-4 animate-tab-slide-right"
+        >
           {visibleColumns.filter(
             (col) => !filterStatus || filterStatus === col.id
           ).map((col) => {

@@ -141,9 +141,9 @@ export function TeamClient({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 flex-1 flex flex-col min-h-0 h-full overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Team & Teammates</h1>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -159,15 +159,17 @@ export function TeamClient({
               setInviteEmail("");
               setInviteModalOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition"
+            className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition shrink-0 cursor-pointer"
           >
             <UserPlus className="w-4 h-4" /> Invite Teammate
           </button>
         )}
       </div>
 
-      {/* Active Teammates Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Content Area - scrolls inside container */}
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-4 space-y-5">
+        {/* Active Teammates Table */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
             <Users className="w-4 h-4 text-indigo-600" />
@@ -337,6 +339,7 @@ export function TeamClient({
           </div>
         </div>
       )}
+      </div>
 
       {/* Invite Teammate Modal */}
       {inviteModalOpen && (

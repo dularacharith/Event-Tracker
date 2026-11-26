@@ -129,9 +129,9 @@ export function MyWorkClient({
       : overdueWork;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 flex-1 flex flex-col min-h-0 h-full overflow-hidden">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
             My Work
@@ -150,7 +150,7 @@ export function MyWorkClient({
       </div>
 
       {/* KPI Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
         <button
           onClick={() => setActiveTab("owned")}
           className={`p-4 rounded-xl border text-left transition ${
@@ -220,7 +220,7 @@ export function MyWorkClient({
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-slate-200 flex space-x-6">
+      <div className="border-b border-slate-200 flex space-x-6 shrink-0">
         <button
           onClick={() => setActiveTab("owned")}
           className={`pb-3 text-sm font-semibold border-b-2 transition ${
@@ -261,10 +261,10 @@ export function MyWorkClient({
       {/* Activities List */}
       <div
         key={activeTab}
-        className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-tab-slide-right"
+        className="flex-1 min-h-0 overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col animate-tab-slide-right"
       >
         {currentList.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
             <Layers className="w-10 h-10 text-slate-300 mx-auto mb-3" />
             <h3 className="font-semibold text-slate-800 text-sm">
               No activities found in this view
@@ -278,7 +278,7 @@ export function MyWorkClient({
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100">
             {currentList.map((item) => (
               <div
                 key={item.id}

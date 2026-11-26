@@ -367,9 +367,9 @@ export function CampaignsClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 flex-1 flex flex-col min-h-0 h-full overflow-hidden">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Campaigns</h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -410,7 +410,7 @@ export function CampaignsClient({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 auto-rows-max">
           {campaignsList.map((camp) => {
             const theme = getCardTheme(camp.color);
             const isKebabOpen = activeKebabId === camp.id;

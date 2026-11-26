@@ -32,7 +32,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col">
+      <body className="bg-slate-50 text-slate-900 antialiased h-screen h-[100dvh] overflow-hidden flex flex-col">
         <ToastProvider>
           <ConfirmProvider>
             <PromptProvider>
