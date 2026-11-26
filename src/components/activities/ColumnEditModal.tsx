@@ -43,6 +43,7 @@ interface ColumnEditModalProps {
   onDelete?: (colId: string) => void;
   onHide?: (colId: string) => void;
   defaultField?: string;
+  activitiesCount?: number;
 }
 
 export function ColumnEditModal({
@@ -56,6 +57,7 @@ export function ColumnEditModal({
   onDelete,
   onHide,
   defaultField,
+  activitiesCount = 0,
 }: ColumnEditModalProps) {
   const confirm = useConfirm();
   const [label, setLabel] = useState("");
@@ -77,6 +79,7 @@ export function ColumnEditModal({
   const [newFieldColor, setNewFieldColor] = useState("purple");
   const [newFieldIcon, setNewFieldIcon] = useState("Zap");
   const [newFieldCreated, setNewFieldCreated] = useState<PipelineField | null>(null);
+  const [previewHasActivities, setPreviewHasActivities] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -104,6 +107,7 @@ export function ColumnEditModal({
         setUseCustomHex(Boolean(column.customHex));
         setStatusMapping(column.statusMapping || column.id);
         setSelectedFieldId(column.field || getColumnFieldId(column, currentFields));
+        setPreviewHasActivities(activitiesCount > 0);
       } else {
         setLabel("");
         setColorTheme("amber");
@@ -114,9 +118,10 @@ export function ColumnEditModal({
         if (initialField === "inputs") setStatusMapping("draft");
         else if (initialField === "execution") setStatusMapping("in_progress");
         else setStatusMapping("awaiting_review");
+        setPreviewHasActivities(false);
       }
     }
-  }, [isOpen, column, defaultField, pipelineFields]);
+  }, [isOpen, column, defaultField, pipelineFields, activitiesCount]);
 
   if (!isOpen) return null;
 
@@ -160,6 +165,20 @@ export function ColumnEditModal({
   };
 
   const previewStyles = getColumnStyles(draftColumn);
+
+  const isInput =
+    selectedField.type === "input" ||
+    selectedField.id === "inputs" ||
+    draftColumn.field === "inputs" ||
+    draftColumn.id === "draft" ||
+    draftColumn.id === "scheduled";
+
+  const addTaskLabel =
+    draftColumn.id === "draft" && draftColumn.label.toLowerCase() === "draft"
+      ? "Add Task"
+      : draftColumn.id === "scheduled" && draftColumn.label.toLowerCase() === "scheduled"
+      ? "Add Scheduled Task"
+      : `Add ${draftColumn.label} Task`;
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -575,9 +594,31 @@ export function ColumnEditModal({
 
           {/* Live Preview of the Card */}
           <div className="pt-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Live Card Preview</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Live Card Preview</span>
+              </div>
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-[10px] font-semibold text-slate-600">
+                <button
+                  type="button"
+                  onClick={() => setPreviewHasActivities(false)}
+                  className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
+                    !previewHasActivities ? "bg-white text-slate-900 shadow-2xs font-bold" : "hover:text-slate-900"
+                  }`}
+                >
+                  Empty (0 tasks)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewHasActivities(true)}
+                  className={`px-2 py-0.5 rounded-md transition cursor-pointer ${
+                    previewHasActivities ? "bg-white text-slate-900 shadow-2xs font-bold" : "hover:text-slate-900"
+                  }`}
+                >
+                  With Activity
+                </button>
+              </div>
             </div>
             <div
               className={`rounded-2xl border ${previewStyles.borderClass} ${previewStyles.bgClass} p-4 shadow-2xs transition`}
@@ -598,7 +639,11 @@ export function ColumnEditModal({
                     </span>
                   </div>
                   <span className="text-[11px] font-medium text-slate-500 pl-5 pt-0.5">
-                    3 tasks
+                    {previewHasActivities
+                      ? `${activitiesCount > 0 ? activitiesCount : 1} ${
+                          activitiesCount === 1 || activitiesCount === 0 ? "task" : "tasks"
+                        }`
+                      : "0 tasks"}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -611,19 +656,36 @@ export function ColumnEditModal({
                 </div>
               </div>
 
-              {/* Sample inner activity box */}
-              <div className="p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs text-xs space-y-1.5 mt-1">
-                <div className="font-bold text-slate-800">Sample Campaign Activity</div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-100 flex items-center gap-1">
-                    <PlatformIcon platform="twitter" className="w-3 h-3 text-slate-800 shrink-0" />
-                    <span>Twitter / X</span>
-                  </span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-100">
-                    Post
+              {previewHasActivities ? (
+                /* Sample inner activity box */
+                <div className="p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs text-xs space-y-1.5 mt-1">
+                  <div className="font-bold text-slate-800">Sample Campaign Activity</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-100 flex items-center gap-1">
+                      <PlatformIcon platform="twitter" className="w-3 h-3 text-slate-800 shrink-0" />
+                      <span>Twitter / X</span>
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-100">
+                      Post
+                    </span>
+                  </div>
+                </div>
+              ) : isInput ? (
+                /* Empty state for input stages matching board */
+                <div className="w-full py-5 px-4 border-2 border-dashed border-slate-200/90 rounded-xl bg-white/60 flex flex-col items-center justify-center gap-1.5 text-slate-400 mt-1 shadow-2xs">
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+                    <Plus className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {addTaskLabel}
                   </span>
                 </div>
-              </div>
+              ) : (
+                /* Empty state for non-input stages matching board */
+                <div className="p-4 text-center text-xs text-slate-400 border border-dashed border-slate-200/90 rounded-xl bg-white/50 mt-1 shadow-2xs">
+                  No activities
+                </div>
+              )}
             </div>
           </div>
 

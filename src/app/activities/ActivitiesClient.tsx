@@ -2832,6 +2832,9 @@ export function ActivitiesClient({
         existingColumns={flowColumns}
         pipelineFields={pipelineFields}
         defaultField={defaultFieldForNewColumn}
+        activitiesCount={
+          editingColumn ? (activitiesCountByStatus[editingColumn.id] || 0) : 0
+        }
         onSave={handleSaveColumn}
         onDelete={handleDeleteColumn}
         onHide={handleHideColumn}
