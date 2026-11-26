@@ -8,9 +8,202 @@ import {
   ShieldCheck,
   UserCheck,
   Loader2,
-  Sparkles,
   ChevronDown,
 } from "lucide-react";
+
+{/* Modern 3-Layer Isometric Stack Icon */}
+function StackLogoIcon({ className = "w-8 h-8" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 36 38"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        {/* Top Layer Gradients (Vibrant Violet / Magenta) */}
+        <linearGradient
+          id="cfTopSurface"
+          x1="4"
+          y1="2"
+          x2="32"
+          y2="16"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="#be7bf8" />
+          <stop offset="100%" stopColor="#9d3bf5" />
+        </linearGradient>
+        <linearGradient
+          id="cfTopSideLeft"
+          x1="4"
+          y1="9"
+          x2="18"
+          y2="17"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="#7e22ce" />
+          <stop offset="100%" stopColor="#6b21a8" />
+        </linearGradient>
+        <linearGradient
+          id="cfTopSideRight"
+          x1="18"
+          y1="17"
+          x2="32"
+          y2="9"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="#581c87" />
+          <stop offset="100%" stopColor="#4c1d95" />
+        </linearGradient>
+
+        {/* Mid Layer Gradients (Purple / Lavender) */}
+        <linearGradient
+          id="cfMidSurface"
+          x1="4"
+          y1="10"
+          x2="32"
+          y2="24"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="#cca0fc" />
+          <stop offset="100%" stopColor="#a855f7" />
+        </linearGradient>
+        <linearGradient
+          id="cfMidSideLeft"
+          x1="4"
+          y1="17"
+          x2="18"
+          y2="25"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="#8b5cf6" />
+          <stop offset="100%" stopColor="#7c3aed" />
+        </linearGradient>
+        <linearGradient
+          id="cfMidSideRight"
+          x1="18"
+          y1="25"
+          x2="32"
+          y2="17"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="#6d28d9" />
+          <stop offset="100%" stopColor="#5b21b6" />
+        </linearGradient>
+
+        {/* Bottom Layer Gradients (Periwinkle / Indigo) */}
+        <linearGradient
+          id="cfBotSurface"
+          x1="4"
+          y1="18"
+          x2="32"
+          y2="32"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="#b4c2fc" />
+          <stop offset="100%" stopColor="#818cf8" />
+        </linearGradient>
+        <linearGradient
+          id="cfBotSideLeft"
+          x1="4"
+          y1="25"
+          x2="18"
+          y2="33"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="#6366f1" />
+          <stop offset="100%" stopColor="#4f46e5" />
+        </linearGradient>
+        <linearGradient
+          id="cfBotSideRight"
+          x1="18"
+          y1="33"
+          x2="32"
+          y2="25"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="#4338ca" />
+          <stop offset="100%" stopColor="#3730a3" />
+        </linearGradient>
+      </defs>
+
+      {/* LAYER 3: BOTTOM (Periwinkle / Indigo) */}
+      <g>
+        <path
+          d="M 4 25 L 18 32 L 18 35.2 L 4 28.2 Z"
+          fill="url(#cfBotSideLeft)"
+          stroke="url(#cfBotSideLeft)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M 18 32 L 32 25 L 32 28.2 L 18 35.2 Z"
+          fill="url(#cfBotSideRight)"
+          stroke="url(#cfBotSideRight)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M 18 18 L 32 25 L 18 32 L 4 25 Z"
+          fill="url(#cfBotSurface)"
+          stroke="url(#cfBotSurface)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </g>
+
+      {/* LAYER 2: MIDDLE (Purple / Lavender) */}
+      <g>
+        <path
+          d="M 4 17 L 18 24 L 18 27.2 L 4 20.2 Z"
+          fill="url(#cfMidSideLeft)"
+          stroke="url(#cfMidSideLeft)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M 18 24 L 32 17 L 32 20.2 L 18 27.2 Z"
+          fill="url(#cfMidSideRight)"
+          stroke="url(#cfMidSideRight)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M 18 10 L 32 17 L 18 24 L 4 17 Z"
+          fill="url(#cfMidSurface)"
+          stroke="url(#cfMidSurface)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </g>
+
+      {/* LAYER 1: TOP (Vibrant Violet / Magenta) */}
+      <g>
+        <path
+          d="M 4 9 L 18 16 L 18 19.2 L 4 12.2 Z"
+          fill="url(#cfTopSideLeft)"
+          stroke="url(#cfTopSideLeft)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M 18 16 L 32 9 L 32 12.2 L 18 19.2 Z"
+          fill="url(#cfTopSideRight)"
+          stroke="url(#cfTopSideRight)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M 18 2 L 32 9 L 18 16 L 4 9 Z"
+          fill="url(#cfTopSurface)"
+          stroke="url(#cfTopSurface)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </g>
+    </svg>
+  );
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -104,69 +297,45 @@ function LoginForm() {
         {/* RIGHT HALF: Authentication Form Panel */}
         <div className="w-full lg:w-1/2 bg-white p-7 sm:p-9 lg:p-11 flex flex-col justify-between">
           <div>
-            {/* Top Brand Logo - System CampaignFlow Logo */}
-            <div className="flex items-center gap-2 select-none mb-6">
-              <Sparkles className="w-5 h-5 text-purple-600 fill-purple-600 shrink-0" />
-              <span className="font-extrabold text-2xl tracking-tight text-slate-900">
+            {/* Brand Logo with 3-Layer Isometric Stack Icon (Replaced Sparkle & Positioned at Stack Location) */}
+            <div className="flex items-center gap-2.5 select-none mb-6">
+              <div className="w-8 h-8 shrink-0 flex items-center justify-center">
+                <StackLogoIcon className="w-full h-full" />
+              </div>
+              <span className="font-black text-2xl tracking-tight text-slate-900 font-sans">
                 Campaign<span className="text-purple-600">Flow</span>
               </span>
             </div>
 
-            {/* Stacked Isometric 3-Layer Icon */}
-            <div className="mb-4">
-              <svg className="w-11 h-11 drop-shadow-sm" viewBox="0 0 54 54" fill="none">
-                {/* Bottom layer */}
-                <path
-                  d="M 27 41 L 45 32 L 27 23 L 9 32 Z"
-                  fill="#6366f1"
-                  opacity="0.5"
-                />
-                <path
-                  d="M 9 32 L 27 41 L 45 32 L 45 35.5 L 27 44.5 L 9 35.5 Z"
-                  fill="#4f46e5"
-                />
-                {/* Middle layer */}
-                <path
-                  d="M 27 30 L 45 21 L 27 12 L 9 21 Z"
-                  fill="#8b5cf6"
-                  opacity="0.75"
-                />
-                <path
-                  d="M 9 21 L 27 30 L 45 21 L 45 24.5 L 27 33.5 L 9 24.5 Z"
-                  fill="#7c3aed"
-                />
-                {/* Top layer */}
-                <path
-                  d="M 27 19 L 45 10 L 27 1 L 9 10 Z"
-                  fill="#a855f7"
-                />
-                <path
-                  d="M 9 10 L 27 19 L 45 10 L 45 13.5 L 27 22.5 L 9 13.5 Z"
-                  fill="#9333ea"
-                />
-              </svg>
-            </div>
-
-            {/* Header Titles with Modern Typography */}
-            <div className="mb-5">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            {/* Header Titles with Inter Typography & Tab Animation */}
+            <div key={`header-${authMode}`} className="mb-5 animate-in fade-in slide-in-from-bottom-1 duration-200">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-sans">
                 {authMode === "signin" ? "Welcome back" : "Create Account"}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium font-sans">
                 {authMode === "signin"
                   ? "Sign in with your authorized Google account to continue."
                   : "Sign up with your authorized Google account to continue."}
               </p>
             </div>
 
-            {/* Mode Switcher Tabs (Segmented Control: Sign In / Create Account) */}
-            <div className="flex rounded-xl bg-slate-100 p-1 mb-5 border border-slate-200/80">
+            {/* Mode Switcher Tabs with Smooth Sliding Pill Indicator Animation */}
+            <div className="relative flex rounded-xl bg-slate-100 p-1 mb-5 border border-slate-200/80 select-none">
+              {/* Smooth Animated Sliding Pill */}
+              <div
+                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-2xs border border-slate-200/60 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  authMode === "signin"
+                    ? "left-1 translate-x-0"
+                    : "left-1 translate-x-[calc(100%+2px)]"
+                }`}
+              />
+
               <button
                 type="button"
                 onClick={() => setAuthMode("signin")}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                className={`relative z-10 flex-1 py-2 text-xs font-bold rounded-lg transition-colors duration-200 cursor-pointer text-center ${
                   authMode === "signin"
-                    ? "bg-white text-slate-900 shadow-2xs"
+                    ? "text-slate-900 font-extrabold"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
@@ -175,9 +344,9 @@ function LoginForm() {
               <button
                 type="button"
                 onClick={() => setAuthMode("signup")}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                className={`relative z-10 flex-1 py-2 text-xs font-bold rounded-lg transition-colors duration-200 cursor-pointer text-center ${
                   authMode === "signup"
-                    ? "bg-white text-slate-900 shadow-2xs"
+                    ? "text-slate-900 font-extrabold"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
@@ -219,22 +388,25 @@ function LoginForm() {
                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                       />
                     </svg>
-                    <span className="text-sm font-bold group-hover:text-purple-950 transition">
+                    <span
+                      key={`btn-txt-${authMode}`}
+                      className="text-sm font-extrabold group-hover:text-purple-950 transition animate-in fade-in duration-200"
+                    >
                       {authMode === "signin" ? "Sign in with Google" : "Sign up with Google"}
                     </span>
                   </>
                 )}
               </button>
 
-              {/* Mode Switch Prompt */}
-              <div className="text-center text-xs text-slate-500 pt-0.5">
+              {/* Mode Switch Prompt with Animation */}
+              <div key={`prompt-${authMode}`} className="text-center text-xs text-slate-500 pt-0.5 animate-in fade-in duration-200">
                 {authMode === "signin" ? (
                   <span>
                     Don&apos;t have an account?{" "}
                     <button
                       type="button"
                       onClick={() => setAuthMode("signup")}
-                      className="text-purple-600 hover:text-purple-700 font-bold underline underline-offset-2 transition cursor-pointer"
+                      className="text-purple-600 hover:text-purple-700 font-extrabold underline underline-offset-2 transition cursor-pointer"
                     >
                       Create account with Google
                     </button>
@@ -245,7 +417,7 @@ function LoginForm() {
                     <button
                       type="button"
                       onClick={() => setAuthMode("signin")}
-                      className="text-purple-600 hover:text-purple-700 font-bold underline underline-offset-2 transition cursor-pointer"
+                      className="text-purple-600 hover:text-purple-700 font-extrabold underline underline-offset-2 transition cursor-pointer"
                     >
                       Sign in with Google
                     </button>
@@ -257,8 +429,8 @@ function LoginForm() {
             {/* Invite-Only Organization Security Card */}
             <div className="mt-5 rounded-2xl bg-purple-50/50 border border-purple-100 p-3.5 flex items-start gap-2.5 shadow-2xs">
               <ShieldCheck className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-              <div className="text-xs text-slate-800 leading-relaxed">
-                <span className="font-bold block text-slate-900">Invite-Only Organization</span>
+              <div className="text-xs text-slate-800 leading-relaxed font-sans">
+                <span className="font-extrabold block text-slate-900">Invite-Only Organization</span>
                 <p className="text-slate-500 text-[11px] mt-0.5 leading-relaxed font-normal">
                   CampaignFlow is private to your team. Access requires an authorized Google account matching your workspace invitation or administrator account.
                 </p>
@@ -267,7 +439,7 @@ function LoginForm() {
 
             {/* Development Quick-Logins (Collapsible Drawer for local test & verification) */}
             {isDev && (
-              <details className="mt-4 pt-3 border-t border-slate-100 group text-xs text-slate-500">
+              <details className="mt-4 pt-3 border-t border-slate-100 group text-xs text-slate-500 font-sans">
                 <summary className="cursor-pointer font-semibold text-slate-600 hover:text-purple-700 flex items-center justify-between select-none">
                   <div className="flex items-center gap-1.5">
                     <UserCheck className="w-3.5 h-3.5 text-purple-600" />
@@ -305,7 +477,7 @@ function LoginForm() {
           </div>
 
           {/* Footer Disclaimer */}
-          <div className="pt-4 text-center">
+          <div className="pt-4 text-center font-sans">
             <p className="text-[11px] text-slate-400">
               By signing in, you agree to workspace security guidelines and policies.
             </p>
