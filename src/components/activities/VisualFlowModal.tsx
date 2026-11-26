@@ -2388,6 +2388,98 @@ export function VisualFlowModal({
                   })}
                 </div>
               </div>
+
+              {/* Live Field Preview */}
+              <div className="pt-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Live Field Preview</span>
+                </div>
+                {(() => {
+                  const previewField: PipelineField = {
+                    id: "new_field_preview",
+                    name: newFieldName.trim() || "Field Name",
+                    type: newFieldType,
+                    colorTheme: newFieldColor,
+                    icon: newFieldIcon,
+                  };
+                  const styles = getFieldStyles(previewField);
+                  const IconComp = getFieldIconComponent(newFieldIcon, newFieldType);
+                  const isExecution = newFieldType === "execution";
+
+                  return (
+                    <div
+                      className="rounded-2xl p-3 border-2 shadow-xs transition-colors space-y-2 select-none"
+                      style={{
+                        backgroundColor: styles.containerBg,
+                        borderColor: styles.borderColor,
+                      }}
+                    >
+                      {/* Field Container Header */}
+                      <div
+                        className="flex items-center justify-between pb-1 border-b"
+                        style={{ borderColor: styles.borderColor }}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <IconComp
+                            className="w-3.5 h-3.5 shrink-0"
+                            style={{ color: styles.hex }}
+                          />
+                          <span
+                            className="font-bold text-[11px] uppercase tracking-wider truncate"
+                            style={{ color: styles.headerText }}
+                          >
+                            {newFieldName.trim() || "FIELD NAME"}
+                          </span>
+                          {isExecution && (
+                            <span
+                              className="w-4 h-4 rounded-full bg-amber-200/90 text-amber-900 flex items-center justify-center text-[10px] font-extrabold shadow-2xs shrink-0"
+                              title="Quality Contracts & Pass Criteria"
+                            >
+                              ?
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span
+                            className="text-[10px] font-bold px-1.5 py-0.2 rounded-full"
+                            style={{ backgroundColor: styles.badgeBg, color: styles.headerText }}
+                          >
+                            0 stages
+                          </span>
+                          <div className="p-1 text-slate-400">
+                            <Settings className="w-3 h-3" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sample stage & dropzone */}
+                      <div className="space-y-1.5">
+                        <div className="bg-white rounded-xl p-2 border border-slate-200/90 shadow-2xs flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <GripVertical className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: styles.hex }}
+                            />
+                            <span className="font-bold text-[11px] text-slate-800 uppercase tracking-wider truncate">
+                              Sample Stage
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-slate-400 shrink-0">
+                            <Eye className="w-3 h-3" />
+                            <Settings className="w-3 h-3" />
+                          </div>
+                        </div>
+                        <div className="w-full py-1.5 rounded-lg border border-dashed border-slate-300 bg-white/60 text-[10px] font-semibold text-slate-400 flex items-center justify-center gap-1">
+                          <Plus className="w-3 h-3" />
+                          <span>Insert stage here (Drop)</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-5 border-t border-slate-100 mt-5">
@@ -2539,6 +2631,134 @@ export function VisualFlowModal({
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Live Field Preview */}
+              <div className="pt-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Live Field Preview</span>
+                </div>
+                {(() => {
+                  const previewField: PipelineField = {
+                    id: editingField.id,
+                    name: editFieldName.trim() || "Field Name",
+                    type: editFieldType,
+                    colorTheme: editFieldColor,
+                    icon: editFieldIcon,
+                  };
+                  const styles = getFieldStyles(previewField);
+                  const IconComp = getFieldIconComponent(editFieldIcon, editFieldType);
+                  const fieldCols = workingColumns.filter(
+                    (c) => getColumnFieldId(c, pipelineFields) === editingField.id && !c.inLibrary
+                  );
+                  const isExecution = editFieldType === "execution";
+
+                  return (
+                    <div
+                      className="rounded-2xl p-3 border-2 shadow-xs transition-colors space-y-2 select-none"
+                      style={{
+                        backgroundColor: styles.containerBg,
+                        borderColor: styles.borderColor,
+                      }}
+                    >
+                      {/* Field Container Header */}
+                      <div
+                        className="flex items-center justify-between pb-1 border-b"
+                        style={{ borderColor: styles.borderColor }}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <IconComp
+                            className="w-3.5 h-3.5 shrink-0"
+                            style={{ color: styles.hex }}
+                          />
+                          <span
+                            className="font-bold text-[11px] uppercase tracking-wider truncate"
+                            style={{ color: styles.headerText }}
+                          >
+                            {editFieldName.trim() || "FIELD NAME"}
+                          </span>
+                          {isExecution && (
+                            <span
+                              className="w-4 h-4 rounded-full bg-amber-200/90 text-amber-900 flex items-center justify-center text-[10px] font-extrabold shadow-2xs shrink-0"
+                              title="Quality Contracts & Pass Criteria"
+                            >
+                              ?
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span
+                            className="text-[10px] font-bold px-1.5 py-0.2 rounded-full"
+                            style={{ backgroundColor: styles.badgeBg, color: styles.headerText }}
+                          >
+                            {fieldCols.length} {fieldCols.length === 1 ? "stage" : "stages"}
+                          </span>
+                          <div className="p-1 text-slate-400">
+                            <Settings className="w-3 h-3" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Stages list inside field or sample stage */}
+                      <div className="space-y-1.5">
+                        {fieldCols.length > 0 ? (
+                          fieldCols.slice(0, 2).map((col) => {
+                            const cStyles = getColumnStyles(col);
+                            return (
+                              <div
+                                key={col.id}
+                                className="bg-white rounded-xl p-2 border border-slate-200/90 shadow-2xs flex items-center justify-between text-xs"
+                              >
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <GripVertical className="w-3 h-3 text-slate-400 shrink-0" />
+                                  <span
+                                    className={`w-2 h-2 rounded-full shrink-0 ${cStyles.dotClass}`}
+                                    style={cStyles.dotStyle}
+                                  />
+                                  <span className="font-bold text-[11px] text-slate-800 uppercase tracking-wider truncate">
+                                    {col.label}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 text-slate-400 shrink-0">
+                                  <Eye className="w-3 h-3" />
+                                  <Settings className="w-3 h-3" />
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="bg-white rounded-xl p-2 border border-slate-200/90 shadow-2xs flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <GripVertical className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: styles.hex }}
+                              />
+                              <span className="font-bold text-[11px] text-slate-800 uppercase tracking-wider truncate">
+                                Sample Stage
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-slate-400 shrink-0">
+                              <Eye className="w-3 h-3" />
+                              <Settings className="w-3 h-3" />
+                            </div>
+                          </div>
+                        )}
+                        {fieldCols.length > 2 && (
+                          <div className="text-[10px] text-slate-500 font-medium text-center">
+                            + {fieldCols.length - 2} more {fieldCols.length - 2 === 1 ? "stage" : "stages"}
+                          </div>
+                        )}
+                        {/* Dropzone mockup */}
+                        <div className="w-full py-1.5 rounded-lg border border-dashed border-slate-300 bg-white/60 text-[10px] font-semibold text-slate-400 flex items-center justify-center gap-1">
+                          <Plus className="w-3 h-3" />
+                          <span>Insert stage here (Drop)</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {editingField && pipelineFields.findIndex((f) => f.id === editingField.id) < pipelineFields.length - 1 && (

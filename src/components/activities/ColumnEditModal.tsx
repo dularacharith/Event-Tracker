@@ -25,6 +25,7 @@ import {
   COLOR_THEMES,
   ColorTheme,
   getColumnStyles,
+  getFieldStyles,
   PRESET_FIELD_ICONS,
   getFieldIconComponent,
 } from "@/lib/flowColumns";
@@ -445,6 +446,73 @@ export function ColumnEditModal({
                       })}
                     </div>
                   </div>
+
+                  {/* Compact Live Field Preview */}
+                  {(() => {
+                    const previewField: PipelineField = {
+                      id: "inline_new_field",
+                      name: newFieldName.trim() || "Field Name",
+                      type: newFieldType,
+                      colorTheme: newFieldColor,
+                      icon: newFieldIcon,
+                    };
+                    const styles = getFieldStyles(previewField);
+                    const IconComp = getFieldIconComponent(newFieldIcon, newFieldType);
+                    const isExecution = newFieldType === "execution";
+
+                    return (
+                      <div
+                        className="rounded-xl p-2.5 border-2 shadow-2xs transition-colors space-y-1.5 select-none"
+                        style={{
+                          backgroundColor: styles.containerBg,
+                          borderColor: styles.borderColor,
+                        }}
+                      >
+                        <div
+                          className="flex items-center justify-between pb-1 border-b"
+                          style={{ borderColor: styles.borderColor }}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <IconComp
+                              className="w-3.5 h-3.5 shrink-0"
+                              style={{ color: styles.hex }}
+                            />
+                            <span
+                              className="font-bold text-[10px] uppercase tracking-wider truncate"
+                              style={{ color: styles.headerText }}
+                            >
+                              {newFieldName.trim() || "FIELD NAME"}
+                            </span>
+                            {isExecution && (
+                              <span
+                                className="w-3.5 h-3.5 rounded-full bg-amber-200/90 text-amber-900 flex items-center justify-center text-[9px] font-extrabold shadow-2xs shrink-0"
+                                title="Quality Contracts & Pass Criteria"
+                              >
+                                ?
+                              </span>
+                            )}
+                          </div>
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.2 rounded-full"
+                            style={{ backgroundColor: styles.badgeBg, color: styles.headerText }}
+                          >
+                            0 stages
+                          </span>
+                        </div>
+                        <div className="bg-white rounded-lg p-1.5 border border-slate-200/90 shadow-2xs flex items-center justify-between text-[10px]">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span
+                              className="w-1.5 h-1.5 rounded-full shrink-0"
+                              style={{ backgroundColor: styles.hex }}
+                            />
+                            <span className="font-bold text-slate-800 uppercase tracking-wider truncate">
+                              Sample Stage
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
