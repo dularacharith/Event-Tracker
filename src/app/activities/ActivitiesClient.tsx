@@ -1145,7 +1145,9 @@ export function ActivitiesClient({
                 <React.Fragment key={field.id}>
                   {/* Pipeline Field Section Container */}
                   <div
-                    className="shrink-0 flex flex-col h-full min-h-0 rounded-3xl border-2 p-2.5 sm:p-3 transition-all duration-200 shadow-2xs group/field"
+                    className={`shrink-0 flex flex-col h-full min-h-0 rounded-3xl border-2 p-2.5 sm:p-3 transition-all duration-300 shadow-2xs group/field ${
+                      fieldCols.length === 1 ? "min-w-[320px] sm:min-w-[360px]" : ""
+                    }`}
                     style={{
                       backgroundColor: fieldStyles.containerBg,
                       borderColor: fieldStyles.borderColor,
@@ -1225,10 +1227,10 @@ export function ActivitiesClient({
                     </div>
 
                     {/* Columns inside this Field Section */}
-                    <div className="flex items-stretch gap-3 flex-1 min-h-0">
+                    <div className="flex items-stretch gap-3 flex-1 min-h-0 w-full">
                       {fieldCols.length === 0 ? (
                         <div
-                          className="w-64 min-w-[240px] flex-1 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-6 text-center"
+                          className="w-full min-w-[240px] flex-1 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-6 text-center"
                           style={{ borderColor: hexToRgba(fieldStyles.hex, 0.25) }}
                         >
                           <span className="text-xs font-semibold text-slate-500 mb-2">
@@ -1257,11 +1259,16 @@ export function ActivitiesClient({
                             (a) => a.status === col.id
                           );
                           const colStyles = getColumnStyles(col);
+                          const isSingleCard = fieldCols.length === 1;
 
                           return (
                             <div
                               key={col.id}
-                              className="w-[280px] sm:w-[310px] shrink-0 self-stretch flex flex-col h-full min-h-0"
+                              className={`self-stretch flex flex-col h-full min-h-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                                isSingleCard
+                                  ? "w-full flex-1 min-w-[280px] sm:min-w-[310px]"
+                                  : "w-[280px] sm:w-[310px] shrink-0"
+                              }`}
                             >
                     <div
                       className={`rounded-2xl border ${colStyles.borderClass} ${colStyles.bgClass} p-3.5 flex flex-col justify-between shadow-2xs hover:shadow-xs transition h-full min-h-0`}
