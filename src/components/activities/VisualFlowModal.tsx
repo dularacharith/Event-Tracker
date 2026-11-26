@@ -180,19 +180,36 @@ export function VisualFlowModal({
   const [workingColumns, setWorkingColumns] = useState<FlowColumn[]>(columns);
   // Snapshot of last confirmed saved columns
   const [savedColumns, setSavedColumns] = useState<FlowColumn[]>(columns);
+  // Snapshot of last confirmed saved fields
+  const [savedFields, setSavedFields] = useState<PipelineField[]>(() => {
+    return initialPipelineFields && initialPipelineFields.length > 0
+      ? initialPipelineFields
+      : loadPipelineFields();
+  });
   // Unsaved modifications flag
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showUnsavedPrompt, setShowUnsavedPrompt] = useState(false);
 
-  // Sync workingColumns when columns prop updates from outside (e.g. ColumnEditModal)
+  // Sync workingColumns & pipelineFields ONLY when modal opens (transition to isOpen=true)
+  const prevIsOpenRef = useRef(false);
   useEffect(() => {
-    setWorkingColumns(columns);
-    setSavedColumns(columns);
-    setIsDirty(false);
-  }, [columns]);
-
-  // Live synchronization: changes are committed immediately to overview and storage
+    if (isOpen && !prevIsOpenRef.current) {
+      const activeFields =
+        initialPipelineFields && initialPipelineFields.length > 0
+          ? initialPipelineFields
+          : loadPipelineFields(workspaceId);
+      setWorkingColumns(columns);
+      setSavedColumns(columns);
+      setPipelineFields(activeFields);
+      setSavedFields(activeFields);
+      setHistory([]);
+      setFuture([]);
+      setIsDirty(false);
+      setShowUnsavedPrompt(false);
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, columns, initialPipelineFields, workspaceId]);
 
   // Selected column object
   const selectedCol = useMemo(() => {
@@ -206,11 +223,18 @@ export function VisualFlowModal({
   const handleSavePipeline = () => {
     setIsSaving(true);
     const sorted = sortColumnsByPipeline(workingColumns, pipelineFields);
-    onUpdateColumns(sorted);
     setSavedColumns(sorted);
+    setSavedFields(pipelineFields);
     setWorkingColumns(sorted);
+
+    // Persist to storage
+    saveFlowColumns(workspaceId, sorted);
     savePipelineFields(workspaceId, pipelineFields);
+
+    // Apply to parent activities board
+    onUpdateColumns(sorted);
     if (onUpdateFields) onUpdateFields(pipelineFields);
+
     setIsDirty(false);
     setTimeout(() => {
       setIsSaving(false);
@@ -219,28 +243,26 @@ export function VisualFlowModal({
   };
 
   const handleRequestClose = () => {
-    onClose();
+    if (isDirty) {
+      setShowUnsavedPrompt(true);
+    } else {
+      onClose();
+    }
   };
 
   const handleSaveAndClose = () => {
-    const sorted = sortColumnsByPipeline(workingColumns, pipelineFields);
-    onUpdateColumns(sorted);
-    setSavedColumns(sorted);
-    setWorkingColumns(sorted);
-    savePipelineFields(workspaceId, pipelineFields);
-    if (onUpdateFields) onUpdateFields(pipelineFields);
-    setIsDirty(false);
+    handleSavePipeline();
     setShowUnsavedPrompt(false);
-    toast.success("Pipeline Saved", "Workflow configuration saved.");
     onClose();
   };
 
   const handleDiscardAndClose = () => {
+    // Revert all unsaved working state to original saved snapshot
     setWorkingColumns(savedColumns);
-    onUpdateColumns(savedColumns);
+    setPipelineFields(savedFields);
     setIsDirty(false);
     setShowUnsavedPrompt(false);
-    toast.info("Changes Discarded", "Unsaved pipeline changes discarded.");
+    toast.info("Changes Discarded", "Unsaved pipeline changes were discarded.");
     onClose();
   };
 
@@ -252,6 +274,12 @@ export function VisualFlowModal({
           setShowUnsavedPrompt(false);
         } else if (isHowToUseOpen) {
           setIsHowToUseOpen(false);
+        } else if (isAddFieldModalOpen) {
+          setIsAddFieldModalOpen(false);
+        } else if (isEditFieldModalOpen) {
+          setIsEditFieldModalOpen(false);
+        } else if (editingConnector) {
+          setEditingConnector(null);
         } else {
           handleRequestClose();
         }
@@ -259,7 +287,7 @@ export function VisualFlowModal({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isDirty, showUnsavedPrompt, isHowToUseOpen]);
+  }, [isOpen, isDirty, showUnsavedPrompt, isHowToUseOpen, isAddFieldModalOpen, isEditFieldModalOpen, editingConnector]);
 
   if (!isOpen || !mounted) return null;
 
@@ -268,12 +296,8 @@ export function VisualFlowModal({
     setFuture([]);
     const sorted = sortColumnsByPipeline(newCols, fields);
     setWorkingColumns(sorted);
-    setSavedColumns(sorted);
-    onUpdateColumns(sorted);
-    saveFlowColumns(workspaceId, sorted);
-    savePipelineFields(workspaceId, fields);
-    if (onUpdateFields) onUpdateFields(fields);
-    setIsDirty(false);
+    setPipelineFields(fields);
+    setIsDirty(true);
   };
 
   const handleUndo = () => {
@@ -283,9 +307,7 @@ export function VisualFlowModal({
     setHistory((h) => h.slice(0, -1));
     const sorted = sortColumnsByPipeline(prev, pipelineFields);
     setWorkingColumns(sorted);
-    setSavedColumns(sorted);
-    onUpdateColumns(sorted);
-    saveFlowColumns(workspaceId, sorted);
+    setIsDirty(true);
     toast.info("Action undone", "Restored previous flow configuration.");
   };
 
@@ -296,9 +318,7 @@ export function VisualFlowModal({
     setFuture((f) => f.slice(1));
     const sorted = sortColumnsByPipeline(next, pipelineFields);
     setWorkingColumns(sorted);
-    setSavedColumns(sorted);
-    onUpdateColumns(sorted);
-    saveFlowColumns(workspaceId, sorted);
+    setIsDirty(true);
     toast.info("Action redone", "Reapplied flow configuration.");
   };
 
@@ -309,10 +329,10 @@ export function VisualFlowModal({
     pushHistory(updated);
     const target = updated.find((c) => c.id === colId);
     toast.success(
-      target?.hidden ? "Stage hidden" : "Stage visible",
+      target?.hidden ? "Stage marked hidden" : "Stage marked visible",
       target?.hidden
-        ? `"${target.label}" is now hidden from the board.`
-        : `"${target?.label}" is now visible on the board.`
+        ? `"${target.label}" is marked hidden. Click "Save Pipeline" to apply.`
+        : `"${target?.label}" is marked visible. Click "Save Pipeline" to apply.`
     );
   };
 
@@ -626,18 +646,18 @@ export function VisualFlowModal({
                     Interactive Pipeline Flow Builder
                   </h2>
                   <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border transition ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border transition ${
                       isDirty
-                        ? "bg-amber-50 text-amber-800 border-amber-200"
-                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        ? "bg-amber-50 text-amber-800 border-amber-300 font-bold shadow-2xs"
+                        : "bg-slate-100 text-slate-600 border-slate-200"
                     }`}
                   >
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${
-                        isDirty ? "bg-amber-500 animate-pulse" : "bg-emerald-500 animate-pulse"
+                        isDirty ? "bg-amber-500 animate-pulse" : "bg-slate-400"
                       }`}
                     />
-                    {isDirty ? "Unsaved changes" : "Connected / Auto-saved"}
+                    {isDirty ? "Unsaved changes" : "Saved"}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
@@ -835,6 +855,8 @@ export function VisualFlowModal({
                                 className={`p-2 rounded-xl bg-white border transition flex items-center justify-between cursor-grab active:cursor-grabbing shadow-2xs ${
                                   selectedColId === c.id
                                     ? "border-purple-500 text-purple-950 ring-2 ring-purple-500/20 shadow-xs bg-purple-50/40"
+                                    : c.hidden
+                                    ? "border-rose-200 bg-rose-50/30 text-slate-500 opacity-75 hover:opacity-100"
                                     : "border-slate-200/90 hover:border-slate-300 text-slate-700"
                                 }`}
                               >
@@ -844,11 +866,20 @@ export function VisualFlowModal({
                                     className={`w-2 h-2 rounded-full shrink-0 ${cStyles.dotClass}`}
                                     style={cStyles.dotStyle}
                                   />
-                                  <span className="text-xs font-semibold truncate">{c.label}</span>
+                                  <span className={`text-xs font-semibold truncate ${c.hidden ? "line-through text-slate-400" : ""}`}>
+                                    {c.label}
+                                  </span>
                                 </div>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600 shrink-0">
-                                  {field.type}
-                                </span>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  {c.hidden && (
+                                    <span className="p-0.5 text-rose-500" title="Hidden stage">
+                                      <EyeOff className="w-3 h-3" />
+                                    </span>
+                                  )}
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">
+                                    {field.type}
+                                  </span>
+                                </div>
                               </div>
                             );
                           })}
@@ -1249,8 +1280,10 @@ export function VisualFlowModal({
                                       ? "border-purple-500 ring-2 ring-purple-500/40 bg-purple-50/80 shadow-xs"
                                       : isSelected
                                       ? "bg-purple-50/80 border-purple-500 ring-2 ring-purple-500/20 shadow-xs"
+                                      : col.hidden
+                                      ? "bg-rose-50/25 border-dashed border-rose-300 opacity-65 hover:opacity-95"
                                       : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
-                                  } ${col.hidden ? "opacity-50 border-dashed" : ""}`}
+                                  }`}
                                 >
                                   {/* High-Fidelity Glow Drop Line Indicator */}
                                   {dragOverColId === col.id && draggedStageId !== col.id && (
@@ -1271,9 +1304,16 @@ export function VisualFlowModal({
                                       style={colStyles.dotStyle}
                                     />
                                     <div className="min-w-0">
-                                      <span className="font-bold text-xs uppercase tracking-wider text-slate-900 block truncate">
-                                        {col.label}
-                                      </span>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className={`font-bold text-xs uppercase tracking-wider block truncate ${col.hidden ? "text-slate-500 line-through decoration-rose-400" : "text-slate-900"}`}>
+                                          {col.label}
+                                        </span>
+                                        {col.hidden && (
+                                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 shrink-0">
+                                            Hidden
+                                          </span>
+                                        )}
+                                      </div>
                                       <span className="text-[10px] text-slate-500 font-medium">
                                         {count} {count === 1 ? "task" : "tasks"}
                                       </span>
@@ -1287,11 +1327,15 @@ export function VisualFlowModal({
                                         e.stopPropagation();
                                         toggleHide(col.id);
                                       }}
-                                      className="p-1 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
-                                      title={col.hidden ? "Show in flow" : "Hide from flow"}
+                                      className={`p-1.5 rounded-lg transition cursor-pointer ${
+                                        col.hidden
+                                          ? "text-rose-600 bg-rose-50 hover:bg-rose-100 ring-1 ring-rose-200"
+                                          : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                                      }`}
+                                      title={col.hidden ? "Stage is hidden from board (Click to show)" : "Stage is visible on board (Click to hide)"}
                                     >
                                       {col.hidden ? (
-                                        <EyeOff className="w-3.5 h-3.5 text-rose-500" />
+                                        <EyeOff className="w-3.5 h-3.5 text-rose-600" />
                                       ) : (
                                         <Eye className="w-3.5 h-3.5" />
                                       )}
@@ -1564,18 +1608,28 @@ export function VisualFlowModal({
                           <button
                             type="button"
                             onClick={() => toggleHide(selectedCol.id)}
-                            className={`w-full py-1.5 px-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition cursor-pointer shadow-2xs ${
+                            className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-between transition cursor-pointer shadow-2xs ${
                               selectedCol.hidden
-                                ? "bg-rose-50 border-rose-200 text-rose-700"
+                                ? "bg-rose-50 border-rose-300 text-rose-700 ring-2 ring-rose-400/20"
                                 : "bg-emerald-50 border-emerald-200 text-emerald-800"
                             }`}
                           >
-                            <span>{selectedCol.hidden ? "Hidden from Board" : "Visible"}</span>
-                            {selectedCol.hidden ? (
-                              <EyeOff className="w-3.5 h-3.5" />
-                            ) : (
-                              <Eye className="w-3.5 h-3.5" />
-                            )}
+                            <span className="flex items-center gap-1.5 font-bold">
+                              {selectedCol.hidden ? (
+                                <>
+                                  <EyeOff className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>Hidden from Board</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Visible on Board</span>
+                                </>
+                              )}
+                            </span>
+                            <span className="text-[10px] font-bold underline opacity-80">
+                              {selectedCol.hidden ? "Click to Show" : "Click to Hide"}
+                            </span>
                           </button>
                         </div>
 
