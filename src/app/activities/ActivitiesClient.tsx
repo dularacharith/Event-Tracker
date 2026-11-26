@@ -380,18 +380,31 @@ export function ActivitiesClient({
     }
   }, [currentUser?.id]);
 
-  const updateColumns = (cols: FlowColumn[]) => {
-    const sorted = sortColumnsByPipeline(cols, pipelineFields);
+  const handleSavePipelineFlow = (cols: FlowColumn[], fields: PipelineField[]) => {
+    const sorted = sortColumnsByPipeline(cols, fields);
+    setPipelineFields(fields);
     setFlowColumns(sorted);
+    savePipelineFields(currentUser?.id, fields);
     saveFlowColumns(currentUser?.id, sorted);
+  };
+
+  const updateColumns = (cols: FlowColumn[]) => {
+    setPipelineFields((currentFields) => {
+      const sorted = sortColumnsByPipeline(cols, currentFields);
+      setFlowColumns(sorted);
+      saveFlowColumns(currentUser?.id, sorted);
+      return currentFields;
+    });
   };
 
   const updateFields = (fields: PipelineField[]) => {
     setPipelineFields(fields);
     savePipelineFields(currentUser?.id, fields);
-    const sorted = sortColumnsByPipeline(flowColumns, fields);
-    setFlowColumns(sorted);
-    saveFlowColumns(currentUser?.id, sorted);
+    setFlowColumns((currentCols) => {
+      const sorted = sortColumnsByPipeline(currentCols, fields);
+      saveFlowColumns(currentUser?.id, sorted);
+      return sorted;
+    });
   };
 
   const handleSaveConnector = (updatedField: PipelineField) => {
@@ -403,10 +416,11 @@ export function ActivitiesClient({
   };
 
   const handleResetFlow = () => {
-    const defaults = resetFlowColumns(currentUser?.id);
-    setFlowColumns(defaults);
     const defaultFields = resetPipelineFields(currentUser?.id);
+    const defaults = resetFlowColumns(currentUser?.id);
+    const sorted = sortColumnsByPipeline(defaults, defaultFields);
     setPipelineFields(defaultFields);
+    setFlowColumns(sorted);
     toast.success("Flow reset", "Pipeline columns and fields restored to default configuration.");
   };
 
@@ -452,20 +466,23 @@ export function ActivitiesClient({
   };
 
   const handleSaveColumn = (savedCol: FlowColumn, newField?: PipelineField) => {
+    let currentFields = pipelineFields;
     if (newField) {
-      const updatedFields = [...pipelineFields, newField];
-      setPipelineFields(updatedFields);
-      savePipelineFields(currentUser?.id, updatedFields);
+      currentFields = [...pipelineFields, newField];
+      setPipelineFields(currentFields);
+      savePipelineFields(currentUser?.id, currentFields);
     }
+    let updatedCols: FlowColumn[];
     if (isEditingNewColumn) {
-      const updated = [...flowColumns, savedCol];
-      updateColumns(updated);
+      updatedCols = [...flowColumns, savedCol];
       toast.success("Card created", `"${savedCol.label}" has been added to the flow.`);
     } else {
-      const updated = flowColumns.map((c) => (c.id === savedCol.id ? savedCol : c));
-      updateColumns(updated);
+      updatedCols = flowColumns.map((c) => (c.id === savedCol.id ? savedCol : c));
       toast.success("Card updated", `"${savedCol.label}" updated successfully.`);
     }
+    const sorted = sortColumnsByPipeline(updatedCols, currentFields);
+    setFlowColumns(sorted);
+    saveFlowColumns(currentUser?.id, sorted);
   };
 
   const visibleColumns = useMemo<FlowColumn[]>(() => {
@@ -2789,6 +2806,7 @@ export function ActivitiesClient({
         onUpdateColumns={updateColumns}
         pipelineFields={pipelineFields}
         onUpdateFields={updateFields}
+        onSavePipelineFlow={handleSavePipelineFlow}
         workspaceId={currentUser?.id}
         onOpenEditColumn={(col) => {
           setEditingColumn(col);

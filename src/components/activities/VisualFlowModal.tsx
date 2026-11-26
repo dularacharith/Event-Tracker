@@ -72,6 +72,7 @@ interface VisualFlowModalProps {
   activitiesCountByStatus: Record<string, number>;
   pipelineFields?: PipelineField[];
   onUpdateFields?: (fields: PipelineField[]) => void;
+  onSavePipelineFlow?: (cols: FlowColumn[], fields: PipelineField[]) => void;
   workspaceId?: string;
 }
 
@@ -86,6 +87,7 @@ export function VisualFlowModal({
   activitiesCountByStatus,
   pipelineFields: initialPipelineFields,
   onUpdateFields,
+  onSavePipelineFlow,
   workspaceId,
 }: VisualFlowModalProps) {
   const confirm = useConfirm();
@@ -191,22 +193,42 @@ export function VisualFlowModal({
   const [isSaving, setIsSaving] = useState(false);
   const [showUnsavedPrompt, setShowUnsavedPrompt] = useState(false);
 
-  // Sync workingColumns & pipelineFields ONLY when modal opens (transition to isOpen=true)
+  // Sync workingColumns & pipelineFields when modal opens or external updates occur
   const prevIsOpenRef = useRef(false);
   useEffect(() => {
-    if (isOpen && !prevIsOpenRef.current) {
-      const activeFields =
-        initialPipelineFields && initialPipelineFields.length > 0
-          ? initialPipelineFields
-          : loadPipelineFields(workspaceId);
-      setWorkingColumns(columns);
-      setSavedColumns(columns);
-      setPipelineFields(activeFields);
-      setSavedFields(activeFields);
-      setHistory([]);
-      setFuture([]);
-      setIsDirty(false);
-      setShowUnsavedPrompt(false);
+    if (isOpen) {
+      if (!prevIsOpenRef.current) {
+        const activeFields =
+          initialPipelineFields && initialPipelineFields.length > 0
+            ? initialPipelineFields
+            : loadPipelineFields(workspaceId);
+        setWorkingColumns(columns);
+        setSavedColumns(columns);
+        setPipelineFields(activeFields);
+        setSavedFields(activeFields);
+        setHistory([]);
+        setFuture([]);
+        setIsDirty(false);
+        setShowUnsavedPrompt(false);
+      } else {
+        // Modal is already open; if external modal (like ColumnEditModal) added columns, merge them into workingColumns
+        setWorkingColumns((prevWorking) => {
+          const workingIds = new Set(prevWorking.map((c) => c.id));
+          const newCols = columns.filter((c) => !workingIds.has(c.id));
+          if (newCols.length > 0) {
+            const merged = [...prevWorking, ...newCols];
+            return sortColumnsByPipeline(merged, pipelineFields);
+          }
+          return prevWorking;
+        });
+        if (initialPipelineFields && initialPipelineFields.length > 0) {
+          setPipelineFields((prevFields) => {
+            const fieldIds = new Set(prevFields.map((f) => f.id));
+            const newFields = initialPipelineFields.filter((f) => !fieldIds.has(f.id));
+            return newFields.length > 0 ? [...prevFields, ...newFields] : prevFields;
+          });
+        }
+      }
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen, columns, initialPipelineFields, workspaceId]);
@@ -231,9 +253,13 @@ export function VisualFlowModal({
     saveFlowColumns(workspaceId, sorted);
     savePipelineFields(workspaceId, pipelineFields);
 
-    // Apply to parent activities board
-    onUpdateColumns(sorted);
-    if (onUpdateFields) onUpdateFields(pipelineFields);
+    // Apply to parent activities board atomically
+    if (onSavePipelineFlow) {
+      onSavePipelineFlow(sorted, pipelineFields);
+    } else {
+      onUpdateColumns(sorted);
+      if (onUpdateFields) onUpdateFields(pipelineFields);
+    }
 
     setIsDirty(false);
     setTimeout(() => {
