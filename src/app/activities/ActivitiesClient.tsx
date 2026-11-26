@@ -1233,18 +1233,6 @@ export function ActivitiesClient({
                           <Plus className="w-3 h-3 stroke-[2.5]" />
                           <span className="hidden sm:inline">Add Stage</span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsVisualFlowModalOpen(true)}
-                          className="h-6 w-6 rounded-lg text-[10px] font-bold transition flex items-center justify-center cursor-pointer hover:shadow-2xs active:scale-95"
-                          style={{
-                            backgroundColor: hexToRgba(fieldStyles.hex, 0.12),
-                            color: fieldStyles.headerText,
-                          }}
-                          title={`Configure flow & edit fields`}
-                        >
-                          <Settings className="w-3 h-3" />
-                        </button>
                       </div>
                     </div>
 
