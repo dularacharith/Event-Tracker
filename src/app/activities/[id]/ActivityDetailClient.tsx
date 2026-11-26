@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Calendar,
@@ -34,6 +35,7 @@ import {
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast, setPendingToast } from "@/components/Toast";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
+import { ModernDateTimePicker } from "@/components/ui/ModernDateTimePicker";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { PlatformIcon } from "@/components/icons/PlatformIcons";
 
@@ -137,6 +139,11 @@ export function ActivityDetailClient({
   // UI state
   const [loading, setLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isOwner = activity.ownerId === currentUser.id;
   const isReviewer = activity.reviewerId === currentUser.id;
@@ -1120,8 +1127,13 @@ export function ActivityDetailClient({
       </div>
 
       {/* Review Decision Modal (Assigned Reviewer Only) */}
-      {verdictModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
+      {mounted && verdictModalOpen && createPortal(
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-md z-[75] flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150 select-none overflow-hidden"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setVerdictModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[85vh] animate-in zoom-in-95 duration-150 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900">
@@ -1216,12 +1228,18 @@ export function ActivityDetailClient({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Add Evidence Modal */}
-      {evidenceModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
+      {mounted && evidenceModalOpen && createPortal(
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-md z-[75] flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150 select-none overflow-hidden"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEvidenceModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[85vh] animate-in zoom-in-95 duration-150 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900">Attach Proof of Work</h3>
@@ -1328,12 +1346,18 @@ export function ActivityDetailClient({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Reschedule Modal */}
-      {rescheduleModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
+      {mounted && rescheduleModalOpen && createPortal(
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-md z-[75] flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150 select-none overflow-hidden"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setRescheduleModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[85vh] animate-in zoom-in-95 duration-150 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900">
@@ -1354,29 +1378,43 @@ export function ActivityDetailClient({
             )}
 
             <form onSubmit={handleReschedule} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    New Scheduled Time *
+                    New Scheduled Date & Time *
                   </label>
-                  <input
-                    type="datetime-local"
+                  <ModernDateTimePicker
                     value={reschedDate}
-                    onChange={(e) => setReschedDate(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
+                    onChange={(val) => {
+                      setReschedDate(val);
+                      if (val && !reschedDeadline) {
+                        try {
+                          const d = new Date(val);
+                          if (!isNaN(d.getTime())) {
+                            const nextDay = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+                            const yr = nextDay.getFullYear();
+                            const mo = String(nextDay.getMonth() + 1).padStart(2, "0");
+                            const da = String(nextDay.getDate()).padStart(2, "0");
+                            const ho = String(nextDay.getHours()).padStart(2, "0");
+                            const mi = String(nextDay.getMinutes()).padStart(2, "0");
+                            setReschedDeadline(`${yr}-${mo}-${da}T${ho}:${mi}`);
+                          }
+                        } catch {}
+                      }
+                    }}
+                    placeholder="Select new scheduled date & time..."
+                    allowNoTime={true}
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     New Review Deadline *
                   </label>
-                  <input
-                    type="datetime-local"
+                  <ModernDateTimePicker
                     value={reschedDeadline}
-                    onChange={(e) => setReschedDeadline(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
+                    onChange={setReschedDeadline}
+                    placeholder="Select review deadline..."
+                    allowNoTime={false}
                   />
                 </div>
               </div>
@@ -1429,12 +1467,18 @@ export function ActivityDetailClient({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Reassign Reviewer Modal (Admin Only) */}
-      {reassignModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
+      {mounted && reassignModalOpen && createPortal(
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-md z-[75] flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150 select-none overflow-hidden"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setReassignModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-md w-full p-6 text-slate-900 overflow-y-auto max-h-[85vh] animate-in zoom-in-95 duration-150 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-bold text-base text-slate-900">
@@ -1503,7 +1547,8 @@ export function ActivityDetailClient({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

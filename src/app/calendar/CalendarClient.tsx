@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -25,6 +26,7 @@ import {
 import { setPendingToast } from "@/components/Toast";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import { PlatformIcon } from "@/components/icons/PlatformIcons";
+import { ModernDateTimePicker } from "@/components/ui/ModernDateTimePicker";
 import {
   format,
   addMonths,
@@ -86,6 +88,11 @@ export function CalendarClient({
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Form state
   const [formCampaignId, setFormCampaignId] = useState(
@@ -96,7 +103,7 @@ export function CalendarClient({
   const [formBrief, setFormBrief] = useState("");
   const [formPlatform, setFormPlatform] = useState("twitter");
   const [formContentType, setFormContentType] = useState("post");
-  const [formScheduledTime, setFormScheduledTime] = useState("10:00");
+  const [formScheduledDateTime, setFormScheduledDateTime] = useState("");
   const [formReviewDeadlineDays, setFormReviewDeadlineDays] = useState("1");
   const [formOwnerId, setFormOwnerId] = useState(currentUser.id);
   const [formReviewerId, setFormReviewerId] = useState("");
@@ -148,6 +155,10 @@ export function CalendarClient({
 
   const openCreateModal = (day: Date) => {
     setSelectedDay(day);
+    const yr = day.getFullYear();
+    const mo = String(day.getMonth() + 1).padStart(2, "0");
+    const da = String(day.getDate()).padStart(2, "0");
+    setFormScheduledDateTime(`${yr}-${mo}-${da}T10:00`);
     setFormError(null);
     setModalOpen(true);
   };
@@ -162,10 +173,19 @@ export function CalendarClient({
         throw new Error("Please select or create a campaign first.");
       }
 
-      // Combine date and time
-      const [hours, mins] = formScheduledTime.split(":").map(Number);
-      const scheduledDate = new Date(selectedDay);
-      scheduledDate.setHours(hours || 10, mins || 0, 0, 0);
+      // Parse date & time from modern picker
+      let scheduledDate: Date;
+      if (formScheduledDateTime) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(formScheduledDateTime.trim())) {
+          // Date only (no specific time)
+          scheduledDate = new Date(`${formScheduledDateTime}T00:00:00`);
+        } else {
+          scheduledDate = new Date(formScheduledDateTime);
+        }
+      } else {
+        scheduledDate = new Date(selectedDay);
+        scheduledDate.setHours(0, 0, 0, 0);
+      }
 
       const deadlineDate = new Date(
         scheduledDate.getTime() +
@@ -291,6 +311,16 @@ export function CalendarClient({
           <span className="text-sm font-bold text-slate-800 ml-1">
             {format(currentDate, viewMode === "month" ? "MMMM yyyy" : "'Week of' MMM d, yyyy")}
           </span>
+
+          {/* New Event Button */}
+          <button
+            type="button"
+            onClick={() => openCreateModal(new Date())}
+            className="inline-flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-xs transition cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Schedule Activity</span>
+          </button>
         </div>
       </div>
 
@@ -330,7 +360,7 @@ export function CalendarClient({
                   <span
                     className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${
                       isToday
-                        ? "bg-indigo-600 text-white"
+                        ? "bg-purple-600 text-white font-black shadow-xs"
                         : "text-slate-700 group-hover:text-slate-900"
                     }`}
                   >
@@ -348,23 +378,35 @@ export function CalendarClient({
 
                 {/* Day activities list */}
                 <div className="space-y-1 my-1 overflow-y-auto flex-1 min-h-0 pr-0.5">
-                  {dayActivities.map((act) => (
-                    <Link
-                      key={act.id}
-                      href={`/activities/${act.id}`}
-                      className={`block px-1.5 py-1 rounded text-[11px] font-medium border truncate transition hover:opacity-80 ${getStatusColor(
-                        act.status
-                      )}`}
-                    >
-                      {act.recurrenceRule && act.recurrenceRule !== "none" && (
-                        <Repeat className="w-2.5 h-2.5 inline-block mr-1 opacity-80 shrink-0" />
-                      )}
-                      <span className="uppercase text-[9px] mr-1 opacity-70">
-                        {act.socialPlatform.substring(0, 2)}:
-                      </span>
-                      {act.title}
-                    </Link>
-                  ))}
+                  {dayActivities.map((act) => {
+                    const actDate = act.scheduledAt ? new Date(act.scheduledAt) : null;
+                    const isAllDayAct =
+                      !actDate ||
+                      (actDate.getHours() === 0 && actDate.getMinutes() === 0);
+
+                    return (
+                      <Link
+                        key={act.id}
+                        href={`/activities/${act.id}`}
+                        className={`block px-1.5 py-1 rounded text-[11px] font-medium border truncate transition hover:opacity-80 ${getStatusColor(
+                          act.status
+                        )}`}
+                      >
+                        {act.recurrenceRule && act.recurrenceRule !== "none" && (
+                          <Repeat className="w-2.5 h-2.5 inline-block mr-1 opacity-80 shrink-0" />
+                        )}
+                        <span className="uppercase text-[9px] mr-1 opacity-70">
+                          {act.socialPlatform.substring(0, 2)}:
+                        </span>
+                        {!isAllDayAct && actDate && (
+                          <span className="text-[9px] font-bold opacity-80 mr-1">
+                            {format(actDate, "h:mm a")}
+                          </span>
+                        )}
+                        {act.title}
+                      </Link>
+                    );
+                  })}
                 </div>
 
                 <div className="text-[10px] text-slate-400 text-right">
@@ -377,13 +419,18 @@ export function CalendarClient({
       </div>
 
       {/* Quick Activity Creation Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150">
+      {mounted && modalOpen && createPortal(
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 bg-slate-900/40 backdrop-blur-md z-[75] flex items-center justify-center p-4 sm:p-6 animate-in fade-in-0 duration-150 select-none overflow-hidden"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-lg w-full flex flex-col max-h-[82vh] text-slate-900 overflow-hidden animate-in zoom-in-95 duration-150 my-auto">
             {/* Static / Sticky Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0 bg-white">
               <div className="flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5 text-indigo-600" />
+                <CalendarIcon className="w-5 h-5 text-purple-600" />
                 <h3 className="font-bold text-base text-slate-900">
                   Schedule Activity for {format(selectedDay, "MMMM d, yyyy")}
                 </h3>
@@ -554,17 +601,28 @@ export function CalendarClient({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Scheduled Time
+                    Scheduled Date & Time
                   </label>
-                  <input
-                    type="time"
-                    value={formScheduledTime}
-                    onChange={(e) => setFormScheduledTime(e.target.value)}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  <ModernDateTimePicker
+                    value={formScheduledDateTime}
+                    onChange={(val) => {
+                      setFormScheduledDateTime(val);
+                      if (val) {
+                        try {
+                          const d = new Date(val);
+                          if (!isNaN(d.getTime())) setSelectedDay(d);
+                        } catch {}
+                      }
+                    }}
+                    placeholder="Select scheduled date & time..."
+                    allowNoTime={true}
                   />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Use clock to set time, or check &quot;No specific time&quot; for all-day
+                  </span>
                 </div>
 
                 <div>
@@ -581,6 +639,9 @@ export function CalendarClient({
                       { value: "7", label: "1 week after schedule", icon: <Clock className="w-3.5 h-3.5" /> },
                     ]}
                   />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Automatically calculated from scheduled date
+                  </span>
                 </div>
               </div>
 
@@ -622,12 +683,12 @@ export function CalendarClient({
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Recur Until Date (Last Day)
                     </label>
-                    <input
-                      type="date"
+                    <ModernDateTimePicker
                       value={formRecurrenceEndDate}
-                      onChange={(e) => setFormRecurrenceEndDate(e.target.value)}
+                      onChange={setFormRecurrenceEndDate}
+                      dateOnly={true}
+                      placeholder="Select last recurring date..."
                       disabled={formRecurrenceRule === "none"}
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white disabled:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                     <span className="text-[10px] text-slate-400 mt-0.5 block">
                       Events after this date are dropped
@@ -759,7 +820,8 @@ export function CalendarClient({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

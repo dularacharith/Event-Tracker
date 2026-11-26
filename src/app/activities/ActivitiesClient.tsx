@@ -76,6 +76,7 @@ import { HowItWorksModal } from "@/components/activities/HowItWorksModal";
 import { MoveActivityModal } from "@/components/activities/MoveActivityModal";
 import { ActivityDetailsModal } from "@/components/activities/ActivityDetailsModal";
 import { CustomDropdown } from "@/components/ui/CustomDropdown";
+import { ModernDateTimePicker } from "@/components/ui/ModernDateTimePicker";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { usePrompt } from "@/components/ui/PromptModal";
 import { useSidebar } from "@/contexts/SidebarContext";
@@ -683,8 +684,15 @@ export function ActivitiesClient({
         initialStatus: newStatus,
       };
 
-      if (newScheduledAt) body.scheduledAt = new Date(newScheduledAt).toISOString();
-      if (newReviewDeadline) body.reviewDeadline = new Date(newReviewDeadline).toISOString();
+      if (newScheduledAt) {
+        body.scheduledAt = new Date(newScheduledAt).toISOString();
+      }
+      if (newReviewDeadline) {
+        body.reviewDeadline = new Date(newReviewDeadline).toISOString();
+      } else if (newStatus === "scheduled" && newScheduledAt) {
+        // Auto-default review deadline to 24 hours after scheduledAt if omitted
+        body.reviewDeadline = new Date(new Date(newScheduledAt).getTime() + 24 * 60 * 60 * 1000).toISOString();
+      }
 
       if (newRecurrenceRule && newRecurrenceRule !== "none") {
         body.recurrenceRule = newRecurrenceRule;
@@ -2337,15 +2345,31 @@ export function ActivitiesClient({
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Scheduled Date & Time {newStatus === "scheduled" && <span className="text-rose-500">*</span>}
                     </label>
-                    <input
-                      type="datetime-local"
+                    <ModernDateTimePicker
                       value={newScheduledAt}
-                      onChange={(e) => setNewScheduledAt(e.target.value)}
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      required={newStatus === "scheduled"}
+                      onChange={(val) => {
+                        setNewScheduledAt(val);
+                        // Auto-suggest review deadline (1 day after) if currently empty
+                        if (val && !newReviewDeadline && newStatus === "scheduled") {
+                          try {
+                            const d = new Date(val);
+                            if (!isNaN(d.getTime())) {
+                              const nextDay = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+                              const yr = nextDay.getFullYear();
+                              const mo = String(nextDay.getMonth() + 1).padStart(2, "0");
+                              const da = String(nextDay.getDate()).padStart(2, "0");
+                              const ho = String(nextDay.getHours()).padStart(2, "0");
+                              const mi = String(nextDay.getMinutes()).padStart(2, "0");
+                              setNewReviewDeadline(`${yr}-${mo}-${da}T${ho}:${mi}`);
+                            }
+                          } catch {}
+                        }
+                      }}
+                      placeholder="Select scheduled date & time..."
+                      allowNoTime={true}
                     />
                     <span className="text-[10px] text-slate-400 mt-1 block">
-                      {newRecurrenceRule !== "none" ? "Start date for recurring series" : "Optional for Draft, required for Scheduled"}
+                      {newRecurrenceRule !== "none" ? "Start date for recurring series" : "Optional for Draft, time optional for Scheduled"}
                     </span>
                   </div>
 
@@ -2399,12 +2423,11 @@ export function ActivitiesClient({
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Recur Until Date (Last Day)
                       </label>
-                      <input
-                        type="date"
+                      <ModernDateTimePicker
                         value={newRecurrenceEndDate}
-                        onChange={(e) => setNewRecurrenceEndDate(e.target.value)}
-                        min={newScheduledAt ? newScheduledAt.split("T")[0] : undefined}
-                        className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        onChange={setNewRecurrenceEndDate}
+                        dateOnly={true}
+                        placeholder="Select end date..."
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block">
                         Events after this day will be dropped
@@ -2447,12 +2470,11 @@ export function ActivitiesClient({
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Review Deadline *
                     </label>
-                    <input
-                      type="datetime-local"
+                    <ModernDateTimePicker
                       value={newReviewDeadline}
-                      onChange={(e) => setNewReviewDeadline(e.target.value)}
-                      className="w-full text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      required={newStatus === "scheduled"}
+                      onChange={setNewReviewDeadline}
+                      placeholder="Select review deadline..."
+                      allowNoTime={false}
                     />
                   </div>
 
