@@ -1135,7 +1135,7 @@ export function ActivitiesClient({
           {/* Linked Kanban Columns Track with animated tab slide effect */}
           <div
             key={`track-${filterStatus || "all"}`}
-            className="flex items-stretch overflow-x-auto pb-2 pt-1 px-1 flex-1 min-h-0 animate-tab-slide-right gap-3"
+            className="flex items-stretch overflow-x-auto pb-2 pt-1 px-1 flex-1 min-h-0 animate-tab-slide-right gap-4 sm:gap-5"
           >
             {pipelineFields.map((field, fIdx) => {
               const fieldCols = visibleColumns.filter(
@@ -1980,7 +1980,7 @@ export function ActivitiesClient({
                     const showText = conn.displayMode !== "icon_only" && Boolean(conn.label);
 
                     return (
-                      <div className="hidden xl:flex flex-col items-center justify-center shrink-0 px-1 select-none self-center">
+                      <div className="hidden xl:flex flex-col items-center justify-center shrink-0 px-2 sm:px-3 select-none self-center">
                         <button
                           type="button"
                           onClick={() => {

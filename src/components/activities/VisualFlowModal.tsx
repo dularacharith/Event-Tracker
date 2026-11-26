@@ -1083,7 +1083,7 @@ export function VisualFlowModal({
               >
                 {/* Scalable & Pannable Graph Stage Board */}
                 <div
-                  className="flex items-center justify-center gap-2 select-none"
+                  className="flex items-center justify-center gap-3 sm:gap-4 select-none"
                   style={{
                     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel / 100})`,
                     transformOrigin: "center center",
@@ -1382,12 +1382,12 @@ export function VisualFlowModal({
 
                         {/* Connector Wires & Transition Pill between fields */}
                         {!isLast && nextField && (
-                          <div className="w-10 sm:w-12 h-36 relative shrink-0 flex items-center justify-center">
-                            <svg className="w-full h-full overflow-visible" viewBox="0 0 56 160">
+                          <div className="w-28 sm:w-32 h-36 relative shrink-0 flex items-center justify-center">
+                            <svg className="w-full h-full overflow-visible" viewBox="0 0 100 160">
                               {isFirst && fieldCols.length >= 2 ? (
                                 <>
                                   <path
-                                    d="M 0 50 C 28 50, 28 80, 56 80"
+                                    d="M 0 50 C 25 50, 25 80, 50 80"
                                     fill="none"
                                     stroke={styles.wireStroke}
                                     strokeWidth="2.5"
@@ -1395,7 +1395,15 @@ export function VisualFlowModal({
                                     className={isLivePreview ? "animate-pulse" : ""}
                                   />
                                   <path
-                                    d="M 0 110 C 28 110, 28 80, 56 80"
+                                    d="M 0 110 C 25 110, 25 80, 50 80"
+                                    fill="none"
+                                    stroke={styles.wireStroke}
+                                    strokeWidth="2.5"
+                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
+                                    className={isLivePreview ? "animate-pulse" : ""}
+                                  />
+                                  <path
+                                    d="M 50 80 L 100 80"
                                     fill="none"
                                     stroke={styles.wireStroke}
                                     strokeWidth="2.5"
@@ -1409,7 +1417,15 @@ export function VisualFlowModal({
                                 ).length >= 3 ? (
                                 <>
                                   <path
-                                    d="M 0 80 C 28 80, 28 30, 56 30"
+                                    d="M 0 80 L 50 80"
+                                    fill="none"
+                                    stroke={styles.wireStroke}
+                                    strokeWidth="2.5"
+                                    strokeDasharray={isLivePreview ? "6 6" : "none"}
+                                    className={isLivePreview ? "animate-pulse" : ""}
+                                  />
+                                  <path
+                                    d="M 50 80 C 75 80, 75 30, 100 30"
                                     fill="none"
                                     stroke="#a855f7"
                                     strokeWidth="2.5"
@@ -1417,7 +1433,7 @@ export function VisualFlowModal({
                                     className={isLivePreview ? "animate-pulse" : ""}
                                   />
                                   <path
-                                    d="M 0 80 C 28 80, 28 65, 56 65"
+                                    d="M 50 80 C 75 80, 75 65, 100 65"
                                     fill="none"
                                     stroke="#10b981"
                                     strokeWidth="2.5"
@@ -1425,7 +1441,7 @@ export function VisualFlowModal({
                                     className={isLivePreview ? "animate-pulse" : ""}
                                   />
                                   <path
-                                    d="M 0 80 C 28 80, 28 95, 56 95"
+                                    d="M 50 80 C 75 80, 75 95, 100 95"
                                     fill="none"
                                     stroke="#f43f5e"
                                     strokeWidth="2.5"
@@ -1433,7 +1449,7 @@ export function VisualFlowModal({
                                     className={isLivePreview ? "animate-pulse" : ""}
                                   />
                                   <path
-                                    d="M 0 80 C 28 80, 28 130, 56 130"
+                                    d="M 50 80 C 75 80, 75 130, 100 130"
                                     fill="none"
                                     stroke="#64748b"
                                     strokeWidth="2.5"
@@ -1443,7 +1459,7 @@ export function VisualFlowModal({
                                 </>
                               ) : (
                                 <path
-                                  d="M 0 80 C 28 80, 28 80, 56 80"
+                                  d="M 0 80 L 100 80"
                                   fill="none"
                                   stroke={styles.wireStroke}
                                   strokeWidth="2.5"
