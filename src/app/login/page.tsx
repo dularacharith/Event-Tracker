@@ -63,28 +63,30 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#0a0418] flex items-center justify-center p-3 sm:p-6 lg:p-10 relative overflow-hidden select-none font-sans">
-      {/* 1. HIGH-RESOLUTION COSMIC AURORA BACKDROP */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/login-cosmic-bg.jpg"
-          alt="CampaignFlow Cosmic Aurora"
-          fill
-          priority
-          quality={90}
-          className="object-cover object-center pointer-events-none select-none opacity-90 scale-100"
-        />
-        {/* Subtle Ambient Vignette & Contrast Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0418]/60 via-transparent to-[#0a0418]/40 pointer-events-none" />
-      </div>
+    <div className="min-h-screen w-full bg-[#f8f9fc] bg-gradient-to-br from-[#f8f9fc] via-[#f1f3f9] to-[#f8f6fc] flex items-center justify-center p-3 sm:p-6 lg:p-10 relative overflow-hidden select-none font-sans">
+      {/* 1. OFF-WHITE AMBIENT LIGHTING & SUBTLE ACCENT ELEMENTS */}
+      {/* Ambient Soft Pastel Glows */}
+      <div className="absolute -top-36 -right-36 w-[620px] h-[620px] bg-purple-200/40 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-36 -left-36 w-[560px] h-[560px] bg-indigo-200/35 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 left-1/4 -translate-y-1/2 w-[420px] h-[420px] bg-pink-100/30 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Floating Translucent Cosmic Glass Orbs / Ambient Accent Elements */}
-      <div className="absolute top-[16%] left-[8%] w-16 h-16 rounded-full border border-white/20 bg-gradient-to-tr from-purple-500/15 to-cyan-400/20 backdrop-blur-xs shadow-xl shadow-cyan-500/10 pointer-events-none animate-pulse duration-1000 hidden md:block" />
-      <div className="absolute bottom-[20%] left-[10%] w-20 h-20 rounded-full border border-white/25 bg-gradient-to-tr from-pink-500/15 via-purple-500/15 to-cyan-500/20 backdrop-blur-xs shadow-2xl shadow-purple-500/20 pointer-events-none hidden md:block" />
-      <div className="absolute bottom-[22%] right-[8%] w-16 h-16 rounded-full border border-white/20 bg-gradient-to-bl from-cyan-400/20 to-purple-600/15 backdrop-blur-xs shadow-xl shadow-cyan-500/15 pointer-events-none hidden md:block" />
+      {/* Subtle Dot Matrix Pattern */}
+      <div
+        className="absolute inset-0 opacity-[0.035] pointer-events-none"
+        style={{
+          backgroundImage: "radial-gradient(#475569 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+        }}
+      />
+
+      {/* Floating Translucent Frosted Glass Bubbles */}
+      <div className="absolute top-[14%] left-[7%] w-16 h-16 rounded-full border border-purple-200/60 bg-white/50 backdrop-blur-xs shadow-md shadow-purple-200/20 pointer-events-none hidden md:block animate-pulse duration-1000" />
+      <div className="absolute bottom-[18%] left-[9%] w-20 h-20 rounded-full border border-indigo-200/60 bg-white/50 backdrop-blur-xs shadow-lg shadow-indigo-200/20 pointer-events-none hidden md:block" />
+      <div className="absolute bottom-[20%] right-[7%] w-16 h-16 rounded-full border border-purple-200/60 bg-white/50 backdrop-blur-xs shadow-md shadow-purple-200/20 pointer-events-none hidden md:block" />
+      <div className="absolute top-[18%] right-[10%] w-12 h-12 rounded-full border border-pink-200/60 bg-white/50 backdrop-blur-xs shadow-sm pointer-events-none hidden md:block" />
 
       {/* 2. CENTERED SPLIT CARD (Artwork Illustration + Authentication Form) */}
-      <div className="w-full max-w-[980px] bg-white rounded-3xl sm:rounded-[32px] border border-white/20 shadow-2xl shadow-purple-950/80 overflow-hidden flex flex-col lg:flex-row relative z-10 backdrop-blur-md">
+      <div className="w-full max-w-[980px] bg-white rounded-3xl sm:rounded-[32px] border border-slate-200/90 shadow-2xl shadow-slate-300/50 shadow-purple-950/5 overflow-hidden flex flex-col lg:flex-row relative z-10">
         
         {/* LEFT HALF: Illustration Artwork Panel */}
         <div className="w-full lg:w-1/2 bg-[#2a1052] relative overflow-hidden flex items-center justify-center min-h-[300px] sm:min-h-[380px] lg:min-h-[570px]">
@@ -319,8 +321,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen w-full bg-[#0a0418] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+        <div className="min-h-screen w-full bg-[#f8f9fc] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
         </div>
       }
     >

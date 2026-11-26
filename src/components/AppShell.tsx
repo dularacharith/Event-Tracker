@@ -23,7 +23,7 @@ function MainLayout({ currentUser, userRole, children }: AppShellProps) {
   return (
     <div
       className={`h-screen h-[100dvh] flex flex-col ${
-        isLoginPage ? "bg-[#0b0416]" : "bg-slate-50"
+        isLoginPage ? "bg-[#f8f9fc]" : "bg-slate-50"
       } relative overflow-hidden`}
     >
       {/* Full-width Top Header (only on non-login workspace pages) */}
