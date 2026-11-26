@@ -31,6 +31,7 @@ const CHAIN_TRANSITIONS: Record<
     { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
   ],
   scheduled: [
+    { label: "Back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
     { label: "Start Work", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
     { label: "Submit Review", targetStatus: "awaiting_review", color: "text-purple-700 bg-purple-50 hover:bg-purple-100" },
     { label: "Complete", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
@@ -38,6 +39,7 @@ const CHAIN_TRANSITIONS: Record<
     { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
   ],
   in_progress: [
+    { label: "Back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
     { label: "Schedule", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
     { label: "Submit Review", targetStatus: "awaiting_review", color: "text-purple-700 bg-purple-50 hover:bg-purple-100" },
     { label: "Complete", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
@@ -45,20 +47,21 @@ const CHAIN_TRANSITIONS: Record<
     { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
   ],
   awaiting_review: [
+    { label: "Back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
     { label: "Pass / Complete", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
     { label: "Fail", targetStatus: "failed", color: "text-rose-700 bg-rose-50 hover:bg-rose-100" },
     { label: "In Progress", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
     { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
   ],
   failed: [
+    { label: "Back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
     { label: "Reschedule", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
     { label: "Retry Work", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
-    { label: "Back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
     { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
   ],
   passed: [
-    { label: "Reopen Work", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
     { label: "Back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
+    { label: "Reopen Work", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
     { label: "Cancel", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
   ],
   canceled: [
@@ -69,6 +72,7 @@ const CHAIN_TRANSITIONS: Record<
 
 function getTransitionHint(fromStatus: string, toStatus: string, label: string): string {
   if (toStatus === "canceled") return "Cancel this activity and archive from active production";
+  if (toStatus === "draft") return "Revert back to draft stage for editing";
   if (fromStatus === "draft" && toStatus === "scheduled") return "Assign release date and place in scheduled queue";
   if (fromStatus === "draft" && toStatus === "in_progress") return `Advance straight to ${label} execution`;
   if (toStatus === "in_progress") {
@@ -86,16 +90,16 @@ function getTransitionHint(fromStatus: string, toStatus: string, label: string):
     if (fromStatus === "in_progress") return "Postpone back to scheduled queue";
     return "Place on publishing schedule";
   }
-  if (toStatus === "draft") return "Return to draft stage for editing";
   return `Transition activity to ${label}`;
 }
 
 function isReturnTransition(fromStatus: string, toStatus: string): boolean {
+  if (toStatus === "draft" && fromStatus !== "draft") return true;
   if (fromStatus === "in_progress" && toStatus === "scheduled") return true;
-  if (fromStatus === "awaiting_review" && toStatus === "in_progress") return true;
-  if (fromStatus === "failed" && (toStatus === "draft" || toStatus === "scheduled")) return true;
-  if (fromStatus === "passed" && (toStatus === "in_progress" || toStatus === "draft")) return true;
-  if (fromStatus === "canceled" && toStatus === "draft") return true;
+  if (fromStatus === "awaiting_review" && (toStatus === "in_progress" || toStatus === "scheduled")) return true;
+  if (fromStatus === "failed" && (toStatus === "draft" || toStatus === "scheduled" || toStatus === "in_progress")) return true;
+  if (fromStatus === "passed" && (toStatus === "in_progress" || toStatus === "scheduled" || toStatus === "draft")) return true;
+  if (fromStatus === "canceled") return true;
   return false;
 }
 
@@ -123,7 +127,7 @@ export function MoveActivityModal({
     const configured = CHAIN_TRANSITIONS[activity.status] || [];
 
     if (configured.length > 0) {
-      return configured.map((t) => {
+      const mapped = configured.map((t) => {
         const col = flowColumns.find((c) => c.id === t.targetStatus);
         const styles = col ? getColumnStyles(col) : null;
         const targetLabel = col?.label || t.label;
@@ -140,6 +144,14 @@ export function MoveActivityModal({
           hint: getTransitionHint(activity.status, t.targetStatus, targetLabel),
           isReturn: isReturnTransition(activity.status, t.targetStatus),
         };
+      });
+
+      return mapped.sort((a, b) => {
+        const idxA = flowColumns.findIndex((c) => c.id === a.targetStatus);
+        const idxB = flowColumns.findIndex((c) => c.id === b.targetStatus);
+        if (idxA === -1) return 1;
+        if (idxB === -1) return -1;
+        return idxA - idxB;
       });
     }
 

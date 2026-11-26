@@ -60,6 +60,7 @@ const CHAIN_TRANSITIONS: Record<
     { label: "Cancel Activity", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
   ],
   scheduled: [
+    { label: "Move back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
     { label: "Start Work (In Progress)", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
     { label: "Submit for Review", targetStatus: "awaiting_review", color: "text-purple-700 bg-purple-50 hover:bg-purple-100" },
     { label: "Mark Completed", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
@@ -67,6 +68,7 @@ const CHAIN_TRANSITIONS: Record<
     { label: "Cancel Activity", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
   ],
   in_progress: [
+    { label: "Move back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
     { label: "Move back to Scheduled", targetStatus: "scheduled", color: "text-blue-700 bg-blue-50 hover:bg-blue-100" },
     { label: "Submit for Review", targetStatus: "awaiting_review", color: "text-purple-700 bg-purple-50 hover:bg-purple-100" },
     { label: "Mark Completed", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
@@ -74,6 +76,7 @@ const CHAIN_TRANSITIONS: Record<
     { label: "Cancel Activity", targetStatus: "canceled", color: "text-zinc-600 bg-zinc-100 hover:bg-zinc-200" },
   ],
   awaiting_review: [
+    { label: "Move back to Draft", targetStatus: "draft", color: "text-slate-700 bg-slate-100 hover:bg-slate-200" },
     { label: "Pass / Completed", targetStatus: "passed", color: "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" },
     { label: "Fail Activity", targetStatus: "failed", color: "text-rose-700 bg-rose-50 hover:bg-rose-100" },
     { label: "Return to In Progress", targetStatus: "in_progress", color: "text-amber-700 bg-amber-50 hover:bg-amber-100" },
