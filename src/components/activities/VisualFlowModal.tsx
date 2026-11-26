@@ -2834,13 +2834,13 @@ export function VisualFlowModal({
             </p>
 
             <div className="flex items-center justify-center gap-2.5 mt-6 pt-1">
-              {/* Discard Changes Button */}
+              {/* Keep Editing Button */}
               <button
                 type="button"
-                onClick={handleDiscardAndClose}
-                className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition cursor-pointer"
+                onClick={() => setShowUnsavedPrompt(false)}
+                className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer"
               >
-                Discard Changes
+                Keep Editing
               </button>
 
               {/* Save Changes Button */}
@@ -2854,13 +2854,13 @@ export function VisualFlowModal({
               </button>
             </div>
 
-            {/* Cancel / Keep Editing */}
+            {/* Discard Changes Option */}
             <button
               type="button"
-              onClick={() => setShowUnsavedPrompt(false)}
-              className="mt-3.5 text-xs text-slate-400 hover:text-slate-700 font-medium transition cursor-pointer block mx-auto"
+              onClick={handleDiscardAndClose}
+              className="mt-3.5 text-xs text-rose-500 hover:text-rose-700 font-medium transition cursor-pointer block mx-auto hover:underline"
             >
-              Cancel / Keep Editing
+              Discard Changes
             </button>
           </div>
         </div>
