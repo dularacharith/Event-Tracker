@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   X,
   Plus,
@@ -31,6 +31,9 @@ import {
   HelpCircle,
   Info,
   BookOpen,
+  Save,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import {
   FlowColumn,
@@ -90,66 +93,152 @@ export function VisualFlowModal({
   const [history, setHistory] = useState<FlowColumn[][]>([]);
   const [future, setFuture] = useState<FlowColumn[][]>([]);
 
+  // Working copy of columns (for responsive local state)
+  const [workingColumns, setWorkingColumns] = useState<FlowColumn[]>(columns);
+  // Snapshot of last confirmed saved columns
+  const [savedColumns, setSavedColumns] = useState<FlowColumn[]>(columns);
+  // Unsaved modifications flag
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showUnsavedPrompt, setShowUnsavedPrompt] = useState(false);
+
+  // Sync workingColumns when columns prop updates from outside (e.g. ColumnEditModal)
+  useEffect(() => {
+    setWorkingColumns(columns);
+    setSavedColumns(columns);
+    setIsDirty(false);
+  }, [columns]);
+
+  // Debounced Auto-Save: Automatically commit changes 1.8s after last edit
+  useEffect(() => {
+    if (!isDirty || !isOpen) return;
+
+    const autoSaveTimer = setTimeout(() => {
+      onUpdateColumns(workingColumns);
+      setSavedColumns(workingColumns);
+      setIsDirty(false);
+    }, 1800);
+
+    return () => clearTimeout(autoSaveTimer);
+  }, [workingColumns, isDirty, isOpen, onUpdateColumns]);
+
   // Selected column object
   const selectedCol = useMemo(() => {
     return (
-      columns.find((c) => c.id === selectedColId) ||
-      columns.find((c) => c.id === "in_progress") ||
-      columns[0]
+      workingColumns.find((c) => c.id === selectedColId) ||
+      workingColumns.find((c) => c.id === "in_progress") ||
+      workingColumns[0]
     );
-  }, [columns, selectedColId]);
+  }, [workingColumns, selectedColId]);
+
+  const handleSavePipeline = () => {
+    setIsSaving(true);
+    onUpdateColumns(workingColumns);
+    setSavedColumns(workingColumns);
+    setIsDirty(false);
+    setTimeout(() => {
+      setIsSaving(false);
+      toast.success("Pipeline Saved", "Workflow configuration saved and active across your workspace.");
+    }, 150);
+  };
+
+  const handleRequestClose = () => {
+    if (isDirty) {
+      setShowUnsavedPrompt(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleSaveAndClose = () => {
+    onUpdateColumns(workingColumns);
+    setSavedColumns(workingColumns);
+    setIsDirty(false);
+    setShowUnsavedPrompt(false);
+    toast.success("Pipeline Saved", "Workflow configuration saved.");
+    onClose();
+  };
+
+  const handleDiscardAndClose = () => {
+    setWorkingColumns(savedColumns);
+    onUpdateColumns(savedColumns);
+    setIsDirty(false);
+    setShowUnsavedPrompt(false);
+    toast.info("Changes Discarded", "Unsaved pipeline changes discarded.");
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (showUnsavedPrompt) {
+          setShowUnsavedPrompt(false);
+        } else if (isHowToUseOpen) {
+          setIsHowToUseOpen(false);
+        } else {
+          handleRequestClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isDirty, showUnsavedPrompt, isHowToUseOpen]);
 
   if (!isOpen) return null;
 
   const pushHistory = (newCols: FlowColumn[]) => {
-    setHistory((prev) => [...prev, columns]);
+    setHistory((prev) => [...prev, workingColumns]);
     setFuture([]);
-    onUpdateColumns(newCols);
+    setWorkingColumns(newCols);
+    setIsDirty(true);
   };
 
   const handleUndo = () => {
     if (history.length === 0) return;
     const prev = history[history.length - 1];
-    setFuture((f) => [columns, ...f]);
+    setFuture((f) => [workingColumns, ...f]);
     setHistory((h) => h.slice(0, -1));
-    onUpdateColumns(prev);
+    setWorkingColumns(prev);
+    setIsDirty(true);
     toast.info("Action undone", "Restored previous flow configuration.");
   };
 
   const handleRedo = () => {
     if (future.length === 0) return;
     const next = future[0];
-    setHistory((h) => [...h, columns]);
+    setHistory((h) => [...h, workingColumns]);
     setFuture((f) => f.slice(1));
-    onUpdateColumns(next);
+    setWorkingColumns(next);
+    setIsDirty(true);
     toast.info("Action redone", "Reapplied flow configuration.");
   };
 
   const toggleHide = (colId: string) => {
-    const updated = columns.map((c) =>
+    const updated = workingColumns.map((c) =>
       c.id === colId ? { ...c, hidden: !c.hidden } : c
     );
     pushHistory(updated);
   };
 
   const handleRename = (colId: string, newLabel: string) => {
-    const updated = columns.map((c) =>
+    const updated = workingColumns.map((c) =>
       c.id === colId ? { ...c, label: newLabel } : c
     );
     pushHistory(updated);
   };
 
   const changeTheme = (colId: string, themeId: string) => {
-    const updated = columns.map((c) =>
+    const updated = workingColumns.map((c) =>
       c.id === colId ? { ...c, colorTheme: themeId, customHex: undefined } : c
     );
     pushHistory(updated);
   };
 
   const moveEarlier = (colId: string) => {
-    const idx = columns.findIndex((c) => c.id === colId);
+    const idx = workingColumns.findIndex((c) => c.id === colId);
     if (idx <= 0) return;
-    const newCols = [...columns];
+    const newCols = [...workingColumns];
     const temp = newCols[idx - 1];
     newCols[idx - 1] = newCols[idx];
     newCols[idx] = temp;
@@ -157,9 +246,9 @@ export function VisualFlowModal({
   };
 
   const moveLater = (colId: string) => {
-    const idx = columns.findIndex((c) => c.id === colId);
-    if (idx < 0 || idx >= columns.length - 1) return;
-    const newCols = [...columns];
+    const idx = workingColumns.findIndex((c) => c.id === colId);
+    if (idx < 0 || idx >= workingColumns.length - 1) return;
+    const newCols = [...workingColumns];
     const temp = newCols[idx + 1];
     newCols[idx + 1] = newCols[idx];
     newCols[idx] = temp;
@@ -167,11 +256,11 @@ export function VisualFlowModal({
   };
 
   const deleteColumn = async (colId: string) => {
-    if (columns.length <= 1) {
+    if (workingColumns.length <= 1) {
       toast.error("Cannot remove stage", "You must have at least one stage in the flow.");
       return;
     }
-    const target = columns.find((c) => c.id === colId);
+    const target = workingColumns.find((c) => c.id === colId);
     const ok = await confirm({
       title: `Delete "${target?.label || colId}" stage?`,
       description: "This stage will be removed from your active flow pipeline.",
@@ -179,7 +268,7 @@ export function VisualFlowModal({
       cancelLabel: "Cancel",
     });
     if (ok) {
-      const remaining = columns.filter((c) => c.id !== colId);
+      const remaining = workingColumns.filter((c) => c.id !== colId);
       pushHistory(remaining);
       if (selectedColId === colId && remaining.length > 0) {
         setSelectedColId(remaining[0].id);
@@ -191,11 +280,11 @@ export function VisualFlowModal({
   // Reordering via Drag and Drop
   const handleDropOnCard = (sourceId: string, targetId: string) => {
     if (sourceId === targetId) return;
-    const sourceIdx = columns.findIndex((c) => c.id === sourceId);
-    const targetIdx = columns.findIndex((c) => c.id === targetId);
+    const sourceIdx = workingColumns.findIndex((c) => c.id === sourceId);
+    const targetIdx = workingColumns.findIndex((c) => c.id === targetId);
     if (sourceIdx === -1 || targetIdx === -1) return;
 
-    const newCols = [...columns];
+    const newCols = [...workingColumns];
     const [moved] = newCols.splice(sourceIdx, 1);
     newCols.splice(targetIdx, 0, moved);
     pushHistory(newCols);
@@ -206,10 +295,10 @@ export function VisualFlowModal({
 
   const handleDropToSection = (targetSection: "inputs" | "execution" | "outcomes") => {
     if (!draggedStageId) return;
-    const sourceIdx = columns.findIndex((c) => c.id === draggedStageId);
+    const sourceIdx = workingColumns.findIndex((c) => c.id === draggedStageId);
     if (sourceIdx === -1) return;
 
-    const newCols = [...columns];
+    const newCols = [...workingColumns];
     const [moved] = newCols.splice(sourceIdx, 1);
 
     if (targetSection === "inputs") {
@@ -224,11 +313,6 @@ export function VisualFlowModal({
     toast.success("Stage moved", `Placed "${moved.label}" into ${targetSection}`);
     setDraggedStageId(null);
     setDragOverSection(null);
-  };
-
-  const handleDeploy = () => {
-    toast.success("Pipeline Deployed", "Your interactive workflow architecture is saved and active across the workspace.");
-    onClose();
   };
 
   // Canvas Pan Hand Tool Handlers
@@ -253,13 +337,13 @@ export function VisualFlowModal({
   };
 
   // Group columns according to architecture
-  const inputColumns = columns.filter(
+  const inputColumns = workingColumns.filter(
     (c) => c.id === "draft" || c.id === "scheduled" || c.step === "1" || c.step === "2"
   );
-  const executionColumns = columns.filter(
+  const executionColumns = workingColumns.filter(
     (c) => c.id === "in_progress" || c.step === "3"
   );
-  const outcomeColumns = columns.filter(
+  const outcomeColumns = workingColumns.filter(
     (c) =>
       c.id !== "draft" &&
       c.id !== "scheduled" &&
@@ -270,15 +354,20 @@ export function VisualFlowModal({
   );
 
   // Filtered list for Stage Library search
-  const filteredLibraryColumns = columns.filter((c) =>
+  const filteredLibraryColumns = workingColumns.filter((c) =>
     c.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <>
-      {/* Modal Positioning: Touching below header border (top-16) and centered to bottom */}
-      <div className="fixed top-16 inset-x-0 bottom-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/40 backdrop-blur-xs select-none">
-        <div className="bg-white text-slate-800 rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-[1520px] h-[calc(100vh-5.5rem)] max-h-[890px] flex flex-col overflow-hidden relative font-sans">
+      {/* Centered Modal Overlay below Navbar with balanced margins */}
+      <div
+        className="fixed top-16 inset-x-0 bottom-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 bg-slate-950/40 backdrop-blur-xs select-none overflow-hidden"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleRequestClose();
+        }}
+      >
+        <div className="bg-white text-slate-800 rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-[1440px] h-[calc(100vh-8.5rem)] max-h-[760px] min-h-[460px] flex flex-col overflow-hidden relative font-sans my-auto">
           {/* Top Header Bar (Clean in-app modal header) */}
           <div className="bg-slate-50/90 border-b border-slate-200/80 px-5 py-3 flex items-center justify-between shrink-0 select-none">
             {/* Left: Icon + Title + Status */}
@@ -292,9 +381,19 @@ export function VisualFlowModal({
                   <h2 className="font-bold text-slate-900 text-sm sm:text-base tracking-tight leading-none">
                     Interactive Pipeline Flow Builder
                   </h2>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Connected / Auto-saved
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border transition ${
+                      isDirty
+                        ? "bg-amber-50 text-amber-800 border-amber-200"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isDirty ? "bg-amber-500 animate-pulse" : "bg-emerald-500 animate-pulse"
+                      }`}
+                    />
+                    {isDirty ? "Unsaved changes" : "Connected / Auto-saved"}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
@@ -328,20 +427,30 @@ export function VisualFlowModal({
                 {isLivePreview && <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping" />}
               </button>
 
-              {/* Deploy Pipeline Button */}
+              {/* Save Pipeline Button (Replaced Deploy Pipeline) */}
               <button
                 type="button"
-                onClick={handleDeploy}
-                className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-purple-500/25 transition cursor-pointer"
+                onClick={handleSavePipeline}
+                disabled={isSaving}
+                className={`px-4 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer ${
+                  isDirty
+                    ? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/25 ring-2 ring-purple-400/40"
+                    : "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/15"
+                }`}
+                title={isDirty ? "Save changes to pipeline" : "Pipeline up to date"}
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Deploy Pipeline</span>
+                {isSaving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span>Save Pipeline</span>
               </button>
 
               {/* Close Button */}
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleRequestClose}
                 className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer ml-1"
                 title="Close builder"
               >
@@ -351,12 +460,12 @@ export function VisualFlowModal({
           </div>
 
           {/* Main Studio Body: Library Sidebar | Center Canvas | Stage Inspector */}
-          <div className="flex-1 flex overflow-hidden relative">
+          <div className="flex-1 flex overflow-hidden relative min-h-0">
             {/* 1. LEFT SIDEBAR: STAGE LIBRARY */}
             {isLibraryOpen && (
-              <div className="w-60 bg-slate-50/70 border-r border-slate-200/80 flex flex-col shrink-0 select-none z-10 animate-in slide-in-from-left duration-150">
+              <div className="w-60 bg-slate-50/70 border-r border-slate-200/80 flex flex-col shrink-0 select-none z-10 animate-in slide-in-from-left duration-150 min-h-0">
                 {/* Library Header */}
-                <div className="p-3 pb-2 border-b border-slate-200/80">
+                <div className="p-3 pb-2.5 border-b border-slate-200/80 shrink-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
                       STAGE LIBRARY
@@ -520,7 +629,7 @@ export function VisualFlowModal({
                 </div>
 
                 {/* Bottom Custom Stage Button */}
-                <div className="p-3 border-t border-slate-200/80">
+                <div className="p-3 border-t border-slate-200/80 bg-slate-50/50 shrink-0">
                   <button
                     type="button"
                     onClick={onOpenCreateColumn}
@@ -535,7 +644,7 @@ export function VisualFlowModal({
 
             {/* 2. CENTER INTERACTIVE CANVAS (Fits default on board, supports Pan Hand & Zoom) */}
             <div
-              className="flex-1 flex flex-col relative overflow-hidden bg-[#f8fafc] select-none"
+              className="flex-1 flex flex-col relative overflow-hidden bg-[#f8fafc] select-none min-h-0"
               style={{
                 backgroundImage:
                   "radial-gradient(#cbd5e1 1.2px, transparent 1.2px)",
@@ -691,7 +800,7 @@ export function VisualFlowModal({
 
               {/* Canvas Viewport: Interactive Pan & Zoom, Perfectly Centered */}
               <div
-                className="flex-1 overflow-hidden relative flex items-center justify-center p-4 pt-14"
+                className="flex-1 overflow-hidden relative flex items-center justify-center p-4 pt-14 min-h-0"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -1168,9 +1277,9 @@ export function VisualFlowModal({
 
             {/* 3. RIGHT SIDEBAR: STAGE INSPECTOR */}
             {isInspectorOpen && (
-              <div className="w-60 bg-slate-50/70 border-l border-slate-200/80 flex flex-col shrink-0 select-none z-10 animate-in slide-in-from-right duration-150">
+              <div className="w-60 bg-slate-50/70 border-l border-slate-200/80 flex flex-col shrink-0 select-none z-10 animate-in slide-in-from-right duration-150 min-h-0">
                 {/* Inspector Header */}
-                <div className="p-3 border-b border-slate-200/80 flex items-center justify-between">
+                <div className="p-3 border-b border-slate-200/80 flex items-center justify-between shrink-0">
                   <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
                     STAGE INSPECTOR
                   </span>
@@ -1185,7 +1294,7 @@ export function VisualFlowModal({
                 </div>
 
                 {/* Inspector Body */}
-                <div className="p-3 flex-1 overflow-y-auto space-y-3.5">
+                <div className="p-3 flex-1 overflow-y-auto space-y-3.5 min-h-0">
                   {/* Stage Properties Section */}
                   <div>
                     <div className="flex items-center justify-between mb-2.5">
@@ -1369,7 +1478,7 @@ export function VisualFlowModal({
                 </div>
 
                 {/* Inspector Footer with Reset Flow button */}
-                <div className="p-3 border-t border-slate-200/80">
+                <div className="p-3 border-t border-slate-200/80 bg-slate-50/50 shrink-0">
                   <button
                     type="button"
                     onClick={async () => {
@@ -1510,7 +1619,7 @@ export function VisualFlowModal({
                   <span>Quality Contracts &amp; Deploying</span>
                 </h4>
                 <p className="pl-7 text-slate-600 leading-relaxed">
-                  Hover or click the <strong>?</strong> icon on the Active Execution Hub to review your Quality Contracts criteria. When satisfied with your pipeline layout, click <span className="font-bold text-purple-700">Deploy Pipeline</span> to apply all stage settings across your team&apos;s workspace in real time.
+                  Hover or click the <strong>?</strong> icon on the Active Execution Hub to review your Quality Contracts criteria. When satisfied with your pipeline layout, click <span className="font-bold text-purple-700">Save Pipeline</span> to apply all stage settings across your team&apos;s workspace in real time.
                 </p>
               </div>
             </div>
@@ -1525,6 +1634,54 @@ export function VisualFlowModal({
                 Got It, Thanks!
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* UNSAVED CHANGES PROMPT MODAL */}
+      {showUnsavedPrompt && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-sm sm:max-w-md w-full p-6 text-center animate-in zoom-in-95 duration-150 relative">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto mb-3.5 shadow-2xs">
+              <AlertTriangle className="w-6 h-6 stroke-[2.2]" />
+            </div>
+
+            <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+              Unsaved Pipeline Changes
+            </h3>
+            <p className="text-xs text-slate-500 mt-2 px-1 leading-relaxed">
+              You have unsaved changes to your pipeline architecture. Would you like to save them before closing, or discard them?
+            </p>
+
+            <div className="flex items-center justify-center gap-2.5 mt-6 pt-1">
+              {/* Discard Changes Button */}
+              <button
+                type="button"
+                onClick={handleDiscardAndClose}
+                className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition cursor-pointer"
+              >
+                Discard Changes
+              </button>
+
+              {/* Save Changes Button */}
+              <button
+                type="button"
+                onClick={handleSaveAndClose}
+                className="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm shadow-purple-500/25 transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save Changes</span>
+              </button>
+            </div>
+
+            {/* Cancel / Keep Editing */}
+            <button
+              type="button"
+              onClick={() => setShowUnsavedPrompt(false)}
+              className="mt-3.5 text-xs text-slate-400 hover:text-slate-700 font-medium transition cursor-pointer block mx-auto"
+            >
+              Cancel / Keep Editing
+            </button>
           </div>
         </div>
       )}
