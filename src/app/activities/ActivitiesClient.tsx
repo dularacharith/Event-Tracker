@@ -75,9 +75,13 @@ import {
   getColumnFieldId,
   sortColumnsByPipeline,
   getFieldIconComponent,
+  getResolvedFieldConnector,
+  getConnectorSymbolComponent,
+  getConnectorStyles,
 } from "@/lib/flowColumns";
 import { ColumnEditModal } from "@/components/activities/ColumnEditModal";
 import { VisualFlowModal } from "@/components/activities/VisualFlowModal";
+import { ConnectorEditModal } from "@/components/activities/ConnectorEditModal";
 import { HowItWorksModal } from "@/components/activities/HowItWorksModal";
 import { MoveActivityModal } from "@/components/activities/MoveActivityModal";
 import { ActivityDetailsModal } from "@/components/activities/ActivityDetailsModal";
@@ -349,6 +353,7 @@ export function ActivitiesClient({
   const [isEditingNewColumn, setIsEditingNewColumn] = useState(false);
   const [isColumnEditModalOpen, setIsColumnEditModalOpen] = useState(false);
   const [isVisualFlowModalOpen, setIsVisualFlowModalOpen] = useState(false);
+  const [editingConnectorField, setEditingConnectorField] = useState<{ field: PipelineField; fIdx: number } | null>(null);
   const [activeKebabMenuColId, setActiveKebabMenuColId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -381,6 +386,14 @@ export function ActivitiesClient({
     const sorted = sortColumnsByPipeline(flowColumns, fields);
     setFlowColumns(sorted);
     saveFlowColumns(currentUser?.id, sorted);
+  };
+
+  const handleSaveConnector = (updatedField: PipelineField) => {
+    const updated = pipelineFields.map((f) =>
+      f.id === updatedField.id ? updatedField : f
+    );
+    updateFields(updated);
+    toast.success("Connector updated", "Transition button settings updated.");
   };
 
   const handleResetFlow = () => {
@@ -1116,14 +1129,6 @@ export function ActivitiesClient({
               const isOutcome = field.id === "outcomes" || field.type === "outcome";
               const fieldStyles = getFieldStyles(field);
               const nextField = !isLast ? pipelineFields[fIdx + 1] : null;
-
-              const transitionPillText = isFirst
-                ? "Start"
-                : nextField && (nextField.id === "outcomes" || nextField.type === "outcome")
-                ? "Verify"
-                : isExecution
-                ? "Verify"
-                : "Proceed";
 
               const totalFieldTasks = fieldCols.reduce(
                 (sum, c) => sum + filteredActivities.filter((a) => a.status === c.id).length,
@@ -1936,14 +1941,39 @@ export function ActivitiesClient({
                   </div>
 
                   {/* Field-to-Field Flow Connector */}
-                  {!filterStatus && !isLast && (
-                    <div className="hidden xl:flex flex-col items-center justify-center shrink-0 px-1 select-none self-center">
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200/90 shadow-2xs text-xs font-bold text-slate-600 hover:border-purple-300 transition group">
-                        <span>{transitionPillText}</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-purple-600 group-hover:translate-x-0.5 transition-transform" />
+                  {!filterStatus && !isLast && (() => {
+                    const conn = getResolvedFieldConnector(field, fIdx, pipelineFields);
+                    if (conn.hidden) return null;
+                    const connStyles = getConnectorStyles(conn.colorTheme);
+                    const IconComp = getConnectorSymbolComponent(conn.icon);
+                    const showIcon = conn.displayMode !== "text_only" && Boolean(IconComp);
+                    const showText = conn.displayMode !== "icon_only" && Boolean(conn.label);
+
+                    return (
+                      <div className="hidden xl:flex flex-col items-center justify-center shrink-0 px-1 select-none self-center">
+                        <button
+                          type="button"
+                          onClick={() => setEditingConnectorField({ field, fIdx })}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border-2 shadow-2xs text-xs font-bold transition group cursor-pointer hover:shadow-xs hover:scale-105 active:scale-95"
+                          style={{
+                            borderColor: connStyles.border,
+                            color: connStyles.text,
+                          }}
+                          title="Click to customize connector button"
+                        >
+                          {showIcon && IconComp && (
+                            <IconComp
+                              className={`transition-transform group-hover:scale-110 ${
+                                conn.displayMode === "icon_only" ? "w-4 h-4" : "w-3.5 h-3.5"
+                              }`}
+                              style={{ color: connStyles.hex }}
+                            />
+                          )}
+                          {showText && conn.label && <span>{conn.label}</span>}
+                        </button>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </React.Fragment>
               );
             })}
@@ -2766,6 +2796,18 @@ export function ActivitiesClient({
         onDelete={handleDeleteColumn}
         onHide={handleHideColumn}
       />
+
+      {/* Transition Connector Edit Modal */}
+      {editingConnectorField && (
+        <ConnectorEditModal
+          isOpen={Boolean(editingConnectorField)}
+          onClose={() => setEditingConnectorField(null)}
+          field={editingConnectorField.field}
+          fIdx={editingConnectorField.fIdx}
+          allFields={pipelineFields}
+          onSave={handleSaveConnector}
+        />
+      )}
 
       {/* How it Works Workflow Guide Modal */}
       <HowItWorksModal

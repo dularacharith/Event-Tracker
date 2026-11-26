@@ -19,6 +19,14 @@ import {
   Compass,
   Bookmark,
   Package,
+  ArrowRight,
+  ChevronRight,
+  MoveRight,
+  Check,
+  Eye,
+  Lock,
+  RefreshCw,
+  FileCheck,
 } from "lucide-react";
 
 export interface ColorTheme {
@@ -135,6 +143,14 @@ export const COLOR_THEMES: ColorTheme[] = [
   },
 ];
 
+export interface FieldConnectorConfig {
+  label?: string;
+  colorTheme?: string;
+  icon?: string;
+  hidden?: boolean;
+  displayMode?: "both" | "icon_only" | "text_only";
+}
+
 export interface PipelineField {
   id: string;
   name: string;
@@ -143,6 +159,7 @@ export interface PipelineField {
   icon?: string;
   description?: string;
   isCustom?: boolean;
+  connector?: FieldConnectorConfig;
 }
 
 export const PRESET_FIELD_ICONS = [
@@ -179,6 +196,104 @@ export function getFieldIconComponent(iconId?: string, fieldType?: string) {
   return Sparkles;
 }
 
+export const PRESET_CONNECTOR_SYMBOLS = [
+  { id: "none", label: "None", Icon: null },
+  { id: "ArrowRight", label: "Arrow", Icon: ArrowRight },
+  { id: "ChevronRight", label: "Chevron", Icon: ChevronRight },
+  { id: "MoveRight", label: "Forward", Icon: MoveRight },
+  { id: "Play", label: "Play / Start", Icon: Play },
+  { id: "Check", label: "Check", Icon: Check },
+  { id: "CheckCircle2", label: "Success", Icon: CheckCircle2 },
+  { id: "ShieldCheck", label: "Verify Gate", Icon: ShieldCheck },
+  { id: "Zap", label: "Trigger", Icon: Zap },
+  { id: "Sparkles", label: "Sparkle", Icon: Sparkles },
+  { id: "Flame", label: "Priority", Icon: Flame },
+  { id: "Send", label: "Dispatch", Icon: Send },
+  { id: "Eye", label: "Review", Icon: Eye },
+  { id: "Target", label: "Target", Icon: Target },
+  { id: "Lock", label: "Approval Gate", Icon: Lock },
+  { id: "Clock", label: "Timer", Icon: Clock },
+  { id: "Star", label: "Star", Icon: Star },
+  { id: "Compass", label: "Route", Icon: Compass },
+  { id: "Layers", label: "Batch", Icon: Layers },
+  { id: "Flag", label: "Milestone", Icon: Flag },
+  { id: "RefreshCw", label: "Sync", Icon: RefreshCw },
+  { id: "FileCheck", label: "Sign-off", Icon: FileCheck },
+] as const;
+
+export function getConnectorSymbolComponent(symbolId?: string) {
+  if (!symbolId || symbolId === "none") return null;
+  const found = PRESET_CONNECTOR_SYMBOLS.find((item) => item.id === symbolId);
+  return found?.Icon || null;
+}
+
+export function getResolvedFieldConnector(
+  field: PipelineField,
+  fIdx: number,
+  allFields: PipelineField[]
+): Required<FieldConnectorConfig> {
+  const isFirst = fIdx === 0;
+  const isLast = fIdx === allFields.length - 1;
+  const nextField = !isLast ? allFields[fIdx + 1] : null;
+  const isExecution = field.id === "execution" || field.type === "execution";
+
+  const defaultLabel = isFirst
+    ? "Start"
+    : nextField && (nextField.id === "outcomes" || nextField.type === "outcome")
+    ? "Verify"
+    : isExecution
+    ? "Verify"
+    : "Proceed";
+
+  const defaultTheme = "purple";
+  const defaultIcon = "ArrowRight";
+
+  const c = field.connector || {};
+
+  const label = c.label !== undefined ? c.label : defaultLabel;
+  const icon = c.icon !== undefined ? c.icon : defaultIcon;
+  const colorTheme = c.colorTheme || defaultTheme;
+  const hidden = Boolean(c.hidden);
+
+  let displayMode: "both" | "icon_only" | "text_only" = c.displayMode || "both";
+  if (!c.displayMode) {
+    if (!label.trim() && icon && icon !== "none") {
+      displayMode = "icon_only";
+    } else if (icon === "none") {
+      displayMode = "text_only";
+    } else {
+      displayMode = "both";
+    }
+  }
+
+  return {
+    label,
+    colorTheme,
+    icon,
+    hidden,
+    displayMode,
+  };
+}
+
+export function getConnectorStyles(colorThemeId?: string) {
+  const theme =
+    COLOR_THEMES.find((t) => t.id === colorThemeId) ||
+    COLOR_THEMES.find((t) => t.id === "purple") ||
+    COLOR_THEMES[0];
+
+  const hex = theme.hex;
+
+  return {
+    theme,
+    hex,
+    border: hexToRgba(hex, 0.45),
+    bg: "#ffffff",
+    hoverBg: hexToRgba(hex, 0.08),
+    text: hexToDark(hex),
+    badgeBg: hexToRgba(hex, 0.12),
+  };
+}
+
 export const DEFAULT_PIPELINE_FIELDS: PipelineField[] = [
   {
     id: "inputs",
@@ -186,6 +301,13 @@ export const DEFAULT_PIPELINE_FIELDS: PipelineField[] = [
     type: "input",
     colorTheme: "sky",
     icon: "FileText",
+    connector: {
+      label: "Start",
+      colorTheme: "purple",
+      icon: "ArrowRight",
+      hidden: false,
+      displayMode: "both",
+    },
     description: "Intake, drafting, and queue staging.",
   },
   {
@@ -194,6 +316,13 @@ export const DEFAULT_PIPELINE_FIELDS: PipelineField[] = [
     type: "execution",
     colorTheme: "amber",
     icon: "Play",
+    connector: {
+      label: "Verify",
+      colorTheme: "purple",
+      icon: "ArrowRight",
+      hidden: false,
+      displayMode: "both",
+    },
     description: "Live content creation, authoring, and core production engine.",
   },
   {

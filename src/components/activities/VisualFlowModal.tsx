@@ -53,7 +53,11 @@ import {
   sortColumnsByPipeline,
   PRESET_FIELD_ICONS,
   getFieldIconComponent,
+  getResolvedFieldConnector,
+  getConnectorSymbolComponent,
+  getConnectorStyles,
 } from "@/lib/flowColumns";
+import { ConnectorEditModal } from "@/components/activities/ConnectorEditModal";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/Toast";
 
@@ -113,6 +117,7 @@ export function VisualFlowModal({
   const [editFieldColor, setEditFieldColor] = useState("purple");
   const [editFieldIcon, setEditFieldIcon] = useState("FileText");
   const [isEditFieldModalOpen, setIsEditFieldModalOpen] = useState(false);
+  const [editingConnector, setEditingConnector] = useState<{ field: PipelineField; fIdx: number } | null>(null);
 
   // Selected stage for the Stage Inspector
   const [selectedColId, setSelectedColId] = useState<string>("in_progress");
@@ -509,6 +514,18 @@ export function VisualFlowModal({
     pushHistory(workingColumns, updated);
     setIsEditFieldModalOpen(false);
     toast.success("Field updated", `Updated "${editFieldName.trim()}"`);
+  };
+
+  const handleSaveConnector = (updatedField: PipelineField) => {
+    const updated = pipelineFields.map((f) =>
+      f.id === updatedField.id ? updatedField : f
+    );
+    setPipelineFields(updated);
+    pushHistory(workingColumns, updated);
+    toast.success(
+      "Button updated",
+      `Saved connector button settings.`
+    );
   };
 
   const handleDeleteField = async (fieldId: string) => {
@@ -1073,14 +1090,6 @@ export function VisualFlowModal({
                     const isDragOver = dragOverSection === field.id;
                     const nextField = !isLast ? pipelineFields[fIdx + 1] : null;
 
-                    const transitionPillText = isFirst
-                      ? "Start"
-                      : nextField && (nextField.id === "outcomes" || nextField.type === "outcome")
-                      ? "Verify"
-                      : isExecution
-                      ? "Verify"
-                      : "Process";
-
                     return (
                       <React.Fragment key={field.id}>
                         {/* Container for this Field */}
@@ -1418,9 +1427,47 @@ export function VisualFlowModal({
                               )}
                             </svg>
 
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-purple-300 text-purple-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs z-10 select-none whitespace-nowrap">
-                              {transitionPillText}
-                            </div>
+                            {(() => {
+                              const conn = getResolvedFieldConnector(field, fIdx, pipelineFields);
+                              const connStyles = getConnectorStyles(conn.colorTheme);
+                              const IconComp = getConnectorSymbolComponent(conn.icon);
+                              const showIcon = conn.displayMode !== "text_only" && Boolean(IconComp);
+                              const showText = conn.displayMode !== "icon_only" && Boolean(conn.label);
+
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingConnector({ field, fIdx })}
+                                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs z-10 select-none whitespace-nowrap transition cursor-pointer flex items-center gap-1 hover:scale-105 active:scale-95 group ${
+                                    conn.hidden
+                                      ? "opacity-50 hover:opacity-100 border-dashed bg-slate-100/90 text-slate-500"
+                                      : "hover:shadow-sm"
+                                  }`}
+                                  style={{
+                                    borderColor: conn.hidden ? undefined : connStyles.border,
+                                    color: conn.hidden ? undefined : connStyles.text,
+                                  }}
+                                  title="Click to customize transition button"
+                                >
+                                  {conn.hidden ? (
+                                    <>
+                                      <EyeOff className="w-3 h-3 text-slate-400" />
+                                      <span>Hidden</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      {showIcon && IconComp && (
+                                        <IconComp
+                                          className={conn.displayMode === "icon_only" ? "w-3.5 h-3.5" : "w-3 h-3"}
+                                          style={{ color: connStyles.hex }}
+                                        />
+                                      )}
+                                      {showText && conn.label && <span>{conn.label}</span>}
+                                    </>
+                                  )}
+                                </button>
+                              );
+                            })()}
                           </div>
                         )}
                       </React.Fragment>
@@ -2117,6 +2164,23 @@ export function VisualFlowModal({
                 </div>
               </div>
 
+              {editingField && pipelineFields.findIndex((f) => f.id === editingField.id) < pipelineFields.length - 1 && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const fIdx = pipelineFields.findIndex((f) => f.id === editingField.id);
+                      setIsEditFieldModalOpen(false);
+                      setEditingConnector({ field: editingField, fIdx });
+                    }}
+                    className="w-full py-2 px-3 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Customize Outgoing Transition Button</span>
+                  </button>
+                </div>
+              )}
+
               {editingField.isCustom && (
                 <div className="pt-2">
                   <button
@@ -2203,6 +2267,18 @@ export function VisualFlowModal({
             </button>
           </div>
         </div>
+      )}
+
+      {/* CONNECTOR EDIT MODAL */}
+      {editingConnector && (
+        <ConnectorEditModal
+          isOpen={Boolean(editingConnector)}
+          onClose={() => setEditingConnector(null)}
+          field={editingConnector.field}
+          fIdx={editingConnector.fIdx}
+          allFields={pipelineFields}
+          onSave={handleSaveConnector}
+        />
       )}
     </>,
     document.body
