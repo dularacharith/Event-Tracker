@@ -143,6 +143,7 @@ export function VisualFlowModal({
   const [searchQuery, setSearchQuery] = useState("");
   const canvasRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [wires, setWires] = useState<WirePath[]>([]);
   const [activeTool, setActiveTool] = useState<"pan" | "select">("select");
   const [zoomLevel, setZoomLevel] = useState<number>(75);
@@ -284,9 +285,31 @@ export function VisualFlowModal({
   const updateWires = useCallback(() => {
     if (!boardRef.current) return;
     const boardEl = boardRef.current;
-    const boardRect = boardEl.getBoundingClientRect();
-    const scale = zoomLevel / 100;
-    if (!scale || scale <= 0 || boardRect.width === 0) return;
+    const svgEl = svgRef.current;
+    const scale = zoomLevel / 100 || 1;
+
+    // Use SVG Current Transformation Matrix inverse for pixel-perfect coordinate mapping across zoom & pan
+    let getSvgPoint = (clientX: number, clientY: number): { x: number; y: number } => {
+      const boardRect = boardEl.getBoundingClientRect();
+      return {
+        x: (clientX - boardRect.left) / scale,
+        y: (clientY - boardRect.top) / scale,
+      };
+    };
+
+    if (svgEl && typeof svgEl.getScreenCTM === "function" && typeof svgEl.createSVGPoint === "function") {
+      const ctm = svgEl.getScreenCTM();
+      if (ctm) {
+        const inv = ctm.inverse();
+        getSvgPoint = (clientX: number, clientY: number) => {
+          const pt = svgEl.createSVGPoint();
+          pt.x = clientX;
+          pt.y = clientY;
+          const p = pt.matrixTransform(inv);
+          return { x: p.x, y: p.y };
+        };
+      }
+    }
 
     const newWires: WirePath[] = [];
 
@@ -298,9 +321,11 @@ export function VisualFlowModal({
       const pillEl = boardEl.querySelector(`[data-connector-btn="${fIdx}"]`) as HTMLElement | null;
       if (!pillEl) return;
       const pillRect = pillEl.getBoundingClientRect();
-      const pillLeftX = (pillRect.left - boardRect.left) / scale;
-      const pillRightX = (pillRect.right - boardRect.left) / scale;
-      const pillCenterY = (pillRect.top + pillRect.height / 2 - boardRect.top) / scale;
+      const pillLeft = getSvgPoint(pillRect.left, pillRect.top + pillRect.height / 2);
+      const pillRight = getSvgPoint(pillRect.right, pillRect.top + pillRect.height / 2);
+      const pillLeftX = pillLeft.x;
+      const pillRightX = pillRight.x;
+      const pillCenterY = pillLeft.y;
 
       // Visible source stages in Field A (canvas only, not hidden)
       const colsA = workingColumns.filter(
@@ -317,8 +342,9 @@ export function VisualFlowModal({
         const portEl = boardEl.querySelector(`[data-port-output="${col.id}"]`) as HTMLElement | null;
         if (!portEl) return;
         const portRect = portEl.getBoundingClientRect();
-        const startX = (portRect.left + portRect.width / 2 - boardRect.left) / scale;
-        const startY = (portRect.top + portRect.height / 2 - boardRect.top) / scale;
+        const startPt = getSvgPoint(portRect.left + portRect.width / 2, portRect.top + portRect.height / 2);
+        const startX = startPt.x;
+        const startY = startPt.y;
 
         const dx = Math.max(24, pillLeftX - startX);
         const cp1X = startX + dx * 0.5;
@@ -343,8 +369,9 @@ export function VisualFlowModal({
         const portEl = boardEl.querySelector(`[data-port-input="${col.id}"]`) as HTMLElement | null;
         if (!portEl) return;
         const portRect = portEl.getBoundingClientRect();
-        const endX = (portRect.left + portRect.width / 2 - boardRect.left) / scale;
-        const endY = (portRect.top + portRect.height / 2 - boardRect.top) / scale;
+        const endPt = getSvgPoint(portRect.left + portRect.width / 2, portRect.top + portRect.height / 2);
+        const endX = endPt.x;
+        const endY = endPt.y;
 
         const dx = Math.max(24, endX - pillRightX);
         const cp1X = pillRightX + dx * 0.5;
@@ -370,12 +397,17 @@ export function VisualFlowModal({
 
   useLayoutEffect(() => {
     updateWires();
-    const t1 = setTimeout(updateWires, 20);
-    const t2 = setTimeout(updateWires, 100);
+    const t1 = setTimeout(updateWires, 10);
+    const t2 = setTimeout(updateWires, 50);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
+  }, [updateWires]);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateWires);
+    return () => window.removeEventListener("resize", updateWires);
   }, [updateWires]);
 
   useEffect(() => {
@@ -1372,11 +1404,12 @@ export function VisualFlowModal({
                   style={{
                     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel / 100})`,
                     transformOrigin: "center center",
-                    transition: isPanning ? "none" : "transform 0.15s ease-out",
+                    transition: "none",
                   }}
                 >
                   {/* Dynamic Multi-Stage Connection Wires */}
                   <svg
+                    ref={svgRef}
                     className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-0"
                     style={{ minWidth: "100%", minHeight: "100%" }}
                   >
@@ -1573,8 +1606,8 @@ export function VisualFlowModal({
                                     />
                                   )}
 
-                                  {/* Right Output Port Dot on Card (if not last field) */}
-                                  {!isLast && !col.hidden && (
+                                  {/* Right Output Port Dot on Card (if not last field and not first field) */}
+                                  {!isLast && !isFirst && !col.hidden && (
                                     <div
                                       data-port-output={col.id}
                                       className="w-2.5 h-2.5 rounded-full border-2 border-white shadow-xs absolute -right-1.25 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
@@ -1596,10 +1629,24 @@ export function VisualFlowModal({
 
                                   <div className={`flex items-center gap-2 min-w-0 ${draggedStageId ? "pointer-events-none" : ""}`}>
                                     <GripVertical className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 shrink-0 cursor-grab" />
-                                    <span
-                                      className={`w-2 h-2 rounded-full shrink-0 ${colStyles.dotClass}`}
-                                      style={colStyles.dotStyle}
-                                    />
+                                    {isFirst ? (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onOpenEditColumn(col);
+                                        }}
+                                        className="p-1 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer text-slate-400 shrink-0"
+                                        title="Edit stage settings"
+                                      >
+                                        <Settings className="w-3.5 h-3.5" />
+                                      </button>
+                                    ) : (
+                                      <span
+                                        className={`w-2 h-2 rounded-full shrink-0 ${colStyles.dotClass}`}
+                                        style={colStyles.dotStyle}
+                                      />
+                                    )}
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-1.5">
                                         <span className={`font-bold text-xs uppercase tracking-wider block truncate ${col.hidden ? "text-slate-500" : "text-slate-900"}`}>
@@ -1643,17 +1690,31 @@ export function VisualFlowModal({
                                     >
                                       <ArrowLeft className="w-3.5 h-3.5" />
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onOpenEditColumn(col);
-                                      }}
-                                      className="p-1 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
-                                      title="Edit stage settings"
-                                    >
-                                      <Settings className="w-3.5 h-3.5" />
-                                    </button>
+                                    {isFirst ? (
+                                      <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                                        <span
+                                          data-port-output={col.id}
+                                          className={`w-2.5 h-2.5 rounded-full shrink-0 border border-white shadow-2xs ${colStyles.dotClass}`}
+                                          style={{
+                                            ...colStyles.dotStyle,
+                                            backgroundColor: colStyles.dotHex || colStyles.accentHex,
+                                          }}
+                                          title="Connection plug"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onOpenEditColumn(col);
+                                        }}
+                                        className="p-1 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer text-slate-400"
+                                        title="Edit stage settings"
+                                      >
+                                        <Settings className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               );
