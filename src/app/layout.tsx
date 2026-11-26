@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { getCurrentAuth } from "@/lib/session";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-plus-jakarta",
+  weight: ["400", "500", "600", "700", "800"],
+});
 import { AppShell } from "@/components/AppShell";
 import { DevAccountSwitcher } from "@/components/DevAccountSwitcher";
 import { ToastProvider } from "@/components/Toast";
@@ -31,8 +39,8 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
-      <body className="bg-slate-50 text-slate-900 antialiased h-screen h-[100dvh] overflow-hidden flex flex-col">
+    <html lang="en" className={plusJakartaSans.variable}>
+      <body className={`${plusJakartaSans.className} font-sans bg-slate-50 text-slate-900 antialiased h-screen h-[100dvh] overflow-hidden flex flex-col`}>
         <ToastProvider>
           <ConfirmProvider>
             <PromptProvider>
