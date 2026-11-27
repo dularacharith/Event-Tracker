@@ -693,7 +693,7 @@ export function CampaignsClient({
         }
         confirmLabel="Delete"
         cancelLabel="Cancel"
-        confirmVariant="purple"
+        confirmVariant="rose"
         loading={deleteLoading}
       />
 

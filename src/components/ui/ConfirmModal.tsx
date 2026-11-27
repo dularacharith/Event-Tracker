@@ -47,6 +47,13 @@ export function ConfirmModal({
 
   if (!isOpen) return null;
 
+  const isDelete =
+    confirmVariant === "rose" ||
+    confirmLabel.toLowerCase().includes("delete") ||
+    confirmLabel.toLowerCase().includes("remove") ||
+    title.toLowerCase().includes("delete") ||
+    title.toLowerCase().includes("remove");
+
   return (
     <div
       className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
@@ -56,70 +63,97 @@ export function ConfirmModal({
         }
       }}
     >
-      <div className="bg-white rounded-3xl shadow-2xl shadow-slate-950/15 border border-slate-100 max-w-sm sm:max-w-md w-full p-6 sm:p-7 text-center relative animate-in zoom-in-95 duration-150 select-none overflow-hidden">
-        {/* Close Button Top Right */}
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={loading}
-          className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        {/* Modern Icon Badge Top Center */}
-        <div
-          className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-2xs border ${
-            confirmVariant === "rose"
-              ? "bg-rose-50 border-rose-100 text-rose-600"
-              : "bg-purple-50 border-purple-100 text-purple-600"
-          }`}
-        >
-          {confirmVariant === "rose" ? (
-            <Trash2 className="w-5 h-5 stroke-[2.2]" />
-          ) : (
-            <AlertCircle className="w-5 h-5 stroke-[2.2]" />
-          )}
-        </div>
-
-        {/* Title Question */}
-        <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight px-2 leading-snug">
-          {title}
-        </h3>
-
-        {/* Optional Description */}
-        {description && (
-          <p className="text-xs text-slate-500 mt-2 px-2 leading-relaxed">
-            {description}
-          </p>
+      <div className="relative w-full max-w-sm sm:max-w-md filter drop-shadow-2xl animate-in zoom-in-95 duration-150 select-none">
+        {/* Floating Top Icon */}
+        {isDelete ? (
+          /* Custom Red Outline Trash Can matching reference design */
+          <svg
+            className="absolute -top-[18px] left-1/2 -translate-x-1/2 w-[52px] h-[52px] text-[#ff3b3b] z-10 pointer-events-none drop-shadow-xs"
+            viewBox="0 0 48 48"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {/* Handle */}
+            <path d="M19 12 C 19 10, 20 8, 22 8 L 26 8 C 28 8, 29 10, 29 12" />
+            {/* Lid with slight overhang */}
+            <path d="M13 14 L 35 14" />
+            {/* Can Body */}
+            <path d="M15 14 L 16 36 C 16 38, 17 39, 19 39 L 29 39 C 31 39, 32 38, 32 36 L 33 14" />
+            {/* 3 Vertical Slats */}
+            <line x1="20" y1="20" x2="20" y2="33" />
+            <line x1="24" y1="20" x2="24" y2="33" />
+            <line x1="28" y1="20" x2="28" y2="33" />
+          </svg>
+        ) : (
+          <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 w-11 h-11 rounded-full bg-purple-100 border-2 border-purple-200 text-purple-600 flex items-center justify-center shadow-xs z-10 pointer-events-none">
+            <AlertCircle className="w-6 h-6 stroke-[2.2]" />
+          </div>
         )}
 
-        {/* Action Buttons Centered Side-by-Side */}
-        <div className="flex items-center justify-center gap-3 mt-6 pt-1">
-          {/* Cancel Button */}
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="flex-1 max-w-[130px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
-          >
-            {cancelLabel}
-          </button>
+        {/* Top Header Row with Smooth Concave Scoop Notch */}
+        <div className="flex h-11 shrink-0 select-none">
+          <div className="flex-1 bg-white rounded-tl-[24px]" />
+          <svg className="w-[116px] h-11 shrink-0 text-white" viewBox="0 0 116 44" preserveAspectRatio="none">
+            <path d="M 0 0 C 18 0, 30 40, 58 40 C 86 40, 98 0, 116 0 L 116 44 L 0 44 Z" fill="white" />
+          </svg>
+          <div className="flex-1 bg-white rounded-tr-[24px] relative">
+            {/* Close Button Top Right */}
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="absolute right-4 top-3 text-slate-300 hover:text-slate-600 p-1.5 rounded-full transition cursor-pointer"
+              title="Close dialog"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
 
-          {/* Confirm Button */}
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={loading}
-            className={`flex-1 max-w-[140px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-md transition cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98] ${
-              confirmVariant === "rose"
-                ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20 active:bg-rose-800"
-                : "bg-purple-600 hover:bg-purple-700 shadow-purple-500/25 active:bg-purple-800"
-            } disabled:opacity-50`}
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
-            <span>{confirmLabel}</span>
-          </button>
+        {/* Modal Body */}
+        <div className="bg-white rounded-b-[24px] px-6 sm:px-8 pb-7 pt-2 -mt-[1px] text-center">
+          {/* Title */}
+          <h3 className="font-bold text-lg sm:text-xl text-slate-800 tracking-tight px-2 leading-snug">
+            {title}
+          </h3>
+
+          {/* Description */}
+          {description && (
+            <p className="text-sm text-slate-500 font-normal mt-2.5 px-2 leading-relaxed max-w-xs sm:max-w-sm mx-auto">
+              {description}
+            </p>
+          )}
+
+          {/* Action Buttons Right-Aligned matching reference image */}
+          <div className="flex items-center justify-end gap-3 sm:gap-4 mt-7 pt-1">
+            {/* Cancel Button (Clean text link style) */}
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="text-slate-600 hover:text-slate-900 font-semibold text-sm px-4 py-2.5 transition cursor-pointer"
+            >
+              {cancelLabel}
+            </button>
+
+            {/* Confirm / Delete Button */}
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={loading}
+              className={`px-6 sm:px-7 py-2.5 rounded-xl text-sm font-semibold text-white shadow-xs hover:shadow-md transition cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50 ${
+                isDelete
+                  ? "bg-[#ff3b3b] hover:bg-[#eb2d2d] active:bg-[#d62424]"
+                  : "bg-purple-600 hover:bg-purple-700 active:bg-purple-800"
+              }`}
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+              <span>{confirmLabel}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
