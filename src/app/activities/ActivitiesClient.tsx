@@ -1766,37 +1766,51 @@ export function ActivitiesClient({
                                         <span>{act.channelName}</span>
                                       </span>
                                     )}
-                                    {act.campaignName && (
-                                      <div className="relative group/camp inline-flex">
-                                        <span
-                                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border max-w-[140px] truncate flex items-center gap-1.5 transition-all duration-150 hover:brightness-95 hover:shadow-2xs cursor-default select-none ${campStyle.badgeClass}`}
-                                          style={campStyle.style}
-                                        >
+                                    {act.campaignName && (() => {
+                                      const isRightAligned = !act.channelName;
+                                      return (
+                                        <div className="relative group/camp inline-flex">
                                           <span
-                                            className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${campStyle.dotClass}`}
-                                            style={campStyle.dotStyle}
-                                          />
-                                          <span className="truncate">{act.campaignName}</span>
-                                        </span>
+                                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border max-w-[140px] truncate flex items-center gap-1.5 transition-all duration-150 hover:brightness-95 hover:shadow-2xs cursor-default select-none ${campStyle.badgeClass}`}
+                                            style={campStyle.style}
+                                          >
+                                            <span
+                                              className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${campStyle.dotClass}`}
+                                              style={campStyle.dotStyle}
+                                            />
+                                            <span className="truncate">{act.campaignName}</span>
+                                          </span>
 
-                                        {/* Modern Hover Tooltip */}
-                                        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 opacity-0 invisible scale-95 group-hover/camp:opacity-100 group-hover/camp:visible group-hover/camp:scale-100 transition-all duration-150 ease-out origin-bottom">
-                                          <div className="bg-slate-900/95 text-white backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-xl border border-slate-700/80 flex items-center gap-2 whitespace-nowrap text-[11px] leading-tight">
-                                            <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Campaign</span>
-                                            <span className="w-px h-3 bg-slate-700/80" />
-                                            <span className="font-semibold text-slate-100">{act.campaignName}</span>
-                                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800/90 border border-slate-700/80 text-slate-200">
-                                              <span
-                                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${campStyle.dotClass}`}
-                                                style={campStyle.dotStyle}
-                                              />
-                                              <span>{campStyle.statusLabel}</span>
-                                            </span>
+                                          {/* Modern Hover Tooltip */}
+                                          <div
+                                            className={`pointer-events-none absolute top-full mt-1.5 z-50 opacity-0 invisible scale-95 group-hover/camp:opacity-100 group-hover/camp:visible group-hover/camp:scale-100 transition-all duration-150 ease-out origin-top ${
+                                              isRightAligned ? "right-0" : "left-0"
+                                            }`}
+                                          >
+                                            <div
+                                              className={`w-2 h-2 bg-slate-900 border-l border-t border-slate-700/80 transform rotate-45 absolute -top-1 ${
+                                                isRightAligned ? "right-4" : "left-4"
+                                              }`}
+                                            />
+                                            <div className="bg-slate-900/95 text-white backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-xl border border-slate-700/80 min-w-[130px] max-w-[190px] flex flex-col gap-0.5 text-left whitespace-normal">
+                                              <div className="flex items-center justify-between gap-2">
+                                                <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Campaign</span>
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-300 shrink-0">
+                                                  <span
+                                                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${campStyle.dotClass}`}
+                                                    style={campStyle.dotStyle}
+                                                  />
+                                                  <span>{campStyle.statusLabel}</span>
+                                                </span>
+                                              </div>
+                                              <div className="text-xs font-semibold text-slate-100 truncate">
+                                                {act.campaignName}
+                                              </div>
+                                            </div>
                                           </div>
-                                          <div className="w-2 h-2 bg-slate-900 border-r border-b border-slate-700/80 transform rotate-45 mx-auto -mt-1" />
                                         </div>
-                                      </div>
-                                    )}
+                                      );
+                                    })()}
                                     {act.recurrenceRule && act.recurrenceRule !== "none" && (
                                       <span
                                         className="text-[10px] font-semibold px-2 py-0.5 rounded-md border bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1"
@@ -2182,17 +2196,20 @@ export function ActivitiesClient({
 
                                     {/* Modern Hover Tooltip */}
                                     <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 opacity-0 invisible scale-95 group-hover/camp:opacity-100 group-hover/camp:visible group-hover/camp:scale-100 transition-all duration-150 ease-out origin-bottom">
-                                      <div className="bg-slate-900/95 text-white backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-xl border border-slate-700/80 flex items-center gap-2 whitespace-nowrap text-[11px] leading-tight">
-                                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Campaign</span>
-                                        <span className="w-px h-3 bg-slate-700/80" />
-                                        <span className="font-semibold text-slate-100">{act.campaignName}</span>
-                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800/90 border border-slate-700/80 text-slate-200">
-                                          <span
-                                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${cStyle.dotClass}`}
-                                            style={cStyle.dotStyle}
-                                          />
-                                          <span>{cStyle.statusLabel}</span>
-                                        </span>
+                                      <div className="bg-slate-900/95 text-white backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-xl border border-slate-700/80 min-w-[130px] max-w-[200px] flex flex-col gap-0.5 text-left whitespace-normal">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Campaign</span>
+                                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-300 shrink-0">
+                                            <span
+                                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${cStyle.dotClass}`}
+                                              style={cStyle.dotStyle}
+                                            />
+                                            <span>{cStyle.statusLabel}</span>
+                                          </span>
+                                        </div>
+                                        <div className="text-xs font-semibold text-slate-100 truncate">
+                                          {act.campaignName}
+                                        </div>
                                       </div>
                                       <div className="w-2 h-2 bg-slate-900 border-r border-b border-slate-700/80 transform rotate-45 mx-auto -mt-1" />
                                     </div>
