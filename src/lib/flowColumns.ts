@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import {
   FileText,
   Inbox,
@@ -645,64 +646,155 @@ export function getFieldStyles(field: PipelineField) {
   };
 }
 
-export function getCampaignTagStyle(status?: string | null, customColor?: string | null) {
-  if (customColor) {
-    return {
-      badgeClass: "bg-white text-slate-800 border-slate-300",
-      dotClass: "",
-      dotStyle: { backgroundColor: customColor },
-      style: { borderColor: customColor },
-    };
-  }
+export interface CampaignTagStyle {
+  badgeClass: string;
+  dotClass: string;
+  style?: CSSProperties;
+  dotStyle: CSSProperties;
+  statusLabel: string;
+  dotHex: string;
+}
 
+const CAMPAIGN_COLOR_MAP: Record<string, { badgeClass: string; hex: string }> = {
+  emerald: {
+    badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    hex: "#10b981",
+  },
+  green: {
+    badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    hex: "#10b981",
+  },
+  purple: {
+    badgeClass: "bg-purple-50 text-purple-800 border-purple-200",
+    hex: "#9333ea",
+  },
+  indigo: {
+    badgeClass: "bg-indigo-50 text-indigo-800 border-indigo-200",
+    hex: "#6366f1",
+  },
+  blue: {
+    badgeClass: "bg-blue-50 text-blue-800 border-blue-200",
+    hex: "#3b82f6",
+  },
+  amber: {
+    badgeClass: "bg-amber-50 text-amber-800 border-amber-200",
+    hex: "#f59e0b",
+  },
+  yellow: {
+    badgeClass: "bg-amber-50 text-amber-800 border-amber-200",
+    hex: "#f59e0b",
+  },
+  rose: {
+    badgeClass: "bg-rose-50 text-rose-800 border-rose-200",
+    hex: "#f43f5e",
+  },
+  red: {
+    badgeClass: "bg-rose-50 text-rose-800 border-rose-200",
+    hex: "#f43f5e",
+  },
+  pink: {
+    badgeClass: "bg-pink-50 text-pink-800 border-pink-200",
+    hex: "#ec4899",
+  },
+  cyan: {
+    badgeClass: "bg-cyan-50 text-cyan-800 border-cyan-200",
+    hex: "#06b6d4",
+  },
+  teal: {
+    badgeClass: "bg-teal-50 text-teal-800 border-teal-200",
+    hex: "#14b8a6",
+  },
+  orange: {
+    badgeClass: "bg-orange-50 text-orange-800 border-orange-200",
+    hex: "#f97316",
+  },
+  violet: {
+    badgeClass: "bg-violet-50 text-violet-800 border-violet-200",
+    hex: "#8b5cf6",
+  },
+  slate: {
+    badgeClass: "bg-slate-100 text-slate-800 border-slate-200",
+    hex: "#64748b",
+  },
+};
+
+export function getCampaignTagStyle(
+  status?: string | null,
+  campaignColor?: string | null
+): CampaignTagStyle {
+  // 1. Status Circle (Dot) - indicates campaign status (active = green, hold = yellow/amber, etc.)
   const s = (status || "").toLowerCase().replace(/_/g, " ").trim();
+  let dotClass = "bg-emerald-500";
+  let dotHex = "#10b981";
+  let statusLabel = "Active";
+
   switch (s) {
     case "hold":
     case "on hold":
     case "paused":
-      return {
-        badgeClass: "bg-amber-50 text-amber-800 border-amber-200",
-        dotClass: "bg-amber-500",
-        style: undefined,
-        dotStyle: undefined,
-      };
+      dotClass = "bg-amber-500";
+      dotHex = "#f59e0b";
+      statusLabel = "On Hold";
+      break;
     case "completed":
-      return {
-        badgeClass: "bg-blue-50 text-blue-800 border-blue-200",
-        dotClass: "bg-blue-500",
-        style: undefined,
-        dotStyle: undefined,
-      };
+      dotClass = "bg-blue-500";
+      dotHex = "#3b82f6";
+      statusLabel = "Completed";
+      break;
     case "canceled":
     case "cancelled":
-      return {
-        badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
-        dotClass: "bg-slate-400",
-        style: undefined,
-        dotStyle: undefined,
-      };
+      dotClass = "bg-slate-400";
+      dotHex = "#94a3b8";
+      statusLabel = "Canceled";
+      break;
     case "failed":
-      return {
-        badgeClass: "bg-rose-50 text-rose-800 border-rose-200",
-        dotClass: "bg-rose-500",
-        style: undefined,
-        dotStyle: undefined,
-      };
+      dotClass = "bg-rose-500";
+      dotHex = "#f43f5e";
+      statusLabel = "Failed";
+      break;
     case "archived":
-      return {
-        badgeClass: "bg-purple-50 text-purple-800 border-purple-200",
-        dotClass: "bg-purple-500",
-        style: undefined,
-        dotStyle: undefined,
-      };
+      dotClass = "bg-purple-500";
+      dotHex = "#a855f7";
+      statusLabel = "Archived";
+      break;
+    case "draft":
+      dotClass = "bg-slate-400";
+      dotHex = "#94a3b8";
+      statusLabel = "Draft";
+      break;
     case "active":
     default:
-      return {
-        badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200",
-        dotClass: "bg-emerald-500",
-        style: undefined,
-        dotStyle: undefined,
-      };
+      dotClass = "bg-emerald-500";
+      dotHex = "#10b981";
+      statusLabel = "Active";
+      break;
   }
+
+  // 2. Tag Body (Badge) - matches the campaign color
+  const colorKey = (campaignColor || "slate").toLowerCase().trim();
+  let badgeClass = "bg-slate-100 text-slate-800 border-slate-200";
+  let style: CSSProperties | undefined = undefined;
+
+  if (colorKey.startsWith("#")) {
+    badgeClass = "border";
+    style = {
+      backgroundColor: hexToRgba(colorKey, 0.12),
+      borderColor: hexToRgba(colorKey, 0.35),
+      color: colorKey,
+    };
+  } else if (CAMPAIGN_COLOR_MAP[colorKey]) {
+    badgeClass = CAMPAIGN_COLOR_MAP[colorKey].badgeClass;
+  } else {
+    badgeClass = "bg-slate-100 text-slate-800 border-slate-200";
+  }
+
+  return {
+    badgeClass,
+    dotClass,
+    style,
+    dotStyle: { backgroundColor: dotHex },
+    statusLabel,
+    dotHex,
+  };
 }
 

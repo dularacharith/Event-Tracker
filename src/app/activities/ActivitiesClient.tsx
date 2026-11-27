@@ -1598,7 +1598,9 @@ export function ActivitiesClient({
                           );
 
                           const actCampaign = currentCampaigns.find(
-                            (c) => c.id === act.campaignId || c.name === act.campaignName
+                            (c) =>
+                              (act.campaignId && c.id === act.campaignId) ||
+                              (act.campaignName && c.name && c.name.toLowerCase().trim() === act.campaignName.toLowerCase().trim())
                           );
                           const campStyle = getCampaignTagStyle(
                             actCampaign?.status || act.campaignStatus,
@@ -1721,9 +1723,9 @@ export function ActivitiesClient({
                                   {act.campaignName && (
                                     <div className="flex items-center justify-between gap-2">
                                       <span className="text-slate-400 shrink-0">Campaign:</span>
-                                      <span className="font-semibold text-white truncate max-w-[140px] flex items-center gap-1">
+                                      <span className="font-semibold text-white truncate max-w-[140px] flex items-center gap-1.5">
                                         <span
-                                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${campStyle.dotClass}`}
+                                          className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${campStyle.dotClass}`}
                                           style={campStyle.dotStyle}
                                         />
                                         <span className="truncate">{act.campaignName}</span>
@@ -1768,10 +1770,10 @@ export function ActivitiesClient({
                                       <span
                                         className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border max-w-[140px] truncate flex items-center gap-1.5 ${campStyle.badgeClass}`}
                                         style={campStyle.style}
-                                        title={`Campaign: ${act.campaignName}${actCampaign?.status ? ` (${actCampaign.status.replace(/_/g, " ").toUpperCase()})` : ""}`}
+                                        title={`Campaign: ${act.campaignName}${campStyle.statusLabel ? ` (${campStyle.statusLabel})` : ""}`}
                                       >
                                         <span
-                                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${campStyle.dotClass}`}
+                                          className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${campStyle.dotClass}`}
                                           style={campStyle.dotStyle}
                                         />
                                         <span className="truncate">{act.campaignName}</span>
@@ -2137,11 +2139,30 @@ export function ActivitiesClient({
                                   #{act.channelName}
                                 </span>
                               )}
-                              {act.campaignName && (
-                                <span className="text-xs text-indigo-600 font-medium">
-                                  • {act.campaignName}
-                                </span>
-                              )}
+                              {act.campaignName && (() => {
+                                const actCamp = currentCampaigns.find(
+                                  (c) =>
+                                    (act.campaignId && c.id === act.campaignId) ||
+                                    (c.name && act.campaignName && c.name.toLowerCase().trim() === act.campaignName.toLowerCase().trim())
+                                );
+                                const cStyle = getCampaignTagStyle(
+                                  actCamp?.status || act.campaignStatus,
+                                  actCamp?.color || act.campaignColor
+                                );
+                                return (
+                                  <span
+                                    className={`text-xs font-semibold px-2 py-0.5 rounded-md border flex items-center gap-1.5 ${cStyle.badgeClass}`}
+                                    style={cStyle.style}
+                                    title={`Campaign: ${act.campaignName}${cStyle.statusLabel ? ` (${cStyle.statusLabel})` : ""}`}
+                                  >
+                                    <span
+                                      className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${cStyle.dotClass}`}
+                                      style={cStyle.dotStyle}
+                                    />
+                                    <span>{act.campaignName}</span>
+                                  </span>
+                                );
+                              })()}
                               {act.recurrenceRule && act.recurrenceRule !== "none" && (
                                 <span
                                   className="text-xs font-semibold px-2 py-0.5 rounded-md border bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1"

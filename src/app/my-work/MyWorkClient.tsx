@@ -13,6 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
+import { getCampaignTagStyle } from "@/lib/flowColumns";
 
 interface ActivityItem {
   id: string;
@@ -293,11 +294,30 @@ export function MyWorkClient({
                     <span className="text-xs text-slate-400 capitalize">
                       {item.contentType.replace("_", " ")}
                     </span>
-                    {item.campaignName && (
-                      <span className="text-xs text-indigo-600 font-medium">
-                        • {item.campaignName}
-                      </span>
-                    )}
+                    {item.campaignName && (() => {
+                      const actCamp = campaigns.find(
+                        (c) =>
+                          (item.campaignId && c.id === item.campaignId) ||
+                          (c.name && item.campaignName && c.name.toLowerCase().trim() === item.campaignName.toLowerCase().trim())
+                      );
+                      const cStyle = getCampaignTagStyle(
+                        actCamp?.status,
+                        actCamp?.color
+                      );
+                      return (
+                        <span
+                          className={`text-xs font-semibold px-2 py-0.5 rounded-md border flex items-center gap-1.5 ${cStyle.badgeClass}`}
+                          style={cStyle.style}
+                          title={`Campaign: ${item.campaignName}${cStyle.statusLabel ? ` (${cStyle.statusLabel})` : ""}`}
+                        >
+                          <span
+                            className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${cStyle.dotClass}`}
+                            style={cStyle.dotStyle}
+                          />
+                          <span>{item.campaignName}</span>
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <Link

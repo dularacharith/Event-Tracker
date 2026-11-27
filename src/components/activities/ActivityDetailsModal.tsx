@@ -251,10 +251,10 @@ export function ActivityDetailsModal({
                     <span
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border truncate max-w-[150px] flex items-center gap-1.5 ${campStyle.badgeClass}`}
                       style={campStyle.style}
-                      title={`Campaign: ${currentData.campaignName}${currentData.campaignStatus ? ` (${currentData.campaignStatus.replace(/_/g, " ").toUpperCase()})` : ""}`}
+                      title={`Campaign: ${currentData.campaignName}${campStyle.statusLabel ? ` (${campStyle.statusLabel})` : ""}`}
                     >
                       <span
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${campStyle.dotClass}`}
+                        className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${campStyle.dotClass}`}
                         style={campStyle.dotStyle}
                       />
                       <span className="truncate">{currentData.campaignName}</span>

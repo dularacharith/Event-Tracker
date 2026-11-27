@@ -38,6 +38,7 @@ import { CustomDropdown } from "@/components/ui/CustomDropdown";
 import { ModernDateTimePicker } from "@/components/ui/ModernDateTimePicker";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { PlatformIcon } from "@/components/icons/PlatformIcons";
+import { getCampaignTagStyle } from "@/lib/flowColumns";
 
 interface ActivityDetailClientProps {
   currentUser: {
@@ -450,6 +451,25 @@ export function ActivityDetailClient({
                 #{activity.channelName}
               </span>
             )}
+            {activity.campaignName && (() => {
+              const campStyle = getCampaignTagStyle(
+                activity.campaignStatus,
+                activity.campaignColor
+              );
+              return (
+                <span
+                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border flex items-center gap-1.5 ${campStyle.badgeClass}`}
+                  style={campStyle.style}
+                  title={`Campaign: ${activity.campaignName}${campStyle.statusLabel ? ` (${campStyle.statusLabel})` : ""}`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${campStyle.dotClass}`}
+                    style={campStyle.dotStyle}
+                  />
+                  <span>{activity.campaignName}</span>
+                </span>
+              );
+            })()}
             {activity.recurrenceRule && activity.recurrenceRule !== "none" && (
               <span className="text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded flex items-center gap-1">
                 <Repeat className="w-3 h-3" />
