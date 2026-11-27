@@ -50,6 +50,7 @@ import {
   Bookmark,
   Unplug,
   Plug,
+  GitMerge,
 } from "lucide-react";
 import {
   FlowColumn,
@@ -148,6 +149,10 @@ export function VisualFlowModal({
     side: "incoming" | "outgoing";
   }
   const [plugManagerModal, setPlugManagerModal] = useState<PlugManagerModalState | null>(null);
+
+  // All pipeline nodes & connections manager modal state
+  const [isConnectNodesModalOpen, setIsConnectNodesModalOpen] = useState(false);
+  const [connectNodesModalTab, setConnectNodesModalTab] = useState<"transitions" | "nodes">("transitions");
 
   // Selected stage for the Stage Inspector
   const [selectedColId, setSelectedColId] = useState<string>("in_progress");
@@ -582,6 +587,8 @@ export function VisualFlowModal({
           setEditingConnector(null);
         } else if (plugManagerModal) {
           setPlugManagerModal(null);
+        } else if (isConnectNodesModalOpen) {
+          setIsConnectNodesModalOpen(false);
         } else {
           handleRequestClose();
         }
@@ -589,7 +596,7 @@ export function VisualFlowModal({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isDirty, showUnsavedPrompt, isHowToUseOpen, isAddFieldModalOpen, isEditFieldModalOpen, editingConnector, plugManagerModal]);
+  }, [isOpen, isDirty, showUnsavedPrompt, isHowToUseOpen, isAddFieldModalOpen, isEditFieldModalOpen, editingConnector, plugManagerModal, isConnectNodesModalOpen]);
 
   if (!isOpen || !mounted) return null;
 
@@ -900,6 +907,80 @@ export function VisualFlowModal({
       connectAll
         ? "All stages connected to transition."
         : "All stages unplugged from transition."
+    );
+  };
+
+  const handleConnectAllPipelineNodes = (connectAll: boolean) => {
+    const updated = workingColumns.map((c) => {
+      if (c.inLibrary) return c;
+      if (connectAll) {
+        return {
+          ...c,
+          isIndependent: false,
+          unpluggedInput: false,
+          unpluggedOutput: false,
+        };
+      } else {
+        return {
+          ...c,
+          isIndependent: true,
+          unpluggedInput: true,
+          unpluggedOutput: true,
+        };
+      }
+    });
+
+    pushHistory(updated);
+    if (connectAll) {
+      toast.success(
+        "All Nodes Connected",
+        "All stages are now connected to the pipeline workflow."
+      );
+    } else {
+      toast.info(
+        "All Nodes Unplugged",
+        "All stages are now independent/unplugged from workflow transitions."
+      );
+    }
+  };
+
+  const handleBulkPlugForField = (fieldId: string, connectAll: boolean) => {
+    const fieldStages = workingColumns.filter(
+      (c) => getColumnFieldId(c, pipelineFields) === fieldId && !c.inLibrary
+    );
+    if (fieldStages.length === 0) return;
+
+    const fIdx = pipelineFields.findIndex((f) => f.id === fieldId);
+    const isFirst = fIdx === 0;
+    const isLast = fIdx === pipelineFields.length - 1;
+
+    const updated = workingColumns.map((c) => {
+      if (getColumnFieldId(c, pipelineFields) === fieldId && !c.inLibrary) {
+        if (connectAll) {
+          return {
+            ...c,
+            isIndependent: false,
+            unpluggedInput: false,
+            unpluggedOutput: false,
+          };
+        } else {
+          return {
+            ...c,
+            isIndependent: true,
+            unpluggedInput: isFirst ? false : true,
+            unpluggedOutput: isLast ? false : true,
+          };
+        }
+      }
+      return c;
+    });
+
+    pushHistory(updated);
+    toast.success(
+      connectAll ? "Field Stages Connected" : "Field Stages Unplugged",
+      connectAll
+        ? "All stages in this field are connected to the workflow."
+        : "All stages in this field are unplugged."
     );
   };
 
@@ -1660,15 +1741,15 @@ export function VisualFlowModal({
                   {/* Connect Nodes Tool */}
                   <button
                     type="button"
-                    onClick={() => setActiveTool((curr) => (curr === "connect" ? "select" : "connect"))}
+                    onClick={() => setIsConnectNodesModalOpen(true)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 whitespace-nowrap ${
-                      activeTool === "connect"
+                      isConnectNodesModalOpen
                         ? "bg-purple-600 text-white shadow-xs"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                     }`}
-                    title="Connect nodes tool: connect and unplug stage workflow nodes"
+                    title="Configure all nodes and connections inside this pipeline"
                   >
-                    <Share2 className={`w-3.5 h-3.5 ${activeTool === "connect" ? "text-white" : "text-purple-600"}`} />
+                    <Share2 className={`w-3.5 h-3.5 ${isConnectNodesModalOpen ? "text-white" : "text-purple-600"}`} />
                     <span>Connect Nodes</span>
                   </button>
 
@@ -3834,6 +3915,595 @@ export function VisualFlowModal({
                   type="button"
                   onClick={() => setPlugManagerModal(null)}
                   className="px-6 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 shadow-xs hover:shadow-md transition cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ALL PIPELINE NODES & CONNECTIONS MANAGER MODAL */}
+      {isConnectNodesModalOpen && (() => {
+        const nonLibraryStages = workingColumns.filter((c) => !c.inLibrary);
+        const totalStages = nonLibraryStages.length;
+        const connectedStages = nonLibraryStages.filter(
+          (c) => !c.isIndependent && !c.unpluggedInput && !c.unpluggedOutput
+        );
+        const independentStages = nonLibraryStages.filter(
+          (c) => c.isIndependent || c.unpluggedInput || c.unpluggedOutput
+        );
+        const hiddenStages = nonLibraryStages.filter((c) => c.hidden);
+        const transitionsCount = Math.max(0, pipelineFields.length - 1);
+
+        return (
+          <div
+            className="fixed top-16 inset-x-0 bottom-0 z-[90] flex items-center justify-center p-3 sm:p-6 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-150 overflow-hidden"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsConnectNodesModalOpen(false);
+            }}
+          >
+            <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-4xl w-full flex flex-col max-h-[calc(100vh-5.5rem)] sm:max-h-[85vh] overflow-hidden select-none animate-in zoom-in-95 duration-150 my-auto">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs">
+                    <Share2 className="w-5 h-5 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                      <span>Pipeline Nodes & Connections</span>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100/70 text-purple-700">
+                        Manager
+                      </span>
+                    </h2>
+                    <p className="text-xs text-slate-500 font-normal">
+                      Configure stage connections, transitions, and node states across your entire workflow.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsConnectNodesModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                  title="Close modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Metrics & Global Batch Actions Bar */}
+              <div className="px-6 py-3 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                {/* Metrics */}
+                <div className="flex items-center gap-2 text-xs flex-wrap">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700 font-medium">
+                    <span className="font-bold text-slate-900">{totalStages}</span> stages
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-800 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="font-bold">{connectedStages.length}</span> connected
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200/80 text-amber-800 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="font-bold">{independentStages.length}</span> independent
+                  </div>
+                  {hiddenStages.length > 0 && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 font-medium">
+                      <EyeOff className="w-3 h-3 text-rose-500" />
+                      <span className="font-bold">{hiddenStages.length}</span> hidden
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200/80 text-purple-800 font-medium">
+                    <span className="font-bold">{pipelineFields.length}</span> fields
+                  </div>
+                </div>
+
+                {/* Global Batch Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleConnectAllPipelineNodes(true)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+                    title="Connect all stage nodes across the pipeline"
+                  >
+                    <Plug className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Connect All</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleConnectAllPipelineNodes(false)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+                    title="Unplug all stage nodes to independent status"
+                  >
+                    <Unplug className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Unplug All</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* View Switcher Tabs */}
+              <div className="px-6 pt-3 pb-2 bg-slate-50/50 border-b border-slate-100 flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setConnectNodesModalTab("transitions")}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+                    connectNodesModalTab === "transitions"
+                      ? "bg-white text-purple-700 shadow-xs border border-purple-200"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                  }`}
+                >
+                  <GitMerge className="w-3.5 h-3.5" />
+                  <span>Field Transitions & Flow</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-600 font-bold">
+                    {transitionsCount}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConnectNodesModalTab("nodes")}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+                    connectNodesModalTab === "nodes"
+                      ? "bg-white text-purple-700 shadow-xs border border-purple-200"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>All Stage Nodes & Status</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-600 font-bold">
+                    {totalStages}
+                  </span>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+                {connectNodesModalTab === "transitions" ? (
+                  /* TAB 1: Transitions & Flow Routing */
+                  transitionsCount === 0 ? (
+                    <div className="py-12 text-center text-slate-400 space-y-2">
+                      <GitMerge className="w-10 h-10 mx-auto text-slate-300 stroke-1" />
+                      <p className="text-sm font-medium text-slate-600">No Field Transitions Found</p>
+                      <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                        Your pipeline has only 1 field. Add more fields to configure flow transitions and routing between stages.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {pipelineFields.slice(0, pipelineFields.length - 1).map((field, fIdx) => {
+                        const nextField = pipelineFields[fIdx + 1];
+                        if (!nextField) return null;
+
+                        const conn = getResolvedFieldConnector(field, fIdx, pipelineFields);
+                        const connStyles = getConnectorStyles(conn.colorTheme);
+                        const IconComp = getConnectorSymbolComponent(conn.icon);
+
+                        const sourceStages = workingColumns.filter(
+                          (c) => getColumnFieldId(c, pipelineFields) === field.id && !c.inLibrary
+                        );
+                        const destStages = workingColumns.filter(
+                          (c) => getColumnFieldId(c, pipelineFields) === nextField.id && !c.inLibrary
+                        );
+
+                        const sourceConnected = sourceStages.filter((c) => !c.isIndependent && !c.unpluggedOutput);
+                        const destConnected = destStages.filter((c) => !c.isIndependent && !c.unpluggedInput);
+
+                        return (
+                          <div
+                            key={`trans-${field.id}-${nextField.id}`}
+                            className="bg-slate-50/60 rounded-2xl border border-slate-200/90 p-4 sm:p-5 space-y-4 shadow-2xs hover:border-slate-300 transition"
+                          >
+                            {/* Transition Header */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-700">
+                                  Step {fIdx + 1}
+                                </span>
+                                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                                  <span>{field.name}</span>
+                                  <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>{nextField.name}</span>
+                                </h3>
+                              </div>
+
+                              {/* Transition Pill Preview & Edit Button */}
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="px-3 py-1 rounded-full border text-xs font-bold flex items-center gap-1.5 bg-white shadow-2xs"
+                                  style={{
+                                    borderColor: connStyles.border,
+                                    color: connStyles.text,
+                                  }}
+                                >
+                                  {IconComp && <IconComp className="w-3 h-3" />}
+                                  <span>{conn.label || "Transition"}</span>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingConnector({ field, fIdx })}
+                                  className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-white rounded-lg border border-slate-200 shadow-2xs transition cursor-pointer"
+                                  title="Configure transition button properties"
+                                >
+                                  <Settings className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Dual Column Layout: Left Field Outgoing vs Right Field Incoming */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Left / Source Field Stages */}
+                              <div className="bg-white rounded-xl border border-slate-200/80 p-3.5 space-y-2.5">
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
+                                  <div>
+                                    <span className="font-bold text-slate-800">{field.name}</span>
+                                    <span className="text-slate-400 ml-1.5">
+                                      ({sourceConnected.length}/{sourceStages.length} plugged)
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      disabled={sourceConnected.length === sourceStages.length || sourceStages.length === 0}
+                                      onClick={() => handleBulkPlugToggle(sourceStages.map((s) => s.id), "incoming", true)}
+                                      className="px-2 py-0.5 rounded text-[11px] font-semibold text-purple-700 hover:bg-purple-50 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer"
+                                    >
+                                      Plug All
+                                    </button>
+                                    <span className="text-slate-200">•</span>
+                                    <button
+                                      type="button"
+                                      disabled={sourceConnected.length === 0}
+                                      onClick={() => handleBulkPlugToggle(sourceStages.map((s) => s.id), "incoming", false)}
+                                      className="px-2 py-0.5 rounded text-[11px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer"
+                                    >
+                                      Unplug All
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2 max-h-48 overflow-y-auto pr-0.5">
+                                  {sourceStages.length === 0 ? (
+                                    <div className="py-4 text-center text-xs text-slate-400">No stages in this field.</div>
+                                  ) : (
+                                    sourceStages.map((st) => {
+                                      const isPlugged = !st.isIndependent && !st.unpluggedOutput;
+                                      const stStyles = getColumnStyles(st);
+                                      const dotColor = stStyles.dotHex || stStyles.accentHex;
+
+                                      return (
+                                        <div
+                                          key={`src-${st.id}`}
+                                          className={`rounded-lg border p-2 flex items-center justify-between transition-colors ${
+                                            st.hidden
+                                              ? "bg-rose-50/20 border-rose-200"
+                                              : isPlugged
+                                              ? "bg-white border-slate-200/90 shadow-2xs"
+                                              : "bg-slate-50/70 border-dashed border-slate-300 opacity-75"
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <span
+                                              className="w-2 h-2 rounded-full shrink-0 shadow-2xs"
+                                              style={{ backgroundColor: dotColor }}
+                                            />
+                                            <span className="font-semibold text-xs text-slate-800 truncate">
+                                              {st.label}
+                                            </span>
+                                            {st.hidden && (
+                                              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-semibold bg-rose-50 text-rose-600 border border-rose-200 flex items-center gap-0.5 shrink-0">
+                                                <EyeOff className="w-2.5 h-2.5" />
+                                                <span>Hidden</span>
+                                              </span>
+                                            )}
+                                            <span
+                                              className={`px-1.5 py-0.2 rounded-full text-[9px] font-semibold border ${
+                                                isPlugged
+                                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                  : "bg-slate-100 text-slate-500 border-slate-200"
+                                              }`}
+                                            >
+                                              {isPlugged ? "Plugged" : "Unplugged"}
+                                            </span>
+                                          </div>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleStagePlug(st.id, "incoming", !isPlugged)}
+                                            className={`px-2 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer active:scale-95 ${
+                                              isPlugged
+                                                ? "border border-rose-200 text-rose-600 hover:bg-rose-50"
+                                                : "bg-purple-600 hover:bg-purple-700 text-white"
+                                            }`}
+                                          >
+                                            {isPlugged ? (
+                                              <>
+                                                <Unplug className="w-3 h-3" />
+                                                <span>Unplug</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Plug className="w-3 h-3" />
+                                                <span>Plug</span>
+                                              </>
+                                            )}
+                                          </button>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Right / Destination Field Stages */}
+                              <div className="bg-white rounded-xl border border-slate-200/80 p-3.5 space-y-2.5">
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
+                                  <div>
+                                    <span className="font-bold text-slate-800">{nextField.name}</span>
+                                    <span className="text-slate-400 ml-1.5">
+                                      ({destConnected.length}/{destStages.length} plugged)
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      disabled={destConnected.length === destStages.length || destStages.length === 0}
+                                      onClick={() => handleBulkPlugToggle(destStages.map((s) => s.id), "outgoing", true)}
+                                      className="px-2 py-0.5 rounded text-[11px] font-semibold text-purple-700 hover:bg-purple-50 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer"
+                                    >
+                                      Plug All
+                                    </button>
+                                    <span className="text-slate-200">•</span>
+                                    <button
+                                      type="button"
+                                      disabled={destConnected.length === 0}
+                                      onClick={() => handleBulkPlugToggle(destStages.map((s) => s.id), "outgoing", false)}
+                                      className="px-2 py-0.5 rounded text-[11px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer"
+                                    >
+                                      Unplug All
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2 max-h-48 overflow-y-auto pr-0.5">
+                                  {destStages.length === 0 ? (
+                                    <div className="py-4 text-center text-xs text-slate-400">No stages in this field.</div>
+                                  ) : (
+                                    destStages.map((st) => {
+                                      const isPlugged = !st.isIndependent && !st.unpluggedInput;
+                                      const stStyles = getColumnStyles(st);
+                                      const dotColor = stStyles.dotHex || stStyles.accentHex;
+
+                                      return (
+                                        <div
+                                          key={`dest-${st.id}`}
+                                          className={`rounded-lg border p-2 flex items-center justify-between transition-colors ${
+                                            st.hidden
+                                              ? "bg-rose-50/20 border-rose-200"
+                                              : isPlugged
+                                              ? "bg-white border-slate-200/90 shadow-2xs"
+                                              : "bg-slate-50/70 border-dashed border-slate-300 opacity-75"
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <span
+                                              className="w-2 h-2 rounded-full shrink-0 shadow-2xs"
+                                              style={{ backgroundColor: dotColor }}
+                                            />
+                                            <span className="font-semibold text-xs text-slate-800 truncate">
+                                              {st.label}
+                                            </span>
+                                            {st.hidden && (
+                                              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-semibold bg-rose-50 text-rose-600 border border-rose-200 flex items-center gap-0.5 shrink-0">
+                                                <EyeOff className="w-2.5 h-2.5" />
+                                                <span>Hidden</span>
+                                              </span>
+                                            )}
+                                            <span
+                                              className={`px-1.5 py-0.2 rounded-full text-[9px] font-semibold border ${
+                                                isPlugged
+                                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                  : "bg-slate-100 text-slate-500 border-slate-200"
+                                              }`}
+                                            >
+                                              {isPlugged ? "Plugged" : "Unplugged"}
+                                            </span>
+                                          </div>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleStagePlug(st.id, "outgoing", !isPlugged)}
+                                            className={`px-2 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer active:scale-95 ${
+                                              isPlugged
+                                                ? "border border-rose-200 text-rose-600 hover:bg-rose-50"
+                                                : "bg-purple-600 hover:bg-purple-700 text-white"
+                                            }`}
+                                          >
+                                            {isPlugged ? (
+                                              <>
+                                                <Unplug className="w-3 h-3" />
+                                                <span>Unplug</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Plug className="w-3 h-3" />
+                                                <span>Plug</span>
+                                              </>
+                                            )}
+                                          </button>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )
+                ) : (
+                  /* TAB 2: All Stage Nodes & Status */
+                  <div className="space-y-6">
+                    {pipelineFields.map((field) => {
+                      const stages = workingColumns.filter(
+                        (c) => getColumnFieldId(c, pipelineFields) === field.id && !c.inLibrary
+                      );
+                      const fStyles = getFieldStyles(field);
+                      const FieldIcon = getFieldIconComponent(field.icon, field.type);
+
+                      return (
+                        <div
+                          key={`field-group-${field.id}`}
+                          className="bg-slate-50/60 rounded-2xl border border-slate-200/90 p-4 sm:p-5 space-y-3 shadow-2xs"
+                        >
+                          {/* Field Title & Actions */}
+                          <div className="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="w-6 h-6 rounded-lg flex items-center justify-center text-xs shadow-2xs"
+                                style={{ backgroundColor: fStyles.badgeBg, color: fStyles.hex }}
+                              >
+                                {FieldIcon ? <FieldIcon className="w-3.5 h-3.5" /> : null}
+                              </span>
+                              <h3 className="font-bold text-sm text-slate-900 tracking-tight">
+                                {field.name}
+                              </h3>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200/70 text-slate-700">
+                                {stages.length} stages
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleBulkPlugForField(field.id, true)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold text-purple-700 hover:bg-purple-50 border border-purple-100 transition cursor-pointer flex items-center gap-1"
+                              >
+                                <Plug className="w-3 h-3 text-purple-600" />
+                                <span>Plug Field</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleBulkPlugForField(field.id, false)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-100 transition cursor-pointer flex items-center gap-1"
+                              >
+                                <Unplug className="w-3 h-3 text-rose-600" />
+                                <span>Unplug Field</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Stages Grid */}
+                          {stages.length === 0 ? (
+                            <div className="py-6 text-center text-xs text-slate-400">
+                              No stages found in {field.name}. Click "+ Add Stage" in the toolbar to create one.
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {stages.map((stage) => {
+                                const stStyles = getColumnStyles(stage);
+                                const dotColor = stStyles.dotHex || stStyles.accentHex;
+                                const isConnected = !stage.isIndependent && !stage.unpluggedInput && !stage.unpluggedOutput;
+
+                                return (
+                                  <div
+                                    key={stage.id}
+                                    className={`bg-white rounded-xl border p-3 flex flex-col justify-between gap-3 shadow-2xs transition-all hover:border-slate-300 ${
+                                      stage.hidden ? "border-rose-200/90 bg-rose-50/10" : "border-slate-200/90"
+                                    }`}
+                                  >
+                                    {/* Top: Dot + Label + Tasks */}
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <span
+                                          className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
+                                          style={{ backgroundColor: dotColor }}
+                                        />
+                                        <span className="font-bold text-xs text-slate-900 truncate" title={stage.label}>
+                                          {stage.label}
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap shrink-0">
+                                        {(activitiesCountByStatus[stage.id] || 0)} {activitiesCountByStatus[stage.id] === 1 ? "task" : "tasks"}
+                                      </span>
+                                    </div>
+
+                                    {/* Bottom: Interactive Toggles & Actions */}
+                                    <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-100">
+                                      {/* Connection Status Toggle */}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleUnplugStage(stage.id)}
+                                        className={`px-2 py-1 rounded-lg text-[10px] font-semibold border flex items-center gap-1 transition cursor-pointer active:scale-95 ${
+                                          isConnected
+                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70"
+                                            : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100/70"
+                                        }`}
+                                        title={isConnected ? "Click to set stage as independent" : "Click to connect stage to pipeline workflow"}
+                                      >
+                                        {isConnected ? (
+                                          <>
+                                            <Plug className="w-2.5 h-2.5 text-emerald-600" />
+                                            <span>Connected</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Unplug className="w-2.5 h-2.5 text-amber-600" />
+                                            <span>Independent</span>
+                                          </>
+                                        )}
+                                      </button>
+
+                                      <div className="flex items-center gap-1">
+                                        {/* Visibility Toggle */}
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleHide(stage.id)}
+                                          className={`p-1 rounded-lg border transition cursor-pointer ${
+                                            stage.hidden
+                                              ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
+                                              : "text-slate-400 hover:text-slate-700 hover:bg-slate-100 border-transparent"
+                                          }`}
+                                          title={stage.hidden ? "Stage hidden: click to show" : "Stage visible: click to hide"}
+                                        >
+                                          {stage.hidden ? <EyeOff className="w-3 h-3 text-rose-600" /> : <Eye className="w-3 h-3" />}
+                                        </button>
+
+                                        {/* Edit Stage Settings */}
+                                        <button
+                                          type="button"
+                                          onClick={() => onOpenEditColumn(stage)}
+                                          className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                                          title="Edit stage settings"
+                                        >
+                                          <Settings className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-3.5 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between gap-4 shrink-0">
+                <p className="text-xs text-slate-500 hidden sm:block">
+                  <span className="font-semibold text-slate-700">Tip:</span> Independent nodes work outside sequential field transitions, while connected stages follow the pipeline flow.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsConnectNodesModalOpen(false)}
+                  className="px-6 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 shadow-xs hover:shadow-md transition cursor-pointer ml-auto"
                 >
                   Done
                 </button>

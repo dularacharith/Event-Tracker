@@ -103,7 +103,7 @@ export function ConnectorEditModal({
 
   return createPortal(
     <div
-      className="fixed top-16 inset-x-0 bottom-0 z-[85] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-md select-none animate-in fade-in duration-150 overflow-hidden"
+      className="fixed top-16 inset-x-0 bottom-0 z-[95] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-md select-none animate-in fade-in duration-150 overflow-hidden"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
