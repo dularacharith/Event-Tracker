@@ -75,18 +75,19 @@ export function ConfirmModal({
           <X className="w-4 h-4" />
         </button>
 
-        {/* Modern Icon Badge */}
+        {/* Icon: Clean, unbordered, standalone and prominently sized */}
         {isDelete ? (
-          <div className="mx-auto mb-4 w-13 h-13 rounded-2xl bg-red-50 border border-red-100 text-red-500 flex items-center justify-center shadow-xs ring-4 ring-red-500/10">
-            <Trash2 className="w-6 h-6 stroke-[2.2]" />
+          <div className="mx-auto mb-3.5 flex items-center justify-center text-red-500">
+            <Trash2 className="w-10 h-10 stroke-[2.2]" />
           </div>
         ) : (
-          <div className="mx-auto mb-4 w-13 h-13 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shadow-xs ring-4 ring-emerald-500/10">
+          <div className="mx-auto mb-3.5 flex items-center justify-center text-emerald-500">
             <svg
-              className="w-6 h-6 stroke-[2.2]"
+              className="w-10 h-10"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
