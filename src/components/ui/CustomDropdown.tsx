@@ -144,7 +144,7 @@ export function CustomDropdown({
                     opt.disabled ? "opacity-40 cursor-not-allowed" : ""
                   } ${
                     isSelected
-                      ? "bg-purple-600 text-white font-bold shadow-xs"
+                      ? "bg-purple-50 text-purple-900 font-bold border border-purple-200/80 shadow-2xs"
                       : "text-slate-700 hover:bg-slate-100/90 hover:text-slate-900"
                   }`}
                 >
@@ -154,7 +154,7 @@ export function CustomDropdown({
                       <div
                         className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition ${
                           isSelected
-                            ? "bg-white/20 text-white"
+                            ? "bg-purple-100 text-purple-700"
                             : "bg-slate-100 text-slate-700 group-hover:bg-slate-200/80"
                         }`}
                       >
@@ -167,7 +167,7 @@ export function CustomDropdown({
                       {opt.subtitle && (
                         <div
                           className={`text-[10px] truncate ${
-                            isSelected ? "text-purple-100" : "text-slate-400"
+                            isSelected ? "text-purple-400" : "text-slate-400"
                           }`}
                         >
                           {opt.subtitle}
@@ -182,7 +182,7 @@ export function CustomDropdown({
                       <span
                         className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
                           isSelected
-                            ? "bg-white/25 text-white"
+                            ? "bg-purple-100 text-purple-700 border border-purple-200"
                             : "bg-purple-50 text-purple-700 border border-purple-100"
                         }`}
                       >
@@ -191,7 +191,7 @@ export function CustomDropdown({
                     )}
 
                     {isSelected ? (
-                      <Check className="w-3.5 h-3.5 text-white shrink-0 stroke-[2.5]" />
+                      <Check className="w-3.5 h-3.5 text-purple-600 shrink-0 stroke-[2.5]" />
                     ) : showChevronRight ? (
                       <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition shrink-0" />
                     ) : null}
