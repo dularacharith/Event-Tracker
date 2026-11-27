@@ -63,13 +63,13 @@ export function ConfirmModal({
         }
       }}
     >
-      <div className="relative w-full max-w-md sm:max-w-lg lg:max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100/90 p-7 sm:p-8 text-center animate-in zoom-in-95 duration-150 select-none">
+      <div className="relative w-full max-w-xl sm:max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100/90 px-6 py-5 sm:px-8 sm:py-5.5 text-center animate-in zoom-in-95 duration-150 select-none">
         {/* Close Button Top Right */}
         <button
           type="button"
           onClick={onClose}
           disabled={loading}
-          className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
+          className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
           title="Close dialog"
         >
           <X className="w-4 h-4" />
@@ -77,13 +77,13 @@ export function ConfirmModal({
 
         {/* Icon: Clean, unbordered, standalone and prominently sized */}
         {isDelete ? (
-          <div className="mx-auto mb-3.5 flex items-center justify-center text-red-500">
-            <Trash2 className="w-10 h-10 stroke-[2.2]" />
+          <div className="mx-auto mb-2.5 flex items-center justify-center text-red-500">
+            <Trash2 className="w-9 h-9 stroke-[2.2]" />
           </div>
         ) : (
-          <div className="mx-auto mb-3.5 flex items-center justify-center text-emerald-500">
+          <div className="mx-auto mb-2.5 flex items-center justify-center text-emerald-500">
             <svg
-              className="w-10 h-10"
+              className="w-9 h-9"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -105,13 +105,13 @@ export function ConfirmModal({
 
         {/* Description */}
         {description && (
-          <p className="text-sm text-slate-500 font-normal mt-2 leading-relaxed max-w-md mx-auto">
+          <p className="text-sm text-slate-500 font-normal mt-1.5 leading-relaxed max-w-2xl mx-auto">
             {description}
           </p>
         )}
 
         {/* Action Buttons Right-Aligned */}
-        <div className="flex items-center justify-end gap-3 sm:gap-4 mt-6 pt-1">
+        <div className="flex items-center justify-end gap-3 sm:gap-4 mt-4 sm:mt-5">
           {/* Cancel Button */}
           <button
             type="button"
