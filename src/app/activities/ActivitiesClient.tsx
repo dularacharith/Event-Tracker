@@ -868,12 +868,10 @@ export function ActivitiesClient({
             <button
               type="button"
               onClick={() => setHowItWorksModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100/90 text-purple-700 text-xs font-semibold border border-purple-200/80 transition cursor-pointer shadow-2xs group"
+              className="inline-flex items-center gap-1.5 text-purple-600 hover:text-purple-800 text-xs font-semibold transition cursor-pointer group"
             >
-              <span className="w-4 h-4 rounded-full bg-purple-200/80 text-purple-800 flex items-center justify-center text-[10px] font-bold group-hover:bg-purple-600 group-hover:text-white transition">
-                ?
-              </span>
-              <span>How it works</span>
+              <HelpCircle className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="group-hover:underline">How it works</span>
             </button>
           </div>
         </div>

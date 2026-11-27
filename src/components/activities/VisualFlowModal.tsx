@@ -1617,15 +1617,15 @@ export function VisualFlowModal({
 
                   <div className="h-4 w-px bg-slate-200 mx-0.5 shrink-0" />
 
-                  {/* Modern Question Mark Icon Button */}
+                  {/* Question Mark Help Icon (Clean borderless) */}
                   <button
                     type="button"
                     onClick={() => setIsHowToUseOpen(true)}
-                    className="w-7 h-7 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 hover:text-purple-900 border border-purple-200/90 flex items-center justify-center transition cursor-pointer shadow-2xs shrink-0 group"
+                    className="p-1 text-purple-600 hover:text-purple-800 transition cursor-pointer shrink-0"
                     title="How to use the pipeline flow builder"
                     aria-label="How to use pipeline guide"
                   >
-                    <HelpCircle className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform" />
+                    <HelpCircle className="w-4 h-4 hover:scale-110 transition-transform" />
                   </button>
 
                   {/* Toggle Inspector sidebar if closed */}
