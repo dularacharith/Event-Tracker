@@ -147,7 +147,7 @@ export function VisualFlowModal({
   const boardRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [wires, setWires] = useState<WirePath[]>([]);
-  const [activeTool, setActiveTool] = useState<"pan" | "select">("select");
+  const [activeTool, setActiveTool] = useState<"pan" | "select" | "connect">("select");
   const [zoomLevel, setZoomLevel] = useState<number>(75);
   const [isLivePreview, setIsLivePreview] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(true);
@@ -419,7 +419,7 @@ export function VisualFlowModal({
           id: `wire-out-${col.id}-${fIdx}`,
           d,
           color,
-          isDash: isLivePreview,
+          isDash: isLivePreview || activeTool === "connect",
         });
       });
 
@@ -455,13 +455,13 @@ export function VisualFlowModal({
           id: `wire-in-${fIdx}-${col.id}`,
           d,
           color,
-          isDash: isLivePreview,
+          isDash: isLivePreview || activeTool === "connect",
         });
       });
     });
 
     setWires(newWires);
-  }, [workingColumns, pipelineFields, zoomLevel, isLivePreview, activeUnplugged]);
+  }, [workingColumns, pipelineFields, zoomLevel, isLivePreview, activeTool, activeUnplugged]);
 
   useLayoutEffect(() => {
     updateWires();
@@ -1550,13 +1550,18 @@ export function VisualFlowModal({
                     <span>Add Field</span>
                   </button>
 
-                  {/* Connect Nodes Toggle */}
+                  {/* Connect Nodes Tool */}
                   <button
                     type="button"
-                    onClick={() => setIsLivePreview(!isLivePreview)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1 transition cursor-pointer shrink-0 whitespace-nowrap"
+                    onClick={() => setActiveTool((curr) => (curr === "connect" ? "select" : "connect"))}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 whitespace-nowrap ${
+                      activeTool === "connect"
+                        ? "bg-purple-600 text-white shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    }`}
+                    title="Connect nodes tool: connect and unplug stage workflow nodes"
                   >
-                    <Share2 className="w-3.5 h-3.5 text-purple-600" />
+                    <Share2 className={`w-3.5 h-3.5 ${activeTool === "connect" ? "text-white" : "text-purple-600"}`} />
                     <span>Connect Nodes</span>
                   </button>
 
@@ -1654,7 +1659,7 @@ export function VisualFlowModal({
                   }
                 }}
                 style={{
-                  cursor: activeTool === "pan" ? (isPanning ? "grabbing" : "grab") : activeUnplugged ? "crosshair" : "default",
+                  cursor: activeTool === "pan" ? (isPanning ? "grabbing" : "grab") : activeTool === "connect" || activeUnplugged ? "crosshair" : "default",
                 }}
               >
                 {/* Floating Re-plug Status Notification */}
@@ -1939,6 +1944,8 @@ export function VisualFlowModal({
 
                                 const color = colStyles.dotHex || colStyles.accentHex;
 
+                                const isConnectMode = activeTool === "connect";
+
                                 return (
                                   <div
                                     data-port-input={isInput ? col.id : undefined}
@@ -1967,6 +1974,8 @@ export function VisualFlowModal({
                                         ? "opacity-35 cursor-not-allowed"
                                         : isValidTarget
                                         ? "cursor-pointer scale-125"
+                                        : isConnectMode
+                                        ? "cursor-pointer scale-110 hover:scale-125"
                                         : "cursor-pointer hover:scale-125"
                                     }`}
                                     title={
@@ -1983,9 +1992,13 @@ export function VisualFlowModal({
                                     <span
                                       className={`w-4 h-4 rounded-full flex items-center justify-center border transition-all ${
                                         isPlugged && !isSource
-                                          ? "border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90"
+                                          ? isConnectMode
+                                            ? "border-purple-300 bg-white shadow-2xs ring-2 ring-purple-400/50"
+                                            : "border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90"
                                           : isValidTarget
                                           ? "border-purple-500 bg-purple-50 ring-2 ring-purple-400 animate-pulse shadow-xs"
+                                          : isConnectMode
+                                          ? "border-dashed border-purple-400 bg-purple-50/70 shadow-inner ring-1 ring-purple-300 animate-pulse"
                                           : "border-dashed border-slate-400 bg-slate-100 shadow-inner"
                                       }`}
                                     >
