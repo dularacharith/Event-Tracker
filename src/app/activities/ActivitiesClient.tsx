@@ -2007,25 +2007,6 @@ export function ActivitiesClient({
                 </React.Fragment>
               );
             })}
-
-            {/* "+" Button at the end of the track */}
-            {!filterStatus && (
-              <div className="shrink-0 self-stretch flex items-center justify-center px-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingColumn(null);
-                    setIsEditingNewColumn(true);
-                    setIsColumnEditModalOpen(true);
-                  }}
-                  title="Add new stage"
-                  aria-label="Add new stage"
-                  className="w-11 h-11 rounded-full bg-purple-100/90 hover:bg-purple-200 border border-purple-200/90 hover:border-purple-300 text-purple-600 hover:text-purple-700 shadow-2xs hover:shadow-md hover:shadow-purple-500/20 flex items-center justify-center transition-all duration-200 cursor-pointer group hover:scale-110 active:scale-95"
-                >
-                  <Plus className="w-5 h-5 stroke-[2.5] transition-transform duration-300 ease-out group-hover:rotate-90" />
-                </button>
-              </div>
-            )}
           </div>
         </div>
       ) : (
