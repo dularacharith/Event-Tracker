@@ -56,7 +56,6 @@ const STATUS_OPTIONS: DropdownOption[] = [
     value: "active",
     label: "Active",
     icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />,
-    badge: "Current",
   },
   {
     value: "completed",
@@ -575,7 +574,17 @@ export function CampaignsClient({
                   <CustomDropdown
                     value={editStatus}
                     onChange={(val) => setEditStatus(val)}
-                    options={STATUS_OPTIONS}
+                    options={STATUS_OPTIONS.map((opt) => {
+                      const cur = (editingCampaign?.status || "active").toLowerCase().trim();
+                      const isCur =
+                        opt.value === cur ||
+                        (opt.value === "hold" && (cur === "hold" || cur === "on hold" || cur === "on_hold")) ||
+                        (opt.value === "canceled" && (cur === "canceled" || cur === "cancelled"));
+                      return {
+                        ...opt,
+                        badge: isCur ? "Current" : undefined,
+                      };
+                    })}
                     placeholder="Select status..."
                     className="w-full"
                   />
