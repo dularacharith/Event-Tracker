@@ -48,6 +48,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Bookmark,
+  Unplug,
+  Plug,
 } from "lucide-react";
 import {
   FlowColumn,
@@ -362,12 +364,18 @@ export function VisualFlowModal({
 
       const pillEl = boardEl.querySelector(`[data-connector-btn="${fIdx}"]`) as HTMLElement | null;
       if (!pillEl) return;
-      const pillRect = pillEl.getBoundingClientRect();
-      const pillLeft = getSvgPoint(pillRect.left, pillRect.top + pillRect.height / 2);
-      const pillRight = getSvgPoint(pillRect.right, pillRect.top + pillRect.height / 2);
+
+      const leftPortEl = (pillEl.querySelector(`[data-pill-port-left="${fIdx}"]`) as HTMLElement | null) || pillEl;
+      const rightPortEl = (pillEl.querySelector(`[data-pill-port-right="${fIdx}"]`) as HTMLElement | null) || pillEl;
+      const leftRect = leftPortEl.getBoundingClientRect();
+      const rightRect = rightPortEl.getBoundingClientRect();
+
+      const pillLeft = getSvgPoint(leftRect.left + leftRect.width / 2, leftRect.top + leftRect.height / 2);
+      const pillRight = getSvgPoint(rightRect.left + rightRect.width / 2, rightRect.top + rightRect.height / 2);
       const pillLeftX = pillLeft.x;
       const pillRightX = pillRight.x;
-      const pillCenterY = pillLeft.y;
+      const pillLeftY = pillLeft.y;
+      const pillRightY = pillRight.y;
 
       // Visible source stages in Field A (canvas only, not hidden)
       const colsA = workingColumns.filter(
@@ -381,7 +389,7 @@ export function VisualFlowModal({
 
       // 1. Output wire from each visible stage in Field A into connector pill
       colsA.forEach((col) => {
-        if (col.unpluggedOutput) return;
+        if (col.isIndependent || col.unpluggedOutput) return;
         if (
           activeUnplugged?.type === "output" &&
           activeUnplugged.sourceColId === col.id &&
@@ -401,8 +409,8 @@ export function VisualFlowModal({
         const cp1X = startX + dx * 0.5;
         const cp1Y = startY;
         const cp2X = pillLeftX - dx * 0.5;
-        const cp2Y = pillCenterY;
-        const d = `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${pillLeftX} ${pillCenterY}`;
+        const cp2Y = pillLeftY;
+        const d = `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${pillLeftX} ${pillLeftY}`;
 
         const colStyles = getColumnStyles(col);
         const color = colStyles.dotHex || colStyles.accentHex;
@@ -417,7 +425,7 @@ export function VisualFlowModal({
 
       // 2. Input wire from connector pill into each visible stage in Field B
       colsB.forEach((col) => {
-        if (col.unpluggedInput) return;
+        if (col.isIndependent || col.unpluggedInput) return;
         if (
           activeUnplugged?.type === "input" &&
           activeUnplugged.sourceColId === col.id &&
@@ -435,10 +443,10 @@ export function VisualFlowModal({
 
         const dx = Math.max(24, endX - pillRightX);
         const cp1X = pillRightX + dx * 0.5;
-        const cp1Y = pillCenterY;
+        const cp1Y = pillRightY;
         const cp2X = endX - dx * 0.5;
         const cp2Y = endY;
-        const d = `M ${pillRightX} ${pillCenterY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`;
+        const d = `M ${pillRightX} ${pillRightY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`;
 
         const colStyles = getColumnStyles(col);
         const color = colStyles.dotHex || colStyles.accentHex;
@@ -590,6 +598,7 @@ export function VisualFlowModal({
       if (c.id === activeUnplugged.sourceColId) {
         return {
           ...c,
+          isIndependent: false,
           ...(activeUnplugged.type === "output" ? { unpluggedOutput: false } : { unpluggedInput: false }),
         };
       }
@@ -631,14 +640,14 @@ export function VisualFlowModal({
     const updated = workingColumns.map((c) => {
       if (targetType === "output") {
         if (c.id === targetColId) {
-          return { ...c, unpluggedOutput: false };
+          return { ...c, isIndependent: false, unpluggedOutput: false };
         }
         if (!isSame && c.id === prevColId) {
           return { ...c, unpluggedOutput: true };
         }
       } else {
         if (c.id === targetColId) {
-          return { ...c, unpluggedInput: false };
+          return { ...c, isIndependent: false, unpluggedInput: false };
         }
         if (!isSame && c.id === prevColId) {
           return { ...c, unpluggedInput: true };
@@ -701,6 +710,7 @@ export function VisualFlowModal({
       if (c.id === colId) {
         return {
           ...c,
+          isIndependent: false,
           ...(type === "output" ? { unpluggedOutput: false } : { unpluggedInput: false }),
         };
       }
@@ -740,6 +750,50 @@ export function VisualFlowModal({
       c.id === colId ? { ...c, hidden: !c.hidden } : c
     );
     pushHistory(updated);
+  };
+
+  const toggleUnplugStage = (colId: string) => {
+    const col = workingColumns.find((c) => c.id === colId);
+    if (!col) return;
+    const fIdx = pipelineFields.findIndex((f) => f.id === getColumnFieldId(col, pipelineFields));
+    const isFirst = fIdx === 0;
+    const isLast = fIdx === pipelineFields.length - 1;
+
+    const currentlyIndependent = Boolean(
+      col.isIndependent ||
+      (isFirst
+        ? col.unpluggedOutput
+        : isLast
+        ? col.unpluggedInput
+        : col.unpluggedInput && col.unpluggedOutput)
+    );
+
+    const nextIndependent = !currentlyIndependent;
+
+    const updated = workingColumns.map((c) => {
+      if (c.id === colId) {
+        return {
+          ...c,
+          isIndependent: nextIndependent,
+          unpluggedInput: nextIndependent,
+          unpluggedOutput: nextIndependent,
+        };
+      }
+      return c;
+    });
+
+    pushHistory(updated);
+    if (nextIndependent) {
+      toast.info(
+        "Stage Unplugged",
+        `${col.label} is now an Independent Stage (unplugged from workflow).`
+      );
+    } else {
+      toast.success(
+        "Stage Plugged In",
+        `${col.label} reconnected to pipeline workflow.`
+      );
+    }
   };
 
   const handleRename = (colId: string, newLabel: string) => {
@@ -1657,7 +1711,11 @@ export function VisualFlowModal({
                       const fIdx = activeUnplugged.fIdx;
                       const pillEl = boardRef.current?.querySelector(`[data-connector-btn="${fIdx}"]`) as HTMLElement | null;
                       if (!pillEl || !boardRef.current) return null;
-                      const pillRect = pillEl.getBoundingClientRect();
+
+                      const leftPortEl = (pillEl.querySelector(`[data-pill-port-left="${fIdx}"]`) as HTMLElement | null) || pillEl;
+                      const rightPortEl = (pillEl.querySelector(`[data-pill-port-right="${fIdx}"]`) as HTMLElement | null) || pillEl;
+                      const anchorEl = activeUnplugged.type === "output" ? leftPortEl : rightPortEl;
+                      const anchorRect = anchorEl.getBoundingClientRect();
                       const scale = zoomLevel / 100 || 1;
                       const boardRect = boardRef.current.getBoundingClientRect();
 
@@ -1667,18 +1725,18 @@ export function VisualFlowModal({
                         const ctm = svgRef.current.getScreenCTM();
                         if (ctm) {
                           const pt = svgRef.current.createSVGPoint();
-                          pt.x = activeUnplugged.type === "output" ? pillRect.left : pillRect.right;
-                          pt.y = pillRect.top + pillRect.height / 2;
+                          pt.x = anchorRect.left + anchorRect.width / 2;
+                          pt.y = anchorRect.top + anchorRect.height / 2;
                           const p = pt.matrixTransform(ctm.inverse());
                           pillX = p.x;
                           pillY = p.y;
                         } else {
-                          pillX = ((activeUnplugged.type === "output" ? pillRect.left : pillRect.right) - boardRect.left) / scale;
-                          pillY = (pillRect.top + pillRect.height / 2 - boardRect.top) / scale;
+                          pillX = (anchorRect.left + anchorRect.width / 2 - boardRect.left) / scale;
+                          pillY = (anchorRect.top + anchorRect.height / 2 - boardRect.top) / scale;
                         }
                       } else {
-                        pillX = ((activeUnplugged.type === "output" ? pillRect.left : pillRect.right) - boardRect.left) / scale;
-                        pillY = (pillRect.top + pillRect.height / 2 - boardRect.top) / scale;
+                        pillX = (anchorRect.left + anchorRect.width / 2 - boardRect.left) / scale;
+                        pillY = (anchorRect.top + anchorRect.height / 2 - boardRect.top) / scale;
                       }
 
                       let d: string;
@@ -1850,12 +1908,23 @@ export function VisualFlowModal({
                               const isSelected = selectedColId === col.id;
                               const colStyles = getColumnStyles(col);
 
+                              const isIndependent = Boolean(
+                                col.isIndependent ||
+                                (isFirst
+                                  ? col.unpluggedOutput
+                                  : isLast
+                                  ? col.unpluggedInput
+                                  : col.unpluggedInput && col.unpluggedOutput)
+                              );
+
                               const renderPlugSocket = (type: "input" | "output") => {
                                 if (col.hidden) return null;
 
                                 const isInput = type === "input";
                                 const connFIdx = isInput ? fIdx - 1 : fIdx;
-                                const isPlugged = isInput ? !col.unpluggedInput : !col.unpluggedOutput;
+                                const isPlugged = isInput
+                                  ? !col.unpluggedInput && !isIndependent
+                                  : !col.unpluggedOutput && !isIndependent;
                                 const isSource =
                                   activeUnplugged?.type === type &&
                                   activeUnplugged.sourceColId === col.id &&
@@ -1994,6 +2063,8 @@ export function VisualFlowModal({
                                       ? "bg-purple-50/80 border-purple-500 ring-2 ring-purple-500/20 shadow-xs"
                                       : col.hidden
                                       ? "bg-rose-50/25 border-dashed border-rose-300 opacity-65 hover:opacity-95"
+                                      : isIndependent
+                                      ? "bg-amber-50/25 border-dashed border-amber-300/90 hover:border-amber-400 shadow-2xs"
                                       : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
                                   }`}
                                 >
@@ -2030,6 +2101,11 @@ export function VisualFlowModal({
                                         <span className={`font-bold text-xs uppercase tracking-wider block truncate ${col.hidden ? "text-slate-500" : "text-slate-900"}`}>
                                           {col.label}
                                         </span>
+                                        {isIndependent && !col.hidden && (
+                                          <span className="px-1.5 py-0.2 text-[9px] font-extrabold uppercase tracking-wider rounded-md bg-amber-100 text-amber-800 border border-amber-300/80 shadow-2xs shrink-0">
+                                            Independent
+                                          </span>
+                                        )}
                                       </div>
                                       <span className="text-[10px] text-slate-500 font-medium">
                                         {count} {count === 1 ? "task" : "tasks"}
@@ -2055,6 +2131,29 @@ export function VisualFlowModal({
                                         <EyeOff className="w-3.5 h-3.5 text-rose-600" />
                                       ) : (
                                         <Eye className="w-3.5 h-3.5" />
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleUnplugStage(col.id);
+                                      }}
+                                      className={`p-1.5 rounded-lg transition cursor-pointer ${
+                                        isIndependent
+                                          ? "text-amber-600 bg-amber-50 hover:bg-amber-100 ring-1 ring-amber-300"
+                                          : "text-slate-400 hover:text-amber-600 hover:bg-amber-50/50"
+                                      }`}
+                                      title={
+                                        isIndependent
+                                          ? "Stage is unplugged / independent (Click to connect to pipeline)"
+                                          : "Unplug stage (Make independent stage)"
+                                      }
+                                    >
+                                      {isIndependent ? (
+                                        <Unplug className="w-3.5 h-3.5 text-amber-600" />
+                                      ) : (
+                                        <Plug className="w-3.5 h-3.5" />
                                       )}
                                     </button>
                                     <button
@@ -2124,7 +2223,7 @@ export function VisualFlowModal({
 
                         {/* Connector Transition Pill between fields */}
                         {!isLast && nextField && (
-                          <div className="w-24 sm:w-28 h-36 relative shrink-0 flex items-center justify-center z-10 pointer-events-auto">
+                          <div className="w-36 sm:w-40 h-36 relative shrink-0 flex items-center justify-center z-10 pointer-events-auto">
                             {(() => {
                               const conn = getResolvedFieldConnector(field, fIdx, pipelineFields);
                               const connStyles = getConnectorStyles(conn.colorTheme);
@@ -2137,10 +2236,10 @@ export function VisualFlowModal({
                                   data-connector-btn={fIdx}
                                   type="button"
                                   onClick={() => setEditingConnector({ field, fIdx })}
-                                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs z-20 select-none whitespace-nowrap transition cursor-pointer flex items-center gap-1 hover:scale-105 active:scale-95 group ${
+                                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 text-xs font-bold px-3.5 py-1.5 rounded-full shadow-xs z-20 select-none whitespace-nowrap transition cursor-pointer flex items-center gap-2 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] group ${
                                     conn.hidden
-                                      ? "opacity-50 hover:opacity-100 border-dashed bg-slate-100/90 text-slate-500"
-                                      : "hover:shadow-sm"
+                                      ? "opacity-60 hover:opacity-100 border-dashed bg-slate-100/90 text-slate-500"
+                                      : "hover:shadow-md"
                                   }`}
                                   style={{
                                     borderColor: conn.hidden ? undefined : connStyles.border,
@@ -2148,22 +2247,61 @@ export function VisualFlowModal({
                                   }}
                                   title="Click to customize transition button"
                                 >
-                                  {conn.hidden ? (
-                                    <>
-                                      <EyeOff className="w-3 h-3 text-slate-400" />
-                                      <span>Hidden</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      {showIcon && IconComp && (
-                                        <IconComp
-                                          className={conn.displayMode === "icon_only" ? "w-3.5 h-3.5" : "w-3 h-3"}
-                                          style={{ color: connStyles.hex }}
-                                        />
-                                      )}
-                                      {showText && conn.label && <span>{conn.label}</span>}
-                                    </>
-                                  )}
+                                  {/* Left Port / Plug: Incoming wire landing site */}
+                                  <span
+                                    data-pill-port-left={fIdx}
+                                    className="w-4 h-4 rounded-full flex items-center justify-center border border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 shrink-0"
+                                    title="Incoming transition plug"
+                                  >
+                                    {conn.hidden ? (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shadow-inner" />
+                                    ) : (
+                                      <span
+                                        className="w-2.5 h-2.5 rounded-full flex items-center justify-center shadow-xs border border-white"
+                                        style={{ backgroundColor: connStyles.hex }}
+                                      >
+                                        <span className="w-1 h-1 rounded-full bg-slate-900/60" />
+                                      </span>
+                                    )}
+                                  </span>
+
+                                  {/* Button Content / Label / Icon */}
+                                  <span className="flex items-center gap-1.5 px-0.5">
+                                    {conn.hidden ? (
+                                      <>
+                                        <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+                                        <span className="text-[11px] font-semibold">Hidden</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        {showIcon && IconComp && (
+                                          <IconComp
+                                            className={conn.displayMode === "icon_only" ? "w-4 h-4" : "w-3.5 h-3.5"}
+                                            style={{ color: connStyles.hex }}
+                                          />
+                                        )}
+                                        {showText && conn.label && <span>{conn.label}</span>}
+                                      </>
+                                    )}
+                                  </span>
+
+                                  {/* Right Port / Plug: Outgoing wire departure site */}
+                                  <span
+                                    data-pill-port-right={fIdx}
+                                    className="w-4 h-4 rounded-full flex items-center justify-center border border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 shrink-0"
+                                    title="Outgoing transition plug"
+                                  >
+                                    {conn.hidden ? (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shadow-inner" />
+                                    ) : (
+                                      <span
+                                        className="w-2.5 h-2.5 rounded-full flex items-center justify-center shadow-xs border border-white"
+                                        style={{ backgroundColor: connStyles.hex }}
+                                      >
+                                        <span className="w-1 h-1 rounded-full bg-slate-900/60" />
+                                      </span>
+                                    )}
+                                  </span>
                                 </button>
                               );
                             })()}
@@ -2295,6 +2433,68 @@ export function VisualFlowModal({
                               />
                             </span>
                           </button>
+                        </div>
+
+                        {/* Pipeline Connection / Independence */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                            Pipeline Connection
+                          </label>
+                          {(() => {
+                            const inspFIdx = pipelineFields.findIndex((f) => f.id === getColumnFieldId(selectedCol, pipelineFields));
+                            const isFirstInsp = inspFIdx === 0;
+                            const isLastInsp = inspFIdx === pipelineFields.length - 1;
+                            const selectedIsIndependent = Boolean(
+                              selectedCol.isIndependent ||
+                              (isFirstInsp
+                                ? selectedCol.unpluggedOutput
+                                : isLastInsp
+                                ? selectedCol.unpluggedInput
+                                : selectedCol.unpluggedInput && selectedCol.unpluggedOutput)
+                            );
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => toggleUnplugStage(selectedCol.id)}
+                                className={`w-full h-9 px-3 rounded-xl border text-xs font-semibold flex items-center justify-between transition cursor-pointer shadow-2xs select-none ${
+                                  selectedIsIndependent
+                                    ? "bg-amber-50 hover:bg-amber-100/70 border-amber-300 text-amber-800 ring-2 ring-amber-400/20"
+                                    : "bg-purple-50 hover:bg-purple-100/70 border-purple-200 text-purple-800"
+                                }`}
+                                title={
+                                  selectedIsIndependent
+                                    ? "Stage is unplugged / independent. Click to connect to pipeline flow."
+                                    : "Stage is connected to pipeline flow. Click to unplug (make independent)."
+                                }
+                              >
+                                <span className="flex items-center gap-2 font-bold whitespace-nowrap">
+                                  {selectedIsIndependent ? (
+                                    <>
+                                      <Unplug className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                      <span>Independent Stage</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plug className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                      <span>Connected to Flow</span>
+                                    </>
+                                  )}
+                                </span>
+                                <span
+                                  className={`w-7 h-4 rounded-full p-0.5 transition-colors shrink-0 flex items-center ${
+                                    selectedIsIndependent ? "bg-amber-500" : "bg-purple-600"
+                                  }`}
+                                >
+                                  <span
+                                    className={`w-3 h-3 rounded-full bg-white shadow-xs transform transition-transform duration-200 block ${
+                                      selectedIsIndependent ? "translate-x-3" : "translate-x-0"
+                                    }`}
+                                  />
+                                </span>
+                              </button>
+                            );
+                          })()}
                         </div>
 
                         {/* Location: Canvas / Stage Library Toggle */}

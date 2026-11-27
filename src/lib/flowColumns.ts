@@ -351,6 +351,7 @@ export interface FlowColumn {
   field?: string;
   unpluggedOutput?: boolean;
   unpluggedInput?: boolean;
+  isIndependent?: boolean;
 }
 
 export const DEFAULT_FLOW_COLUMNS: FlowColumn[] = [
