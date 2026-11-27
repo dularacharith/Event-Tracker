@@ -3427,10 +3427,17 @@ export function VisualFlowModal({
               <button
                 type="button"
                 onClick={handleSaveAndClose}
-                className="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm shadow-purple-500/25 transition cursor-pointer flex items-center justify-center gap-1.5"
+                disabled={isSaving}
+                className="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm shadow-purple-500/25 transition cursor-pointer flex items-center justify-center gap-1.5 min-w-[110px]"
               >
-                <Save className="w-3.5 h-3.5" />
-                <span>Save Changes</span>
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0 mx-auto" />
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save Changes</span>
+                  </>
+                )}
               </button>
             </div>
 
