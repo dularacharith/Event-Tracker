@@ -1742,14 +1742,10 @@ export function VisualFlowModal({
                   <button
                     type="button"
                     onClick={() => setIsConnectNodesModalOpen(true)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 whitespace-nowrap ${
-                      isConnectNodesModalOpen
-                        ? "bg-purple-600 text-white shadow-xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                    }`}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5 transition cursor-pointer shrink-0 whitespace-nowrap"
                     title="Configure all nodes and connections inside this pipeline"
                   >
-                    <Share2 className={`w-3.5 h-3.5 ${isConnectNodesModalOpen ? "text-white" : "text-purple-600"}`} />
+                    <Share2 className="w-3.5 h-3.5 text-purple-600" />
                     <span>Connect Nodes</span>
                   </button>
 
