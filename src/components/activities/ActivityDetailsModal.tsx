@@ -248,17 +248,35 @@ export function ActivityDetailsModal({
                     currentData.campaignColor
                   );
                   return (
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border truncate max-w-[150px] flex items-center gap-1.5 ${campStyle.badgeClass}`}
-                      style={campStyle.style}
-                      title={`Campaign: ${currentData.campaignName}${campStyle.statusLabel ? ` (${campStyle.statusLabel})` : ""}`}
-                    >
+                    <div className="relative group/camp inline-flex">
                       <span
-                        className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${campStyle.dotClass}`}
-                        style={campStyle.dotStyle}
-                      />
-                      <span className="truncate">{currentData.campaignName}</span>
-                    </span>
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border truncate max-w-[150px] flex items-center gap-1.5 transition-all duration-150 hover:brightness-95 hover:shadow-2xs cursor-default select-none ${campStyle.badgeClass}`}
+                        style={campStyle.style}
+                      >
+                        <span
+                          className={`w-2 h-2 rounded-full shrink-0 shadow-2xs ${campStyle.dotClass}`}
+                          style={campStyle.dotStyle}
+                        />
+                        <span className="truncate">{currentData.campaignName}</span>
+                      </span>
+
+                      {/* Modern Hover Tooltip */}
+                      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 opacity-0 invisible scale-95 group-hover/camp:opacity-100 group-hover/camp:visible group-hover/camp:scale-100 transition-all duration-150 ease-out origin-bottom">
+                        <div className="bg-slate-900/95 text-white backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-xl border border-slate-700/80 flex items-center gap-2 whitespace-nowrap text-[11px] leading-tight">
+                          <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Campaign</span>
+                          <span className="w-px h-3 bg-slate-700/80" />
+                          <span className="font-semibold text-slate-100">{currentData.campaignName}</span>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800/90 border border-slate-700/80 text-slate-200">
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${campStyle.dotClass}`}
+                              style={campStyle.dotStyle}
+                            />
+                            <span>{campStyle.statusLabel}</span>
+                          </span>
+                        </div>
+                        <div className="w-2 h-2 bg-slate-900 border-r border-b border-slate-700/80 transform rotate-45 mx-auto -mt-1" />
+                      </div>
+                    </div>
                   );
                 })()}
               </div>
