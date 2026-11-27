@@ -3761,20 +3761,34 @@ export function VisualFlowModal({
                       <div
                         key={stage.id}
                         className={`rounded-xl border p-2.5 flex items-center justify-between transition-colors ${
-                          isConnected
+                          stage.hidden
+                            ? "bg-rose-50/20 border-dashed border-rose-200 hover:border-rose-300"
+                            : isConnected
                             ? "bg-white border-slate-200/90 shadow-2xs hover:border-slate-300"
                             : "bg-slate-50/70 border-dashed border-slate-300 opacity-75 hover:opacity-100"
                         }`}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           {/* Dot indicator */}
                           <span
                             className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
                             style={{ backgroundColor: dotColor }}
                           />
-                          <span className="font-semibold text-xs text-slate-800 truncate">
+                          <span className={`font-semibold text-xs truncate ${stage.hidden ? "text-slate-600" : "text-slate-800"}`}>
                             {stage.label}
                           </span>
+
+                          {/* Hidden Badge */}
+                          {stage.hidden && (
+                            <span
+                              className="px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-rose-50 text-rose-600 border-rose-200 flex items-center gap-1 shrink-0 shadow-2xs"
+                              title="Stage is hidden on the board"
+                            >
+                              <EyeOff className="w-2.5 h-2.5 text-rose-600" />
+                              <span>Hidden</span>
+                            </span>
+                          )}
+
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
                               isConnected
