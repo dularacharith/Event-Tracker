@@ -74,10 +74,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       return prev.map((t) => (t.id === id ? { ...t, isExiting: true } : t));
     });
 
-    // Wait for the slide-out animation (320ms) to complete before removing from state
+    // Wait for the slide-out animation (350ms) to complete before removing from state
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 330);
+    }, 360);
   }, []);
 
   const removeToast = useCallback(
@@ -292,6 +292,7 @@ function ToastCard({
 
   const handleTouchEnd = () => {
     if (dragOffset > 70) {
+      setDragOffset(0);
       onDismiss(item.id);
     } else {
       setDragOffset(0);
@@ -308,7 +309,7 @@ function ToastCard({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={
-        dragOffset > 0
+        !item.isExiting && dragOffset > 0
           ? {
               transform: `translateX(${dragOffset}px)`,
               opacity: Math.max(0.3, 1 - dragOffset / 200),
