@@ -2030,8 +2030,6 @@ export function VisualFlowModal({
                               );
 
                               const renderPlugSocket = (type: "input" | "output") => {
-                                if (col.hidden) return null;
-
                                 const isInput = type === "input";
                                 const connFIdx = isInput ? fIdx - 1 : fIdx;
                                 const isPlugged = isInput
@@ -2059,6 +2057,10 @@ export function VisualFlowModal({
                                     data-port-output={!isInput ? col.id : undefined}
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      if (col.hidden) {
+                                        toast.info("Stage Hidden", "Unhide this stage (click the eye icon) to connect links on the canvas.");
+                                        return;
+                                      }
                                       if (isCurrentUnplugged) {
                                         if (isValidTarget) {
                                           handlePlugInto(col.id, type, connFIdx);
@@ -2083,17 +2085,21 @@ export function VisualFlowModal({
                                         }
                                       }
                                     }}
-                                    className={`w-6 h-6 flex items-center justify-center shrink-0 select-none relative z-20 transition-transform ${
-                                      isInvalidTarget
+                                    className={`w-6 h-6 flex items-center justify-center shrink-0 select-none relative z-20 transition-all duration-200 cursor-pointer ${
+                                      col.hidden
+                                        ? "opacity-60 hover:opacity-100"
+                                        : isInvalidTarget
                                         ? "opacity-35 cursor-not-allowed"
                                         : isValidTarget
-                                        ? "cursor-pointer scale-125"
+                                        ? "scale-125 ring-2 ring-purple-400/80 rounded-full animate-pulse"
                                         : isConnectMode
-                                        ? "cursor-pointer scale-110 hover:scale-125"
-                                        : "cursor-pointer hover:scale-125"
+                                        ? "scale-110 hover:scale-125"
+                                        : "hover:scale-125"
                                     }`}
                                     title={
-                                      isInvalidTarget
+                                      col.hidden
+                                        ? `Stage "${col.label}" is hidden (Click eye icon to unhide)`
+                                        : isInvalidTarget
                                         ? activeUnplugged.type !== type
                                           ? "Cannot connect: Left-side plugs cannot be connected to right-side plugs"
                                           : "Cannot connect: Plugs cannot connect across different fields"
@@ -2104,24 +2110,26 @@ export function VisualFlowModal({
                                         : `Empty socket (Click to reconnect)`
                                     }
                                   >
-                                    {/* Outer socket bezel / ring */}
+                                    {/* Outer socket bezel / ring with high-fidelity tactile hover */}
                                     <span
-                                      className={`w-4 h-4 rounded-full flex items-center justify-center border transition-all ${
-                                        isPlugged && !isSource
+                                      className={`w-4 h-4 rounded-full flex items-center justify-center border transition-all duration-200 ${
+                                        col.hidden
+                                          ? "border-slate-300 bg-slate-100/90 shadow-2xs"
+                                          : isPlugged && !isSource
                                           ? isConnectMode
                                             ? "border-purple-300 bg-white shadow-2xs ring-2 ring-purple-400/50"
-                                            : "border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90"
+                                            : "border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 hover:ring-2 hover:ring-purple-400 hover:border-purple-300 hover:shadow-sm"
                                           : isValidTarget
                                           ? "border-purple-500 bg-purple-50 ring-2 ring-purple-400 animate-pulse shadow-xs"
                                           : isConnectMode
                                           ? "border-dashed border-purple-400 bg-purple-50/70 shadow-inner ring-1 ring-purple-300 animate-pulse"
-                                          : "border-dashed border-slate-400 bg-slate-100 shadow-inner"
+                                          : "border-dashed border-slate-400 bg-slate-100 shadow-inner hover:border-purple-400 hover:bg-purple-50/50 hover:ring-2 hover:ring-purple-300/40"
                                       }`}
                                     >
                                       {isPlugged && !isSource ? (
                                         /* Inserted Plug Head */
                                         <span
-                                          className="w-2.5 h-2.5 rounded-full flex items-center justify-center shadow-xs border border-white"
+                                          className="w-2.5 h-2.5 rounded-full flex items-center justify-center shadow-xs border border-white transition-transform duration-200 hover:scale-110"
                                           style={{ backgroundColor: color }}
                                         >
                                           {/* Center contact pin */}
@@ -2214,8 +2222,14 @@ export function VisualFlowModal({
 
                                    {/* Main Card Content (Stacked into 2 spacious, clean rows) */}
                                    <div className={`flex-1 min-w-0 flex flex-col gap-1.5 ${draggedStageId ? "pointer-events-none" : ""}`}>
-                                     {/* Row 1: Dedicated Stage Title (Maximum horizontal width to avoid truncation) */}
-                                     <div className="flex items-center gap-1.5 min-w-0">
+                                     {/* Row 1: Dedicated Stage Title (with configured theme color indicator) */}
+                                     <div className="flex items-center gap-2 min-w-0">
+                                       {/* Configured Theme Color Dot */}
+                                       <span
+                                         className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs ring-2 ring-white/90"
+                                         style={{ backgroundColor: colStyles.dotHex || colStyles.accentHex }}
+                                         title={`Configured Color: ${col.colorTheme || "default"}`}
+                                       />
                                        <span
                                          className={`font-bold text-xs uppercase tracking-wider block truncate ${
                                            col.hidden ? "text-slate-500" : "text-slate-900"
@@ -2271,21 +2285,21 @@ export function VisualFlowModal({
                                              e.stopPropagation();
                                              toggleUnplugStage(col.id);
                                            }}
-                                           className={`p-1 rounded-md transition cursor-pointer ${
+                                           className={`p-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center relative group/plug shadow-2xs ${
                                              isIndependent
-                                               ? "text-amber-600 bg-amber-50 hover:bg-amber-100 ring-1 ring-amber-300"
-                                               : "text-slate-400 hover:text-amber-600 hover:bg-amber-50/50"
+                                               ? "text-amber-700 bg-amber-50 hover:bg-amber-100/90 border border-amber-300/90 hover:scale-110 active:scale-95 ring-1 ring-amber-400/20 hover:ring-amber-400/40"
+                                               : "text-slate-400 hover:text-purple-600 hover:bg-purple-50/80 border border-slate-200/50 hover:border-purple-200/80 hover:scale-110 active:scale-95 hover:ring-1 hover:ring-purple-300/30"
                                            }`}
                                            title={
                                              isIndependent
-                                               ? "Stage is unplugged / independent (Click to connect to pipeline)"
-                                               : "Unplug stage (Make independent stage)"
+                                               ? "Stage is independent (Click to plug into pipeline flow)"
+                                               : "Connected to pipeline flow (Click to unplug & make independent)"
                                            }
                                          >
                                            {isIndependent ? (
-                                             <Unplug className="w-3.5 h-3.5 text-amber-600" />
+                                             <Unplug className="w-3.5 h-3.5 text-amber-600 transition-transform duration-200 group-hover/plug:-rotate-12 group-hover/plug:scale-110" />
                                            ) : (
-                                             <Plug className="w-3.5 h-3.5" />
+                                             <Plug className="w-3.5 h-3.5 transition-transform duration-200 group-hover/plug:rotate-12 group-hover/plug:scale-110" />
                                            )}
                                          </button>
 
