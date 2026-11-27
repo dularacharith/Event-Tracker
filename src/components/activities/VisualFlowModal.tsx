@@ -156,6 +156,48 @@ export function VisualFlowModal({
   const [isExpanded, setIsExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Interactive plug and socket connection state
+  interface ActiveUnpluggedState {
+    sourceColId: string;
+    fieldId: string;
+    fIdx: number;
+    type: "input" | "output";
+    color: string;
+  }
+  const [activeUnplugged, setActiveUnplugged] = useState<ActiveUnpluggedState | null>(null);
+  const [mouseSvgPos, setMouseSvgPos] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!activeUnplugged) return;
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (svgRef.current && typeof svgRef.current.getScreenCTM === "function" && typeof svgRef.current.createSVGPoint === "function") {
+        const ctm = svgRef.current.getScreenCTM();
+        if (ctm) {
+          const pt = svgRef.current.createSVGPoint();
+          pt.x = e.clientX;
+          pt.y = e.clientY;
+          const p = pt.matrixTransform(ctm.inverse());
+          setMouseSvgPos({ x: p.x, y: p.y });
+          return;
+        }
+      }
+      if (boardRef.current) {
+        const rect = boardRef.current.getBoundingClientRect();
+        const scale = zoomLevel / 100 || 1;
+        setMouseSvgPos({
+          x: (e.clientX - rect.left) / scale,
+          y: (e.clientY - rect.top) / scale,
+        });
+      }
+    };
+
+    window.addEventListener("mousemove", handleGlobalMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleGlobalMouseMove);
+    };
+  }, [activeUnplugged, zoomLevel]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -339,6 +381,15 @@ export function VisualFlowModal({
 
       // 1. Output wire from each visible stage in Field A into connector pill
       colsA.forEach((col) => {
+        if (col.unpluggedOutput) return;
+        if (
+          activeUnplugged?.type === "output" &&
+          activeUnplugged.sourceColId === col.id &&
+          activeUnplugged.fIdx === fIdx
+        ) {
+          return;
+        }
+
         const portEl = boardEl.querySelector(`[data-port-output="${col.id}"]`) as HTMLElement | null;
         if (!portEl) return;
         const portRect = portEl.getBoundingClientRect();
@@ -366,6 +417,15 @@ export function VisualFlowModal({
 
       // 2. Input wire from connector pill into each visible stage in Field B
       colsB.forEach((col) => {
+        if (col.unpluggedInput) return;
+        if (
+          activeUnplugged?.type === "input" &&
+          activeUnplugged.sourceColId === col.id &&
+          activeUnplugged.fIdx === fIdx
+        ) {
+          return;
+        }
+
         const portEl = boardEl.querySelector(`[data-port-input="${col.id}"]`) as HTMLElement | null;
         if (!portEl) return;
         const portRect = portEl.getBoundingClientRect();
@@ -393,7 +453,7 @@ export function VisualFlowModal({
     });
 
     setWires(newWires);
-  }, [workingColumns, pipelineFields, zoomLevel, isLivePreview]);
+  }, [workingColumns, pipelineFields, zoomLevel, isLivePreview, activeUnplugged]);
 
   useLayoutEffect(() => {
     updateWires();
@@ -483,11 +543,17 @@ export function VisualFlowModal({
     onClose();
   };
 
+  const activeUnpluggedRef = useRef(activeUnplugged);
+  activeUnpluggedRef.current = activeUnplugged;
+  const handleCancelUnplugRef = useRef<() => void>(() => {});
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (showUnsavedPrompt) {
+        if (activeUnpluggedRef.current) {
+          handleCancelUnplugRef.current();
+        } else if (showUnsavedPrompt) {
           setShowUnsavedPrompt(false);
         } else if (isHowToUseOpen) {
           setIsHowToUseOpen(false);
@@ -515,6 +581,138 @@ export function VisualFlowModal({
     setWorkingColumns(sorted);
     setPipelineFields(fields);
     setIsDirty(true);
+  };
+
+  const handleCancelUnplug = () => {
+    if (!activeUnplugged) return;
+    const prevCol = workingColumns.find((c) => c.id === activeUnplugged.sourceColId);
+    const updated = workingColumns.map((c) => {
+      if (c.id === activeUnplugged.sourceColId) {
+        return {
+          ...c,
+          ...(activeUnplugged.type === "output" ? { unpluggedOutput: false } : { unpluggedInput: false }),
+        };
+      }
+      return c;
+    });
+    pushHistory(updated);
+    setActiveUnplugged(null);
+    setMouseSvgPos(null);
+    if (prevCol) {
+      toast.info("Connection Restored", `Plug snapped back to ${prevCol.label}.`);
+    }
+  };
+  handleCancelUnplugRef.current = handleCancelUnplug;
+
+  const handlePlugInto = (targetColId: string, targetType: "input" | "output", targetFIdx: number) => {
+    if (!activeUnplugged) return;
+
+    if (activeUnplugged.type !== targetType) {
+      toast.info(
+        "Direction Mismatch",
+        "Left-side inputs cannot connect to right-side outputs. Connections flow strictly left-to-right."
+      );
+      return;
+    }
+
+    if (activeUnplugged.fIdx !== targetFIdx) {
+      toast.info(
+        "Field Mismatch",
+        "Plugs cannot cross non-adjacent fields. Connections flow sequentially from stage to stage."
+      );
+      return;
+    }
+
+    const prevColId = activeUnplugged.sourceColId;
+    const isSame = prevColId === targetColId;
+    const targetCol = workingColumns.find((c) => c.id === targetColId);
+    const prevCol = workingColumns.find((c) => c.id === prevColId);
+
+    const updated = workingColumns.map((c) => {
+      if (targetType === "output") {
+        if (c.id === targetColId) {
+          return { ...c, unpluggedOutput: false };
+        }
+        if (!isSame && c.id === prevColId) {
+          return { ...c, unpluggedOutput: true };
+        }
+      } else {
+        if (c.id === targetColId) {
+          return { ...c, unpluggedInput: false };
+        }
+        if (!isSame && c.id === prevColId) {
+          return { ...c, unpluggedInput: true };
+        }
+      }
+      return c;
+    });
+
+    pushHistory(updated);
+    setActiveUnplugged(null);
+    setMouseSvgPos(null);
+
+    if (!isSame && targetCol) {
+      toast.success(
+        "Plug Connected",
+        `Successfully connected to ${targetCol.label}.`
+      );
+    }
+  };
+
+  const handleStartUnplug = (
+    colId: string,
+    fieldId: string,
+    fIdx: number,
+    type: "input" | "output",
+    color: string,
+    e: React.MouseEvent
+  ) => {
+    let initialPt = { x: 0, y: 0 };
+    if (svgRef.current && typeof svgRef.current.getScreenCTM === "function" && typeof svgRef.current.createSVGPoint === "function") {
+      const ctm = svgRef.current.getScreenCTM();
+      if (ctm) {
+        const pt = svgRef.current.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const p = pt.matrixTransform(ctm.inverse());
+        initialPt = { x: p.x, y: p.y };
+      }
+    } else if (boardRef.current) {
+      const rect = boardRef.current.getBoundingClientRect();
+      const scale = zoomLevel / 100 || 1;
+      initialPt = {
+        x: (e.clientX - rect.left) / scale,
+        y: (e.clientY - rect.top) / scale,
+      };
+    }
+    setMouseSvgPos(initialPt);
+    setActiveUnplugged({
+      sourceColId: colId,
+      fieldId,
+      fIdx,
+      type,
+      color,
+    });
+  };
+
+  const handleEmptySocketClick = (colId: string, type: "input" | "output") => {
+    const col = workingColumns.find((c) => c.id === colId);
+    const updated = workingColumns.map((c) => {
+      if (c.id === colId) {
+        return {
+          ...c,
+          ...(type === "output" ? { unpluggedOutput: false } : { unpluggedInput: false }),
+        };
+      }
+      return c;
+    });
+    pushHistory(updated);
+    if (col) {
+      toast.success(
+        "Plug Connected",
+        `${col.label} ${type === "output" ? "outgoing" : "incoming"} connection plugged.`
+      );
+    }
   };
 
   const handleUndo = () => {
@@ -1393,10 +1591,38 @@ export function VisualFlowModal({
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
+                onClick={(e) => {
+                  if (activeUnplugged) {
+                    const target = e.target as HTMLElement;
+                    if (!target.closest("[data-port-input]") && !target.closest("[data-port-output]")) {
+                      handleCancelUnplug();
+                    }
+                  }
+                }}
                 style={{
-                  cursor: activeTool === "pan" ? (isPanning ? "grabbing" : "grab") : "default",
+                  cursor: activeTool === "pan" ? (isPanning ? "grabbing" : "grab") : activeUnplugged ? "crosshair" : "default",
                 }}
               >
+                {/* Floating Re-plug Status Notification */}
+                {activeUnplugged && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-slate-900/90 text-white px-4 py-1.5 rounded-full shadow-lg border border-slate-700/80 backdrop-blur-md flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-top-2 pointer-events-auto">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full animate-ping shrink-0"
+                      style={{ backgroundColor: activeUnplugged.color }}
+                    />
+                    <span>
+                      {activeUnplugged.type === "output" ? "Outgoing" : "Incoming"} plug detached. Click target stage socket to connect, or click canvas / press Esc to restore.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCancelUnplug}
+                      className="ml-2 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold uppercase tracking-wider transition cursor-pointer"
+                    >
+                      Cancel &amp; Re-plug
+                    </button>
+                  </div>
+                )}
+
                 {/* Scalable & Pannable Graph Stage Board */}
                 <div
                   ref={boardRef}
@@ -1410,7 +1636,7 @@ export function VisualFlowModal({
                   {/* Dynamic Multi-Stage Connection Wires */}
                   <svg
                     ref={svgRef}
-                    className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-0"
+                    className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-10"
                     style={{ minWidth: "100%", minHeight: "100%" }}
                   >
                     {wires.map((w) => (
@@ -1425,6 +1651,86 @@ export function VisualFlowModal({
                         strokeLinecap="round"
                       />
                     ))}
+
+                    {/* Active Unplugged Wire Tracking Mouse */}
+                    {activeUnplugged && mouseSvgPos && (() => {
+                      const fIdx = activeUnplugged.fIdx;
+                      const pillEl = boardRef.current?.querySelector(`[data-connector-btn="${fIdx}"]`) as HTMLElement | null;
+                      if (!pillEl || !boardRef.current) return null;
+                      const pillRect = pillEl.getBoundingClientRect();
+                      const scale = zoomLevel / 100 || 1;
+                      const boardRect = boardRef.current.getBoundingClientRect();
+
+                      let pillX: number;
+                      let pillY: number;
+                      if (svgRef.current && typeof svgRef.current.getScreenCTM === "function") {
+                        const ctm = svgRef.current.getScreenCTM();
+                        if (ctm) {
+                          const pt = svgRef.current.createSVGPoint();
+                          pt.x = activeUnplugged.type === "output" ? pillRect.left : pillRect.right;
+                          pt.y = pillRect.top + pillRect.height / 2;
+                          const p = pt.matrixTransform(ctm.inverse());
+                          pillX = p.x;
+                          pillY = p.y;
+                        } else {
+                          pillX = ((activeUnplugged.type === "output" ? pillRect.left : pillRect.right) - boardRect.left) / scale;
+                          pillY = (pillRect.top + pillRect.height / 2 - boardRect.top) / scale;
+                        }
+                      } else {
+                        pillX = ((activeUnplugged.type === "output" ? pillRect.left : pillRect.right) - boardRect.left) / scale;
+                        pillY = (pillRect.top + pillRect.height / 2 - boardRect.top) / scale;
+                      }
+
+                      let d: string;
+                      if (activeUnplugged.type === "output") {
+                        const startX = mouseSvgPos.x;
+                        const startY = mouseSvgPos.y;
+                        const dx = Math.max(24, pillX - startX);
+                        const cp1X = startX + dx * 0.5;
+                        const cp1Y = startY;
+                        const cp2X = pillX - dx * 0.5;
+                        const cp2Y = pillY;
+                        d = `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${pillX} ${pillY}`;
+                      } else {
+                        const endX = mouseSvgPos.x;
+                        const endY = mouseSvgPos.y;
+                        const dx = Math.max(24, endX - pillX);
+                        const cp1X = pillX + dx * 0.5;
+                        const cp1Y = pillY;
+                        const cp2X = endX - dx * 0.5;
+                        const cp2Y = endY;
+                        d = `M ${pillX} ${pillY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`;
+                      }
+
+                      return (
+                        <g>
+                          <path
+                            d={d}
+                            fill="none"
+                            stroke={activeUnplugged.color}
+                            strokeWidth="6"
+                            strokeOpacity="0.25"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d={d}
+                            fill="none"
+                            stroke={activeUnplugged.color}
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          <g transform={`translate(${mouseSvgPos.x}, ${mouseSvgPos.y})`}>
+                            <circle r="14" fill={activeUnplugged.color} fillOpacity="0.2">
+                              <animate attributeName="r" values="10;16;10" dur="1.2s" repeatCount="indefinite" />
+                              <animate attributeName="opacity" values="0.3;0.1;0.3" dur="1.2s" repeatCount="indefinite" />
+                            </circle>
+                            <circle r="6" fill="#1e293b" stroke="#ffffff" strokeWidth="1.5" />
+                            <circle r="4" fill={activeUnplugged.color} />
+                            <circle r="1.5" fill="#ffffff" />
+                          </g>
+                        </g>
+                      );
+                    })()}
                   </svg>
 
                   {pipelineFields.map((field, fIdx) => {
@@ -1544,6 +1850,94 @@ export function VisualFlowModal({
                               const isSelected = selectedColId === col.id;
                               const colStyles = getColumnStyles(col);
 
+                              const renderPlugSocket = (type: "input" | "output") => {
+                                if (col.hidden) return null;
+
+                                const isInput = type === "input";
+                                const connFIdx = isInput ? fIdx - 1 : fIdx;
+                                const isPlugged = isInput ? !col.unpluggedInput : !col.unpluggedOutput;
+                                const isSource =
+                                  activeUnplugged?.type === type &&
+                                  activeUnplugged.sourceColId === col.id &&
+                                  activeUnplugged.fIdx === connFIdx;
+
+                                const isCurrentUnplugged = activeUnplugged !== null;
+                                const isValidTarget =
+                                  isCurrentUnplugged &&
+                                  activeUnplugged.type === type &&
+                                  activeUnplugged.fIdx === connFIdx;
+                                const isInvalidTarget = isCurrentUnplugged && !isValidTarget;
+
+                                const color = colStyles.dotHex || colStyles.accentHex;
+
+                                return (
+                                  <div
+                                    data-port-input={isInput ? col.id : undefined}
+                                    data-port-output={!isInput ? col.id : undefined}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (isCurrentUnplugged) {
+                                        if (isValidTarget) {
+                                          handlePlugInto(col.id, type, connFIdx);
+                                        } else {
+                                          toast.info(
+                                            "Direction Mismatch",
+                                            "Connections flow strictly left-to-right between adjacent fields."
+                                          );
+                                        }
+                                      } else {
+                                        if (isPlugged) {
+                                          handleStartUnplug(col.id, field.id, connFIdx, type, color, e);
+                                        } else {
+                                          handleEmptySocketClick(col.id, type);
+                                        }
+                                      }
+                                    }}
+                                    className={`w-6 h-6 flex items-center justify-center shrink-0 select-none relative z-20 transition-transform ${
+                                      isInvalidTarget
+                                        ? "opacity-35 cursor-not-allowed"
+                                        : isValidTarget
+                                        ? "cursor-pointer scale-125"
+                                        : "cursor-pointer hover:scale-125"
+                                    }`}
+                                    title={
+                                      isInvalidTarget
+                                        ? "Cannot connect: Direction is strictly left-to-right"
+                                        : isValidTarget
+                                        ? `Click to plug connection into ${col.label}`
+                                        : isPlugged
+                                        ? `Tactile plug connected (Click to unplug & move)`
+                                        : `Empty socket (Click to reconnect)`
+                                    }
+                                  >
+                                    {/* Outer socket bezel / ring */}
+                                    <span
+                                      className={`w-4 h-4 rounded-full flex items-center justify-center border transition-all ${
+                                        isPlugged && !isSource
+                                          ? "border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90"
+                                          : isValidTarget
+                                          ? "border-purple-500 bg-purple-50 ring-2 ring-purple-400 animate-pulse shadow-xs"
+                                          : "border-dashed border-slate-400 bg-slate-100 shadow-inner"
+                                      }`}
+                                    >
+                                      {isPlugged && !isSource ? (
+                                        /* Inserted Plug Head */
+                                        <span
+                                          className="w-2.5 h-2.5 rounded-full flex items-center justify-center shadow-xs border border-white"
+                                          style={{ backgroundColor: color }}
+                                        >
+                                          {/* Center contact pin */}
+                                          <span className="w-1 h-1 rounded-full bg-slate-900/60" />
+                                        </span>
+                                      ) : (
+                                        /* Empty socket receptacle hole */
+                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-700/80 shadow-inner" />
+                                      )}
+                                    </span>
+                                  </div>
+                                );
+                              };
+
                               return (
                                 <div
                                   key={col.id}
@@ -1584,7 +1978,13 @@ export function VisualFlowModal({
                                     setDragOverColId(null);
                                     setDraggedStageId(null);
                                   }}
-                                  onClick={() => setSelectedColId(col.id)}
+                                  onClick={() => {
+                                    if (activeUnplugged) {
+                                      handleCancelUnplug();
+                                    } else {
+                                      setSelectedColId(col.id);
+                                    }
+                                  }}
                                   className={`rounded-xl p-2.5 border transition-colors duration-150 cursor-pointer flex items-center justify-between shadow-2xs relative select-none group ${
                                     draggedStageId === col.id
                                       ? "opacity-30 scale-[0.98] border-dashed border-purple-400 bg-purple-50/50 shadow-none ring-0"
@@ -1597,24 +1997,6 @@ export function VisualFlowModal({
                                       : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
                                   }`}
                                 >
-                                  {/* Left Input Port Dot on Card (if not first field) */}
-                                  {!isFirst && !col.hidden && (
-                                    <div
-                                      data-port-input={col.id}
-                                      className="w-2.5 h-2.5 rounded-full border-2 border-white shadow-xs absolute -left-1.25 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
-                                      style={{ backgroundColor: colStyles.dotHex || colStyles.accentHex }}
-                                    />
-                                  )}
-
-                                  {/* Right Output Port Dot on Card (if not last field and not first field) */}
-                                  {!isLast && !isFirst && !col.hidden && (
-                                    <div
-                                      data-port-output={col.id}
-                                      className="w-2.5 h-2.5 rounded-full border-2 border-white shadow-xs absolute -right-1.25 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
-                                      style={{ backgroundColor: colStyles.dotHex || colStyles.accentHex }}
-                                    />
-                                  )}
-
                                   {/* High-Fidelity Glow Drop Line Indicator */}
                                   {dragOverColId === col.id && draggedStageId !== col.id && (
                                     <div
@@ -1628,8 +2010,9 @@ export function VisualFlowModal({
                                   )}
 
                                   <div className={`flex items-center gap-2 min-w-0 ${draggedStageId ? "pointer-events-none" : ""}`}>
+                                    {!isFirst && renderPlugSocket("input")}
                                     <GripVertical className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 shrink-0 cursor-grab" />
-                                    {isFirst ? (
+                                    {isFirst && (
                                       <button
                                         type="button"
                                         onClick={(e) => {
@@ -1641,11 +2024,6 @@ export function VisualFlowModal({
                                       >
                                         <Settings className="w-3.5 h-3.5" />
                                       </button>
-                                    ) : (
-                                      <span
-                                        className={`w-2 h-2 rounded-full shrink-0 ${colStyles.dotClass}`}
-                                        style={colStyles.dotStyle}
-                                      />
                                     )}
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-1.5">
@@ -1690,19 +2068,7 @@ export function VisualFlowModal({
                                     >
                                       <ArrowLeft className="w-3.5 h-3.5" />
                                     </button>
-                                    {isFirst ? (
-                                      <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                                        <span
-                                          data-port-output={col.id}
-                                          className={`w-2.5 h-2.5 rounded-full shrink-0 border border-white shadow-2xs ${colStyles.dotClass}`}
-                                          style={{
-                                            ...colStyles.dotStyle,
-                                            backgroundColor: colStyles.dotHex || colStyles.accentHex,
-                                          }}
-                                          title="Connection plug"
-                                        />
-                                      </div>
-                                    ) : (
+                                    {!isFirst && (
                                       <button
                                         type="button"
                                         onClick={(e) => {
@@ -1715,6 +2081,7 @@ export function VisualFlowModal({
                                         <Settings className="w-3.5 h-3.5" />
                                       </button>
                                     )}
+                                    {!isLast && renderPlugSocket("output")}
                                   </div>
                                 </div>
                               );

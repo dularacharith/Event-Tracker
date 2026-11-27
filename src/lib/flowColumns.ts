@@ -349,6 +349,8 @@ export interface FlowColumn {
   isCustom?: boolean;
   statusMapping?: string;
   field?: string;
+  unpluggedOutput?: boolean;
+  unpluggedInput?: boolean;
 }
 
 export const DEFAULT_FLOW_COLUMNS: FlowColumn[] = [
