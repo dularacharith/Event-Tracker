@@ -1936,7 +1936,7 @@ export function VisualFlowModal({
                             }
                             setDragOverSection(null);
                           }}
-                          className={`w-52 sm:w-60 rounded-2xl p-3 flex flex-col gap-2 shadow-xs relative transition-colors shrink-0 border-2 ${
+                          className={`w-56 sm:w-64 rounded-2xl p-3 flex flex-col gap-2 shadow-xs relative transition-colors shrink-0 border-2 ${
                             isDragOver
                               ? "border-purple-500 ring-4 ring-purple-500/20"
                               : ""
@@ -2183,135 +2183,144 @@ export function VisualFlowModal({
                                       setSelectedColId(col.id);
                                     }
                                   }}
-                                  className={`rounded-xl p-2.5 border transition-colors duration-150 cursor-pointer flex items-center justify-between shadow-2xs relative select-none group ${
-                                    draggedStageId === col.id
-                                      ? "opacity-30 scale-[0.98] border-dashed border-purple-400 bg-purple-50/50 shadow-none ring-0"
-                                      : dragOverColId === col.id
-                                      ? "border-purple-500 ring-2 ring-purple-500/40 bg-purple-50/80 shadow-xs"
-                                      : isSelected
-                                      ? "bg-purple-50/80 border-purple-500 ring-2 ring-purple-500/20 shadow-xs"
-                                      : col.hidden
-                                      ? "bg-rose-50/25 border-dashed border-rose-300 opacity-65 hover:opacity-95"
-                                      : isIndependent
-                                      ? "bg-amber-50/25 border-dashed border-amber-300/90 hover:border-amber-400 shadow-2xs"
-                                      : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
-                                  }`}
-                                >
-                                  {/* High-Fidelity Glow Drop Line Indicator */}
-                                  {dragOverColId === col.id && draggedStageId !== col.id && (
-                                    <div
-                                      className={`absolute inset-x-2 h-1 rounded-full bg-purple-600 shadow-md shadow-purple-500/50 z-30 pointer-events-none transition-all ${
-                                        dropPosition === "above" ? "-top-1" : "-bottom-1"
-                                      }`}
-                                    >
-                                      <div className="absolute -left-1 -top-0.5 w-2 h-2 rounded-full bg-purple-600 shadow-xs ring-2 ring-white" />
-                                      <div className="absolute -right-1 -top-0.5 w-2 h-2 rounded-full bg-purple-600 shadow-xs ring-2 ring-white" />
-                                    </div>
-                                  )}
+                                   className={`rounded-xl px-2.5 py-2 border transition-colors duration-150 cursor-pointer flex items-center gap-2 shadow-2xs relative select-none group ${
+                                     draggedStageId === col.id
+                                       ? "opacity-30 scale-[0.98] border-dashed border-purple-400 bg-purple-50/50 shadow-none ring-0"
+                                       : dragOverColId === col.id
+                                       ? "border-purple-500 ring-2 ring-purple-500/40 bg-purple-50/80 shadow-xs"
+                                       : isSelected
+                                       ? "bg-purple-50/80 border-purple-500 ring-2 ring-purple-500/20 shadow-xs"
+                                       : col.hidden
+                                       ? "bg-rose-50/25 border-dashed border-rose-300 opacity-65 hover:opacity-95"
+                                       : isIndependent
+                                       ? "bg-amber-50/25 border-dashed border-amber-300/90 hover:border-amber-400 shadow-2xs"
+                                       : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
+                                   }`}
+                                 >
+                                   {/* High-Fidelity Glow Drop Line Indicator */}
+                                   {dragOverColId === col.id && draggedStageId !== col.id && (
+                                     <div
+                                       className={`absolute inset-x-2 h-1 rounded-full bg-purple-600 shadow-md shadow-purple-500/50 z-30 pointer-events-none transition-all ${
+                                         dropPosition === "above" ? "-top-1" : "-bottom-1"
+                                       }`}
+                                     >
+                                       <div className="absolute -left-1 -top-0.5 w-2 h-2 rounded-full bg-purple-600 shadow-xs ring-2 ring-white" />
+                                       <div className="absolute -right-1 -top-0.5 w-2 h-2 rounded-full bg-purple-600 shadow-xs ring-2 ring-white" />
+                                     </div>
+                                   )}
 
-                                  <div className={`flex items-center gap-2 min-w-0 ${draggedStageId ? "pointer-events-none" : ""}`}>
-                                    {!isFirst && renderPlugSocket("input")}
-                                    <GripVertical className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 shrink-0 cursor-grab" />
-                                    {isFirst && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          onOpenEditColumn(col);
-                                        }}
-                                        className="p-1 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer text-slate-400 shrink-0"
-                                        title="Edit stage settings"
-                                      >
-                                        <Settings className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
-                                    <div className="min-w-0">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className={`font-bold text-xs uppercase tracking-wider block truncate ${col.hidden ? "text-slate-500" : "text-slate-900"}`}>
-                                          {col.label}
-                                        </span>
-                                        {isIndependent && !col.hidden && (
-                                          <span className="px-1.5 py-0.2 text-[9px] font-extrabold uppercase tracking-wider rounded-md bg-amber-100 text-amber-800 border border-amber-300/80 shadow-2xs shrink-0">
-                                            Independent
-                                          </span>
-                                        )}
-                                      </div>
-                                      <span className="text-[10px] text-slate-500 font-medium">
-                                        {count} {count === 1 ? "task" : "tasks"}
-                                      </span>
-                                    </div>
-                                  </div>
+                                   {/* Left Input Plug Socket (for incoming wires) */}
+                                   {!isFirst && renderPlugSocket("input")}
 
-                                  <div className={`flex items-center gap-1 text-slate-400 shrink-0 ${draggedStageId ? "pointer-events-none" : ""}`}>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleHide(col.id);
-                                      }}
-                                      className={`p-1.5 rounded-lg transition cursor-pointer ${
-                                        col.hidden
-                                          ? "text-rose-600 bg-rose-50 hover:bg-rose-100 ring-1 ring-rose-200"
-                                          : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-                                      }`}
-                                      title={col.hidden ? "Stage is hidden from board (Click to show)" : "Stage is visible on board (Click to hide)"}
-                                    >
-                                      {col.hidden ? (
-                                        <EyeOff className="w-3.5 h-3.5 text-rose-600" />
-                                      ) : (
-                                        <Eye className="w-3.5 h-3.5" />
-                                      )}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleUnplugStage(col.id);
-                                      }}
-                                      className={`p-1.5 rounded-lg transition cursor-pointer ${
-                                        isIndependent
-                                          ? "text-amber-600 bg-amber-50 hover:bg-amber-100 ring-1 ring-amber-300"
-                                          : "text-slate-400 hover:text-amber-600 hover:bg-amber-50/50"
-                                      }`}
-                                      title={
-                                        isIndependent
-                                          ? "Stage is unplugged / independent (Click to connect to pipeline)"
-                                          : "Unplug stage (Make independent stage)"
-                                      }
-                                    >
-                                      {isIndependent ? (
-                                        <Unplug className="w-3.5 h-3.5 text-amber-600" />
-                                      ) : (
-                                        <Plug className="w-3.5 h-3.5" />
-                                      )}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDropToLibrary(col.id);
-                                      }}
-                                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition cursor-pointer"
-                                      title="Move back to Stage Library"
-                                    >
-                                      <ArrowLeft className="w-3.5 h-3.5" />
-                                    </button>
-                                    {!isFirst && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          onOpenEditColumn(col);
-                                        }}
-                                        className="p-1 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer text-slate-400"
-                                        title="Edit stage settings"
-                                      >
-                                        <Settings className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
-                                    {!isLast && renderPlugSocket("output")}
-                                  </div>
-                                </div>
+                                   {/* Main Card Content (Stacked into 2 spacious, clean rows) */}
+                                   <div className={`flex-1 min-w-0 flex flex-col gap-1.5 ${draggedStageId ? "pointer-events-none" : ""}`}>
+                                     {/* Row 1: Dedicated Stage Title (Maximum horizontal width to avoid truncation) */}
+                                     <div className="flex items-center gap-1.5 min-w-0">
+                                       <span
+                                         className={`font-bold text-xs uppercase tracking-wider block truncate ${
+                                           col.hidden ? "text-slate-500" : "text-slate-900"
+                                         }`}
+                                         title={col.label}
+                                       >
+                                         {col.label}
+                                       </span>
+                                       {isIndependent && !col.hidden && (
+                                         <span className="px-1.5 py-0.2 text-[9px] font-extrabold uppercase tracking-wider rounded-md bg-amber-100 text-amber-800 border border-amber-300/80 shadow-2xs shrink-0">
+                                           Independent
+                                         </span>
+                                       )}
+                                     </div>
+
+                                     {/* Row 2: Sub-info (Drag handle, task count) & Re-allocated Action Buttons */}
+                                     <div className="flex items-center justify-between text-slate-400">
+                                       {/* Left: Drag handle & Task count */}
+                                       <div className="flex items-center gap-1.5 shrink-0">
+                                         <GripVertical className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 shrink-0 cursor-grab" />
+                                         <span className="text-[10px] text-slate-500 font-medium whitespace-nowrap">
+                                           {count} {count === 1 ? "task" : "tasks"}
+                                         </span>
+                                       </div>
+
+                                       {/* Right: Re-allocated Action Controls (Eye, Plug, Library, Settings) */}
+                                       <div className="flex items-center gap-0.5 shrink-0">
+                                         {/* Visibility (Hide / Show) */}
+                                         <button
+                                           type="button"
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             toggleHide(col.id);
+                                           }}
+                                           className={`p-1 rounded-md transition cursor-pointer ${
+                                             col.hidden
+                                               ? "text-rose-600 bg-rose-50 hover:bg-rose-100 ring-1 ring-rose-200"
+                                               : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                                           }`}
+                                           title={col.hidden ? "Stage is hidden from board (Click to show)" : "Stage is visible on board (Click to hide)"}
+                                         >
+                                           {col.hidden ? (
+                                             <EyeOff className="w-3.5 h-3.5 text-rose-600" />
+                                           ) : (
+                                             <Eye className="w-3.5 h-3.5" />
+                                           )}
+                                         </button>
+
+                                         {/* Plug / Unplug (Pipeline connection) */}
+                                         <button
+                                           type="button"
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             toggleUnplugStage(col.id);
+                                           }}
+                                           className={`p-1 rounded-md transition cursor-pointer ${
+                                             isIndependent
+                                               ? "text-amber-600 bg-amber-50 hover:bg-amber-100 ring-1 ring-amber-300"
+                                               : "text-slate-400 hover:text-amber-600 hover:bg-amber-50/50"
+                                           }`}
+                                           title={
+                                             isIndependent
+                                               ? "Stage is unplugged / independent (Click to connect to pipeline)"
+                                               : "Unplug stage (Make independent stage)"
+                                           }
+                                         >
+                                           {isIndependent ? (
+                                             <Unplug className="w-3.5 h-3.5 text-amber-600" />
+                                           ) : (
+                                             <Plug className="w-3.5 h-3.5" />
+                                           )}
+                                         </button>
+
+                                         {/* Move back to Library */}
+                                         <button
+                                           type="button"
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             handleDropToLibrary(col.id);
+                                           }}
+                                           className="opacity-0 group-hover:opacity-100 p-1 hover:text-purple-600 hover:bg-purple-50 rounded-md transition cursor-pointer text-slate-400"
+                                           title="Move back to Stage Library"
+                                         >
+                                           <ArrowLeft className="w-3.5 h-3.5" />
+                                         </button>
+
+                                         {/* Configure Stage */}
+                                         <button
+                                           type="button"
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             onOpenEditColumn(col);
+                                           }}
+                                           className="p-1 hover:text-slate-700 hover:bg-slate-100 rounded-md transition cursor-pointer text-slate-400"
+                                           title="Edit stage settings"
+                                         >
+                                           <Settings className="w-3.5 h-3.5" />
+                                         </button>
+                                       </div>
+                                     </div>
+                                   </div>
+
+                                   {/* Right Output Plug Socket (for outgoing wires) */}
+                                   {!isLast && renderPlugSocket("output")}
+                                 </div>
                               );
                             })}
 
