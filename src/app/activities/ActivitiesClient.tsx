@@ -1283,7 +1283,7 @@ export function ActivitiesClient({
                       style={colStyles.containerStyle}
                     >
                     {/* Top Column Section: Header & Cards List */}
-                    <div className="flex-1 flex flex-col min-h-0 relative">
+                    <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
                     {/* Column Header */}
                     <div className="flex items-start justify-between pb-1 gap-2 relative shrink-0">
                       <div className="flex flex-col min-w-0">
@@ -1473,7 +1473,7 @@ export function ActivitiesClient({
                     </div>
 
                     {/* Cards */}
-                    <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto pr-1 my-2 pb-2">
+                    <div className="space-y-2.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 my-2 pb-2">
                       {colActivities.length === 0 ? (
                         isInputStage(col, field) ? (
                           <button
@@ -1610,7 +1610,7 @@ export function ActivitiesClient({
                           return (
                             <div
                               key={act.id}
-                              className={`bg-white rounded-xl border border-slate-200/90 p-3 shadow-2xs hover:shadow-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col group/card relative ${
+                              className={`bg-white rounded-xl border border-slate-200/90 p-3 shadow-2xs hover:shadow-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col group/card relative w-full min-w-0 max-w-full ${
                                 activeKebabActivityId === act.id ? "z-30" : "z-10 hover:z-30"
                               }`}
                             >
@@ -1743,9 +1743,9 @@ export function ActivitiesClient({
                                     : "grid-rows-[1fr] opacity-100 mt-2.5"
                                 }`}
                               >
-                                <div className={`flex flex-col gap-2.5 ${isCollapsed ? "overflow-hidden" : "overflow-visible"}`}>
+                                <div className={`flex flex-col gap-2.5 min-w-0 max-w-full ${isCollapsed ? "overflow-hidden" : ""}`}>
                                   {/* Tags row: Platform, Content Type, Channel, Campaign */}
-                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                  <div className="flex items-center gap-1.5 flex-wrap min-w-0 max-w-full">
                                     <span
                                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${pStyle.bg} flex items-center gap-1 shrink-0`}
                                     >
@@ -1823,7 +1823,7 @@ export function ActivitiesClient({
                                   </div>
 
                                   {/* Bottom row: Date box [📅 Jul 15, 2025], Notes [≡], Owner Avatar */}
-                                  <div className="flex items-center justify-between pt-1 text-slate-600">
+                                  <div className="flex items-center justify-between pt-1 text-slate-600 min-w-0 max-w-full">
                                     <div className="flex items-center gap-1.5">
                                       {/* Date Box: [📅 Jun 10, 2025] */}
                                       <div className="flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 bg-slate-50/60 text-[10px] font-medium text-slate-600">
@@ -1869,7 +1869,7 @@ export function ActivitiesClient({
                                   </div>
 
                                   {/* Explicit & Chain Action Controls */}
-                                  <div className="pt-2 border-t border-slate-100 flex flex-col gap-1.5">
+                                  <div className="pt-2 border-t border-slate-100 flex flex-col gap-1.5 min-w-0 max-w-full">
                                     <div className="flex items-center gap-1">
                                       {act.status === "draft" && (
                                         <button
