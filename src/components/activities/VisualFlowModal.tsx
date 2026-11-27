@@ -140,6 +140,15 @@ export function VisualFlowModal({
   const [isEditFieldModalOpen, setIsEditFieldModalOpen] = useState(false);
   const [editingConnector, setEditingConnector] = useState<{ field: PipelineField; fIdx: number } | null>(null);
 
+  // Plug connection manager modal state
+  interface PlugManagerModalState {
+    fIdx: number;
+    field: PipelineField;
+    nextField: PipelineField;
+    side: "incoming" | "outgoing";
+  }
+  const [plugManagerModal, setPlugManagerModal] = useState<PlugManagerModalState | null>(null);
+
   // Selected stage for the Stage Inspector
   const [selectedColId, setSelectedColId] = useState<string>("in_progress");
   const [searchQuery, setSearchQuery] = useState("");
@@ -571,6 +580,8 @@ export function VisualFlowModal({
           setIsEditFieldModalOpen(false);
         } else if (editingConnector) {
           setEditingConnector(null);
+        } else if (plugManagerModal) {
+          setPlugManagerModal(null);
         } else {
           handleRequestClose();
         }
@@ -578,7 +589,7 @@ export function VisualFlowModal({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isDirty, showUnsavedPrompt, isHowToUseOpen, isAddFieldModalOpen, isEditFieldModalOpen, editingConnector]);
+  }, [isOpen, isDirty, showUnsavedPrompt, isHowToUseOpen, isAddFieldModalOpen, isEditFieldModalOpen, editingConnector, plugManagerModal]);
 
   if (!isOpen || !mounted) return null;
 
@@ -794,6 +805,102 @@ export function VisualFlowModal({
         `${col.label} reconnected to pipeline workflow.`
       );
     }
+  };
+
+  const handleToggleStagePlug = (
+    colId: string,
+    side: "incoming" | "outgoing",
+    shouldConnect: boolean
+  ) => {
+    const col = workingColumns.find((c) => c.id === colId);
+    if (!col) return;
+
+    const fIdx = pipelineFields.findIndex(
+      (f) => f.id === getColumnFieldId(col, pipelineFields)
+    );
+    const isFirst = fIdx === 0;
+    const isLast = fIdx === pipelineFields.length - 1;
+
+    const updated = workingColumns.map((c) => {
+      if (c.id === colId) {
+        if (side === "incoming") {
+          const nextUnpluggedOutput = !shouldConnect;
+          const nextUnpluggedInput = isFirst ? false : Boolean(c.unpluggedInput);
+          const nextIndependent =
+            nextUnpluggedOutput && (isFirst ? true : nextUnpluggedInput);
+          return {
+            ...c,
+            unpluggedOutput: nextUnpluggedOutput,
+            isIndependent: nextIndependent,
+          };
+        } else {
+          const nextUnpluggedInput = !shouldConnect;
+          const nextUnpluggedOutput = isLast ? false : Boolean(c.unpluggedOutput);
+          const nextIndependent =
+            nextUnpluggedInput && (isLast ? true : nextUnpluggedOutput);
+          return {
+            ...c,
+            unpluggedInput: nextUnpluggedInput,
+            isIndependent: nextIndependent,
+          };
+        }
+      }
+      return c;
+    });
+
+    pushHistory(updated);
+    if (shouldConnect) {
+      toast.success("Plug Connected", `${col.label} connected to transition.`);
+    } else {
+      toast.info("Plug Disconnected", `${col.label} unplugged from transition.`);
+    }
+  };
+
+  const handleBulkPlugToggle = (
+    stageIds: string[],
+    side: "incoming" | "outgoing",
+    connectAll: boolean
+  ) => {
+    const updated = workingColumns.map((c) => {
+      if (stageIds.includes(c.id)) {
+        const fIdx = pipelineFields.findIndex(
+          (f) => f.id === getColumnFieldId(c, pipelineFields)
+        );
+        const isFirst = fIdx === 0;
+        const isLast = fIdx === pipelineFields.length - 1;
+
+        if (side === "incoming") {
+          const nextUnpluggedOutput = !connectAll;
+          const nextUnpluggedInput = isFirst ? false : Boolean(c.unpluggedInput);
+          const nextIndependent =
+            nextUnpluggedOutput && (isFirst ? true : nextUnpluggedInput);
+          return {
+            ...c,
+            unpluggedOutput: nextUnpluggedOutput,
+            isIndependent: nextIndependent,
+          };
+        } else {
+          const nextUnpluggedInput = !connectAll;
+          const nextUnpluggedOutput = isLast ? false : Boolean(c.unpluggedOutput);
+          const nextIndependent =
+            nextUnpluggedInput && (isLast ? true : nextUnpluggedOutput);
+          return {
+            ...c,
+            unpluggedInput: nextUnpluggedInput,
+            isIndependent: nextIndependent,
+          };
+        }
+      }
+      return c;
+    });
+
+    pushHistory(updated);
+    toast.success(
+      connectAll ? "Stages Connected" : "Stages Unplugged",
+      connectAll
+        ? "All stages connected to transition."
+        : "All stages unplugged from transition."
+    );
   };
 
   const handleRename = (colId: string, newLabel: string) => {
@@ -2273,13 +2380,33 @@ export function VisualFlowModal({
                                     borderColor: conn.hidden ? undefined : connStyles.border,
                                     color: conn.hidden ? undefined : connStyles.text,
                                   }}
-                                  title="Click to customize transition button"
+                                  title="Click button body to edit transition appearance & properties"
                                 >
                                   {/* Left Port / Plug: Incoming wire landing site (z-20 over SVG wire) */}
                                   <span
                                     data-pill-port-left={fIdx}
-                                    className="w-4 h-4 rounded-full flex items-center justify-center border border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 shrink-0 relative z-20"
-                                    title="Incoming transition plug"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (activeUnplugged) {
+                                        if (activeUnplugged.type === "output" && activeUnplugged.fIdx === fIdx) {
+                                          handlePlugInto(activeUnplugged.sourceColId, "output", fIdx);
+                                        } else {
+                                          toast.info(
+                                            "Direction Mismatch",
+                                            "Left plug only accepts outgoing connections from the left field."
+                                          );
+                                        }
+                                        return;
+                                      }
+                                      setPlugManagerModal({
+                                        fIdx,
+                                        field,
+                                        nextField,
+                                        side: "incoming",
+                                      });
+                                    }}
+                                    className="w-5 h-5 rounded-full flex items-center justify-center border border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 shrink-0 relative z-20 cursor-pointer hover:scale-125 hover:ring-2 hover:ring-purple-400 transition-all"
+                                    title="Incoming plug: Click to manage connected stages (plug / unplug)"
                                   >
                                     {conn.hidden ? (
                                       <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shadow-inner" />
@@ -2294,7 +2421,7 @@ export function VisualFlowModal({
                                   </span>
 
                                   {/* Button Content / Label / Icon (z-20 over SVG wire) */}
-                                  <span className="flex items-center gap-1.5 px-0.5 relative z-20">
+                                  <span className="flex items-center gap-1.5 px-0.5 relative z-20 pointer-events-none">
                                     {conn.hidden ? (
                                       <>
                                         <EyeOff className="w-3.5 h-3.5 text-slate-400" />
@@ -2316,8 +2443,28 @@ export function VisualFlowModal({
                                   {/* Right Port / Plug: Outgoing wire departure site (z-20 over SVG wire) */}
                                   <span
                                     data-pill-port-right={fIdx}
-                                    className="w-4 h-4 rounded-full flex items-center justify-center border border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 shrink-0 relative z-20"
-                                    title="Outgoing transition plug"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (activeUnplugged) {
+                                        if (activeUnplugged.type === "input" && activeUnplugged.fIdx === fIdx) {
+                                          handlePlugInto(activeUnplugged.sourceColId, "input", fIdx);
+                                        } else {
+                                          toast.info(
+                                            "Direction Mismatch",
+                                            "Right plug only connects to incoming ports of the right field."
+                                          );
+                                        }
+                                        return;
+                                      }
+                                      setPlugManagerModal({
+                                        fIdx,
+                                        field,
+                                        nextField,
+                                        side: "outgoing",
+                                      });
+                                    }}
+                                    className="w-5 h-5 rounded-full flex items-center justify-center border border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 shrink-0 relative z-20 cursor-pointer hover:scale-125 hover:ring-2 hover:ring-purple-400 transition-all"
+                                    title="Outgoing plug: Click to manage connected stages (plug / unplug)"
                                   >
                                     {conn.hidden ? (
                                       <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shadow-inner" />
@@ -3480,6 +3627,184 @@ export function VisualFlowModal({
           onSave={handleSaveConnector}
         />
       )}
+
+      {/* PLUG CONNECTION MANAGER MODAL */}
+      {plugManagerModal && (() => {
+        const { fIdx, field, nextField, side } = plugManagerModal;
+        const isIncoming = side === "incoming";
+        const targetField = isIncoming ? field : nextField;
+        const conn = getResolvedFieldConnector(field, fIdx, pipelineFields);
+
+        // Stages in the relevant field
+        const stagesInField = workingColumns.filter(
+          (c) => getColumnFieldId(c, pipelineFields) === targetField.id && !c.inLibrary
+        );
+
+        const connectedStages = stagesInField.filter((c) =>
+          isIncoming ? !c.isIndependent && !c.unpluggedOutput : !c.isIndependent && !c.unpluggedInput
+        );
+        const disconnectedStages = stagesInField.filter((c) =>
+          isIncoming ? c.isIndependent || c.unpluggedOutput : c.isIndependent || c.unpluggedInput
+        );
+
+        const allConnected = stagesInField.length > 0 && connectedStages.length === stagesInField.length;
+        const allDisconnected = stagesInField.length > 0 && disconnectedStages.length === stagesInField.length;
+
+        return (
+          <div
+            className="fixed top-16 inset-x-0 bottom-0 z-[95] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-150"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setPlugManagerModal(null);
+            }}
+          >
+            <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md sm:max-w-lg w-full p-6 sm:p-7 text-center relative select-none animate-in zoom-in-95 duration-150 my-auto">
+              {/* Close Button Top Right */}
+              <button
+                type="button"
+                onClick={() => setPlugManagerModal(null)}
+                className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                title="Close dialog"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Clean Standalone Top Icon */}
+              <div className="mx-auto mb-3 flex items-center justify-center text-purple-600">
+                <Share2 className="w-10 h-10 stroke-[2.2]" />
+              </div>
+
+              {/* Title */}
+              <h3 className="font-bold text-lg sm:text-xl text-slate-900 tracking-tight leading-snug">
+                {isIncoming ? "Incoming" : "Outgoing"} Stage Connections
+              </h3>
+
+              {/* Description */}
+              <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1.5 leading-relaxed max-w-md mx-auto">
+                {isIncoming ? (
+                  <>
+                    Manage which stages from <strong className="text-slate-700">{field.name}</strong> plug into the{" "}
+                    <span className="font-semibold text-purple-700">{conn.label || "transition button"}</span>.
+                  </>
+                ) : (
+                  <>
+                    Manage which stages in <strong className="text-slate-700">{nextField.name}</strong> receive the workflow from the{" "}
+                    <span className="font-semibold text-purple-700">{conn.label || "transition button"}</span>.
+                  </>
+                )}
+              </p>
+
+              {/* Status & Bulk Actions Bar */}
+              <div className="flex items-center justify-between mt-5 mb-3 px-1 text-xs">
+                <span className="font-semibold text-slate-500">
+                  <strong className="text-slate-800">{connectedStages.length}</strong> of {stagesInField.length} stages plugged
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={allConnected || stagesInField.length === 0}
+                    onClick={() => handleBulkPlugToggle(stagesInField.map((s) => s.id), side, true)}
+                    className="px-2.5 py-1 rounded-lg text-xs font-semibold text-purple-700 hover:text-purple-900 hover:bg-purple-50 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center gap-1"
+                  >
+                    <Plug className="w-3 h-3" />
+                    <span>Plug All</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={allDisconnected || stagesInField.length === 0}
+                    onClick={() => handleBulkPlugToggle(stagesInField.map((s) => s.id), side, false)}
+                    className="px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:text-rose-800 hover:bg-rose-50 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center gap-1"
+                  >
+                    <Unplug className="w-3 h-3" />
+                    <span>Unplug All</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Stages List */}
+              <div className="max-h-60 overflow-y-auto space-y-2 pr-1 text-left">
+                {stagesInField.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-slate-400">
+                    No stages found in this field.
+                  </div>
+                ) : (
+                  stagesInField.map((stage) => {
+                    const isConnected = isIncoming
+                      ? !stage.isIndependent && !stage.unpluggedOutput
+                      : !stage.isIndependent && !stage.unpluggedInput;
+                    const stStyles = getColumnStyles(stage);
+                    const dotColor = stStyles.dotHex || stStyles.accentHex;
+
+                    return (
+                      <div
+                        key={stage.id}
+                        className={`rounded-xl border p-2.5 flex items-center justify-between transition-colors ${
+                          isConnected
+                            ? "bg-white border-slate-200/90 shadow-2xs hover:border-slate-300"
+                            : "bg-slate-50/70 border-dashed border-slate-300 opacity-75 hover:opacity-100"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {/* Dot indicator */}
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
+                            style={{ backgroundColor: dotColor }}
+                          />
+                          <span className="font-semibold text-xs text-slate-800 truncate">
+                            {stage.label}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                              isConnected
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-100 text-slate-500 border-slate-200"
+                            }`}
+                          >
+                            {isConnected ? "Plugged" : "Not Linked"}
+                          </span>
+                        </div>
+
+                        {/* Interactive Plug / Unplug Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStagePlug(stage.id, side, !isConnected)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 ${
+                            isConnected
+                              ? "border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300"
+                              : "bg-purple-600 hover:bg-purple-700 text-white shadow-2xs"
+                          }`}
+                        >
+                          {isConnected ? (
+                            <>
+                              <Unplug className="w-3.5 h-3.5" />
+                              <span>Unplug</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plug className="w-3.5 h-3.5" />
+                              <span>Plug In</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 mt-6 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setPlugManagerModal(null)}
+                  className="px-6 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 shadow-xs hover:shadow-md transition cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>,
     document.body
   );
