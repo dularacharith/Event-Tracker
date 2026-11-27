@@ -619,7 +619,7 @@ export function VisualFlowModal({
     if (activeUnplugged.type !== targetType) {
       toast.info(
         "Direction Mismatch",
-        "Left-side inputs cannot connect to right-side outputs. Connections flow strictly left-to-right."
+        "Left-side plugs cannot be connected to right-side plugs. Connections must flow strictly from left to right."
       );
       return;
     }
@@ -627,7 +627,7 @@ export function VisualFlowModal({
     if (activeUnplugged.fIdx !== targetFIdx) {
       toast.info(
         "Field Mismatch",
-        "Plugs cannot cross non-adjacent fields. Connections flow sequentially from stage to stage."
+        "Plugs cannot connect across different fields. Left-side fields cannot be connected directly to distant right-side fields."
       );
       return;
     }
@@ -1956,10 +1956,17 @@ export function VisualFlowModal({
                                         if (isValidTarget) {
                                           handlePlugInto(col.id, type, connFIdx);
                                         } else {
-                                          toast.info(
-                                            "Direction Mismatch",
-                                            "Connections flow strictly left-to-right between adjacent fields."
-                                          );
+                                          if (activeUnplugged.type !== type) {
+                                            toast.info(
+                                              "Direction Mismatch",
+                                              "Left-side plugs cannot be connected to right-side plugs. Connections must flow strictly from left to right."
+                                            );
+                                          } else {
+                                            toast.info(
+                                              "Field Mismatch",
+                                              "Plugs cannot connect across different fields. Left-side fields cannot be connected directly to distant right-side fields."
+                                            );
+                                          }
                                         }
                                       } else {
                                         if (isPlugged) {
@@ -1980,7 +1987,9 @@ export function VisualFlowModal({
                                     }`}
                                     title={
                                       isInvalidTarget
-                                        ? "Cannot connect: Direction is strictly left-to-right"
+                                        ? activeUnplugged.type !== type
+                                          ? "Cannot connect: Left-side plugs cannot be connected to right-side plugs"
+                                          : "Cannot connect: Plugs cannot connect across different fields"
                                         : isValidTarget
                                         ? `Click to plug connection into ${col.label}`
                                         : isPlugged
@@ -2236,7 +2245,7 @@ export function VisualFlowModal({
 
                         {/* Connector Transition Pill between fields */}
                         {!isLast && nextField && (
-                          <div className="w-36 sm:w-40 h-36 relative shrink-0 flex items-center justify-center z-10 pointer-events-auto">
+                          <div className="w-36 sm:w-40 h-36 relative shrink-0 flex items-center justify-center pointer-events-auto">
                             {(() => {
                               const conn = getResolvedFieldConnector(field, fIdx, pipelineFields);
                               const connStyles = getConnectorStyles(conn.colorTheme);
@@ -2248,8 +2257,14 @@ export function VisualFlowModal({
                                 <button
                                   data-connector-btn={fIdx}
                                   type="button"
-                                  onClick={() => setEditingConnector({ field, fIdx })}
-                                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 text-xs font-bold px-3.5 py-1.5 rounded-full shadow-xs z-20 select-none whitespace-nowrap transition cursor-pointer flex items-center gap-2 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] group ${
+                                  onClick={() => {
+                                    if (activeUnplugged) {
+                                      handleCancelUnplug();
+                                      return;
+                                    }
+                                    setEditingConnector({ field, fIdx });
+                                  }}
+                                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border-2 text-xs font-bold px-3.5 py-1.5 rounded-full shadow-xs select-none whitespace-nowrap transition cursor-pointer flex items-center gap-2 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] group ${
                                     conn.hidden
                                       ? "opacity-60 hover:opacity-100 border-dashed bg-slate-100/90 text-slate-500"
                                       : "hover:shadow-md"
@@ -2260,10 +2275,10 @@ export function VisualFlowModal({
                                   }}
                                   title="Click to customize transition button"
                                 >
-                                  {/* Left Port / Plug: Incoming wire landing site */}
+                                  {/* Left Port / Plug: Incoming wire landing site (z-20 over SVG wire) */}
                                   <span
                                     data-pill-port-left={fIdx}
-                                    className="w-4 h-4 rounded-full flex items-center justify-center border border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 shrink-0"
+                                    className="w-4 h-4 rounded-full flex items-center justify-center border border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 shrink-0 relative z-20"
                                     title="Incoming transition plug"
                                   >
                                     {conn.hidden ? (
@@ -2278,8 +2293,8 @@ export function VisualFlowModal({
                                     )}
                                   </span>
 
-                                  {/* Button Content / Label / Icon */}
-                                  <span className="flex items-center gap-1.5 px-0.5">
+                                  {/* Button Content / Label / Icon (z-20 over SVG wire) */}
+                                  <span className="flex items-center gap-1.5 px-0.5 relative z-20">
                                     {conn.hidden ? (
                                       <>
                                         <EyeOff className="w-3.5 h-3.5 text-slate-400" />
@@ -2298,10 +2313,10 @@ export function VisualFlowModal({
                                     )}
                                   </span>
 
-                                  {/* Right Port / Plug: Outgoing wire departure site */}
+                                  {/* Right Port / Plug: Outgoing wire departure site (z-20 over SVG wire) */}
                                   <span
                                     data-pill-port-right={fIdx}
-                                    className="w-4 h-4 rounded-full flex items-center justify-center border border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 shrink-0"
+                                    className="w-4 h-4 rounded-full flex items-center justify-center border border-slate-300 bg-white shadow-2xs ring-1 ring-slate-200/90 shrink-0 relative z-20"
                                     title="Outgoing transition plug"
                                   >
                                     {conn.hidden ? (
